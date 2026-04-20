@@ -1,0 +1,10 @@
+{
+  "name": "vidium",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "check": "tsc --noEmit",
+    "format": "biome format --write .",
+    "lint": "biome lint ."
+  }
+}
