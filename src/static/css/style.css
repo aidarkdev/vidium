@@ -266,27 +266,37 @@ button.btn-audio:hover {
 }
 
 .nav-links .add-channel[open] .add-channel-panel {
-  position: fixed;
-  top: 3rem;
-  right: 0.75rem;
-  left: 0.75rem;
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  min-width: 340px;
   background: #1a1a1a;
   border: 1px solid #333;
   border-radius: 0.4rem;
   padding: 0.75rem;
   z-index: 100;
-  max-width: 480px;
-  margin-left: auto;
+}
+
+@media (max-width: 600px) {
+  .nav-links .add-channel[open] .add-channel-panel {
+    position: fixed;
+    top: 3.5rem;
+    left: 1rem;
+    right: 1rem;
+    min-width: 0;
+  }
 }
 
 .add-channel-form {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: 0.5rem;
   margin-top: 0.75rem;
 }
 
-.add-channel-form input {
+.add-channel-form input,
+.add-channel-form button {
+  width: 100%;
   padding: 0.4rem 0.6rem;
   border: 1px solid #444;
   border-radius: 0.25rem;
@@ -294,26 +304,14 @@ button.btn-audio:hover {
   color: #eee;
   font: inherit;
   font-size: 0.875rem;
-}
-
-.add-channel-form input[name="url"] {
-  flex: 1;
-  min-width: 0;
-}
-
-.add-channel-form input[name="tags"] {
-  width: 150px;
+  box-sizing: border-box;
 }
 
 .add-channel-form button {
-  padding: 0.4rem 1rem;
   background: #2563eb;
   color: #fff;
   border: none;
-  border-radius: 0.25rem;
   cursor: pointer;
-  font: inherit;
-  font-size: 0.875rem;
 }
 
 .add-channel-msg {
