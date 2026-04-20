@@ -266,15 +266,17 @@ button.btn-audio:hover {
 }
 
 .nav-links .add-channel[open] .add-channel-panel {
-  position: absolute;
-  top: calc(100% + 0.5rem);
-  right: 0;
+  position: fixed;
+  top: 3rem;
+  right: 0.75rem;
+  left: 0.75rem;
   background: #1a1a1a;
   border: 1px solid #333;
   border-radius: 0.4rem;
   padding: 0.75rem;
   z-index: 100;
-  min-width: 340px;
+  max-width: 480px;
+  margin-left: auto;
 }
 
 .add-channel-form {
@@ -296,7 +298,7 @@ button.btn-audio:hover {
 
 .add-channel-form input[name="url"] {
   flex: 1;
-  min-width: 250px;
+  min-width: 0;
 }
 
 .add-channel-form input[name="tags"] {
