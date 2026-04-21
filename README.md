@@ -81,3 +81,28 @@ systemctl restart vidium-server vidium-worker
 ssh root@<VPS_IP> 'journalctl -u vidium-server -n 50 --no-pager'
 ssh root@<VPS_IP> 'journalctl -u vidium-worker -n 50 --no-pager'
 ```
+
+---
+
+## Development
+
+**Prerequisites:** Node.js 24, [Biome](https://biomejs.dev) installed globally (`npm i -g @biomejs/biome`).
+
+### Type checking
+
+```bash
+node --run check
+```
+
+### Linting
+
+```bash
+node --run lint       # check only
+biome lint --write .  # check + autofix
+```
+
+### Formatting
+
+```bash
+node --run format
+```
