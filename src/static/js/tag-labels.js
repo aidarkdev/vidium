@@ -30,6 +30,7 @@
       const collapsed = feedTags.classList.toggle('collapsed');
       store.set(collapsed ? '1' : '0');
       updateIcon(collapsed);
+      if (!collapsed) window.scrollTo({ top: 0, behavior: 'smooth' });
     };
     tagsToggle.addEventListener('click', doToggle);
     tagsToggle.addEventListener('touchend', (e) => {
