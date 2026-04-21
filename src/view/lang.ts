@@ -43,7 +43,7 @@ const strings: Record<Lang, Record<string, string>> = {
     'tag.manual': 'manual',
 
     // Player
-    'player.back': 'Back to feed',
+    'player.back': 'Back',
 
     // Add video
     'video.add': '+video',
@@ -98,7 +98,7 @@ const strings: Record<Lang, Record<string, string>> = {
     'tag.manual': 'manual',
 
     // Player
-    'player.back': 'Назад к ленте',
+    'player.back': 'Назад',
 
     // Add video
     'video.add': '+видео',

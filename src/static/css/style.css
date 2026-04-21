@@ -376,10 +376,6 @@ button.btn-audio:hover {
   border-radius: 0.5rem;
 }
 
-.player-title {
-  font-size: 1.25rem;
-  margin: 1rem 0 0.75rem;
-}
 
 .audio-seek {
   display: flex;
@@ -415,15 +411,28 @@ button.btn-audio:hover {
 }
 
 .player-back {
-  font-size: 0.9rem;
+  font-size: 1.25rem;
   font-weight: 700;
-  color: #888;
-  background: none;
-  border: none;
+  color: #ccc;
+  background: #222;
+  border: 1px solid #444;
+  border-radius: 0.25rem;
   cursor: pointer;
-  padding: 0;
-  margin-bottom: 0.75rem;
+  padding: 0.4rem 1rem;
+  margin-bottom: 1rem;
   display: inline-block;
+}
+.player-back:hover { color: #fff; border-color: #888; background: #333; }
+
+.player-title { margin: 1rem 0 0.75rem; }
+.player-channel {
+  font-size: 0.95rem;
+  margin-bottom: 0.25rem;
+}
+.player-title-text {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #eee;
 }
 
 /* ── Channel page ────────────────────────────────────────────────────────── */
