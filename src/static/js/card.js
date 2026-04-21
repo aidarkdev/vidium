@@ -170,6 +170,7 @@ async function checkSince() {
   const res = await fetch(`/api/since?t=${SINCE}`);
   const items = await res.json();
   if (!items.length) return;
+  SINCE = Date.now();
   CARDS.unshift(...items);
   container.insertAdjacentHTML('afterbegin', items.map(renderCard).join(''));
 }
