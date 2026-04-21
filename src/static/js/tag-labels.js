@@ -7,29 +7,9 @@
   const tagsToggle = document.getElementById('tags-toggle');
 
   if (feedTags && tagsToggle) {
-    const store = {
-      get: () => {
-        try {
-          return localStorage.getItem('tags-collapsed');
-        } catch {
-          return null;
-        }
-      },
-      set: (v) => {
-        try {
-          localStorage.setItem('tags-collapsed', v);
-        } catch {}
-      },
-    };
-    if (store.get() === '1') feedTags.classList.add('collapsed');
-    const updateIcon = (collapsed) => {
-      tagsToggle.classList.toggle('open', !collapsed);
-    };
-    updateIcon(feedTags.classList.contains('collapsed'));
     const doToggle = () => {
       const collapsed = feedTags.classList.toggle('collapsed');
-      store.set(collapsed ? '1' : '0');
-      updateIcon(collapsed);
+      tagsToggle.classList.toggle('open', !collapsed);
       if (!collapsed) window.scrollTo({ top: 0, behavior: 'smooth' });
     };
     tagsToggle.addEventListener('click', doToggle);

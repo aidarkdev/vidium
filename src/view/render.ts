@@ -98,8 +98,9 @@ export function renderFeedPage(opts: FeedPageOptions): string {
     error: t(opts.lang, 'video.error'),
   };
 
-  const body = `<div class="feed-tags" id="feed-tags">
-  <div class="tags-list"><button class="tags-toggle" id="tags-toggle">&#10095;</button>${tagLinks}</div>
+  const collapsed = opts.activeTag !== 'all' && opts.activeTag !== 'ready';
+  const body = `<div class="feed-tags${collapsed ? ' collapsed' : ''}" id="feed-tags">
+  <div class="tags-list"><button class="tags-toggle${collapsed ? '' : ' open'}" id="tags-toggle">&#10095;</button>${tagLinks}</div>
 </div>
 <div class="cards" id="cards"></div>
 <button class="btn-more" id="btn-more">Load more</button>`;
