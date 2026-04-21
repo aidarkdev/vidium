@@ -26,7 +26,7 @@ cd /root/vidium
 sudo bash setup.sh
 ```
 
-The script installs Node.js 24, nginx, certbot, yt-dlp; creates `data/` and `media/` directories; sets up nginx config; creates systemd services `vidium-server` and `vidium-worker`; and generates a `.env` template.
+The script installs Node.js 24, nginx, certbot, "some_cli_tool"; creates `data/` and `media/` directories; sets up nginx config; creates systemd services `vidium-server` and `vidium-worker`; and generates a `.env` template.
 
 **3. Configure `.env`**
 
@@ -41,8 +41,8 @@ Key variables:
 | `DOMAIN` | Your domain name |
 | `INVITE_CODE` | Secret code for user registration (change from `changeme`) |
 | `DEFAULT_LANG` | `en` or `ru` |
-| `YTDLP_PROXY` | you know why |
-| `YTDLP_COOKIES` | you know why |
+| `some_cli_tool_PROXY` | you know why |
+| `some_cli_tool_COOKIES` | you know why |
 
 **4. Get HTTPS**
 
