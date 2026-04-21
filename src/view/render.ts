@@ -99,7 +99,7 @@ export function renderFeedPage(opts: FeedPageOptions): string {
   };
 
   const body = `<div class="feed-tags" id="feed-tags">
-  <div class="tags-list"><button class="tags-toggle" id="tags-toggle">&#9776;</button>${tagLinks}</div>
+  <div class="tags-list"><button class="tags-toggle" id="tags-toggle">&#10095;</button>${tagLinks}</div>
 </div>
 <div class="cards" id="cards"></div>
 <button class="btn-more" id="btn-more">Load more</button>`;

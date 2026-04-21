@@ -46,14 +46,14 @@ const strings: Record<Lang, Record<string, string>> = {
     'player.back': 'Back to feed',
 
     // Add video
-    'video.add': '+ video',
+    'video.add': '+video',
     'video.add.placeholder': 'https://www.youtube.com/watch?v=...',
     'video.added': 'Video added',
     'video.exists': 'Video already exists',
     'video.error': 'Error adding video',
 
     // Add channel
-    'channel.add': '+ channel',
+    'channel.add': '+channel',
     'channel.add.placeholder': 'https://www.youtube.com/@channel',
     'channel.add.tags_placeholder': 'tag1,tag2',
     'channel.added': 'Channel added — crawling started',
@@ -101,14 +101,14 @@ const strings: Record<Lang, Record<string, string>> = {
     'player.back': 'Назад к ленте',
 
     // Add video
-    'video.add': '+ видео',
+    'video.add': '+видео',
     'video.add.placeholder': 'https://www.youtube.com/watch?v=...',
     'video.added': 'Видео добавлено',
     'video.exists': 'Видео уже есть',
     'video.error': 'Ошибка добавления видео',
 
     // Add channel
-    'channel.add': '+ канал',
+    'channel.add': '+канал',
     'channel.add.placeholder': 'https://www.youtube.com/@channel',
     'channel.add.tags_placeholder': 'тег1,тег2',
     'channel.added': 'Канал добавлен — краулинг запущен',

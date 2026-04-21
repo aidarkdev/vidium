@@ -44,11 +44,15 @@ const stmtGetSince = db.prepare(
   `${SEL} WHERE v.created_at > ? ORDER BY v.date DESC, v.created_at DESC LIMIT 50`,
 );
 const stmtGetReady = db.prepare(
-  `${SEL} WHERE v.video_status = 'ready' OR v.audio_status = 'ready' ORDER BY v.date DESC, v.created_at DESC LIMIT 200`,
+  `${SEL} WHERE v.video_status = 'ready' OR v.audio_status = 'ready' ORDER BY v.ready_at DESC LIMIT 200`,
 );
 const stmtExists = db.prepare(`SELECT id FROM videos WHERE youtube_id = ?`);
-const stmtSetVideoStatus = db.prepare(`UPDATE videos SET video_status = ? WHERE youtube_id = ?`);
-const stmtSetAudioStatus = db.prepare(`UPDATE videos SET audio_status = ? WHERE youtube_id = ?`);
+const stmtSetVideoStatus = db.prepare(
+  `UPDATE videos SET video_status = ?, ready_at = CASE WHEN ? = 'ready' THEN strftime('%Y-%m-%dT%H:%M:%SZ','now') ELSE ready_at END WHERE youtube_id = ?`,
+);
+const stmtSetAudioStatus = db.prepare(
+  `UPDATE videos SET audio_status = ?, ready_at = CASE WHEN ? = 'ready' THEN strftime('%Y-%m-%dT%H:%M:%SZ','now') ELSE ready_at END WHERE youtube_id = ?`,
+);
 const stmtSetDuration = db.prepare(
   `UPDATE videos SET duration = ? WHERE youtube_id = ? AND duration = 0`,
 );
@@ -118,11 +122,11 @@ export function videoExists(youtubeId: string): boolean {
 }
 
 export function setVideoStatus(youtubeId: string, status: string): void {
-  stmtSetVideoStatus.run(status, youtubeId);
+  stmtSetVideoStatus.run(status, status, youtubeId);
 }
 
 export function setAudioStatus(youtubeId: string, status: string): void {
-  stmtSetAudioStatus.run(status, youtubeId);
+  stmtSetAudioStatus.run(status, status, youtubeId);
 }
 
 export function setDurationIfZero(youtubeId: string, duration: number): void {

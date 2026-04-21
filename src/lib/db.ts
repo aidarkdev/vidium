@@ -104,6 +104,7 @@ const migrations = [
   `ALTER TABLE channels DROP COLUMN crawl_from_date`,
   `ALTER TABLE jobs DROP COLUMN updated_at`,
   `ALTER TABLE users DROP COLUMN role`,
+  `ALTER TABLE videos ADD COLUMN ready_at TEXT`,
 ];
 for (const sql of migrations) {
   try {

@@ -42,6 +42,8 @@ ${opts.head ?? ''}
 <main class="main">
 ${opts.body}
 </main>
+<button class="btn-top" id="btn-top" onclick="window.scrollTo({top:0,behavior:'smooth'})">&#8679;</button>
+<script>(()=>{const b=document.getElementById('btn-top');window.addEventListener('scroll',()=>b.classList.toggle('visible',window.scrollY>300),{passive:true});})();</script>
 ${scripts}
 </body>
 </html>`;

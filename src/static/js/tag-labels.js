@@ -21,9 +21,9 @@
         } catch {}
       },
     };
-    if (store.get() !== '0') feedTags.classList.add('collapsed');
+    if (store.get() === '1') feedTags.classList.add('collapsed');
     const updateIcon = (collapsed) => {
-      tagsToggle.innerHTML = collapsed ? '&#9776;' : '&#9776;';
+      tagsToggle.classList.toggle('open', !collapsed);
     };
     updateIcon(feedTags.classList.contains('collapsed'));
     const doToggle = () => {
