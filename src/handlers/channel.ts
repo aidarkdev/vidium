@@ -4,7 +4,7 @@
 
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { requireSession, notFound, html } from '../lib/http.ts';
-import { getChannelById } from '../lib/channel.ts';
+import { getChannelById, getAllChannels } from '../lib/channel.ts';
 import { getVideosByChannel, countVideosByChannel } from '../lib/video.ts';
 import { renderChannelPage } from '../view/render.ts';
 import { config } from '../config.ts';
@@ -30,10 +30,11 @@ export function handleChannel(
     renderChannelPage({
       lang,
       channelId: channel.id,
-      channelName: channel.name,
+      channelName: channel.displayName || channel.name,
       cards,
       hasMore: total > 100,
       since: Date.now(),
+      channels: getAllChannels(),
     }),
   );
 }

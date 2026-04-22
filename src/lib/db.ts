@@ -35,7 +35,8 @@ db.exec(`
     url                TEXT    NOT NULL UNIQUE,
     youtube_channel_id TEXT    NOT NULL DEFAULT '',
     tags               TEXT    NOT NULL DEFAULT '',
-    last_crawled       TEXT
+    last_crawled       TEXT,
+    display_name       TEXT    NOT NULL DEFAULT ''
   );
 
   CREATE TABLE IF NOT EXISTS videos (
@@ -51,7 +52,8 @@ db.exec(`
                    CHECK(audio_status IN ('none','queued','downloading','ready','expired')),
     source_type  TEXT    NOT NULL DEFAULT 'channel'
                    CHECK(source_type IN ('channel','manual')),
-    created_at   TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now'))
+    created_at   TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now')),
+    ready_at     TEXT
   );
 
   CREATE TABLE IF NOT EXISTS jobs (
@@ -94,26 +96,11 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_sessions_expires ON sessions(expires);
 `);
 
-// ── Migrations (idempotent) ───────────────────────────────────────────────────
-// Drop columns that were removed from the schema.
-
-const migrations = [
-  `ALTER TABLE videos DROP COLUMN bytes_downloaded`,
-  `ALTER TABLE videos DROP COLUMN added_by_user_id`,
-  `ALTER TABLE videos DROP COLUMN updated_at`,
-  `ALTER TABLE channels DROP COLUMN crawl_from_date`,
-  `ALTER TABLE jobs DROP COLUMN updated_at`,
-  `ALTER TABLE users DROP COLUMN role`,
-  `ALTER TABLE videos ADD COLUMN ready_at TEXT`,
-];
-for (const sql of migrations) {
-  try {
-    db.exec(sql);
-  } catch {}
-}
-
 // ── System channels ───────────────────────────────────────────────────────────
 
 db.prepare(
   `INSERT OR IGNORE INTO channels (id, name, url, tags) VALUES (1, 'manual', '', 'manual')`,
+).run();
+db.prepare(
+  `UPDATE channels SET display_name = 'Загрузки' WHERE id = 1 AND display_name = ''`,
 ).run();

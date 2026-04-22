@@ -11,7 +11,6 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { requireSession, notFound } from '../lib/http.ts';
 import { getVideoById } from '../lib/video.ts';
-import { getTagLabels } from '../lib/channel.ts';
 import { page } from '../view/page.ts';
 import { esc } from '../view/esc.ts';
 import { t } from '../view/lang.ts';
@@ -52,13 +51,10 @@ export function handleVideo(
   if (!video) return notFound(res);
 
   const lang = session.data.lang ?? 'en';
-  const tagLabels = getTagLabels();
-  const nameTag = video.channelName.toLowerCase().replace(/[^a-z0-9_-]/g, '');
-  const displayChannel = tagLabels[nameTag] ?? video.channelName;
   const html = renderPlayer(
     lang,
     video.title,
-    displayChannel,
+    video.channelName,
     `<video id="video-player" controls autoplay preload="metadata" src="/media/v/${esc(id)}">Your browser does not support the video element.</video>
   <div class="audio-seek">
     <button onclick="seek(-30)">−30s</button>
@@ -92,13 +88,10 @@ export function handleAudio(
   if (!video) return notFound(res);
 
   const lang = session.data.lang ?? 'en';
-  const tagLabels = getTagLabels();
-  const nameTag = video.channelName.toLowerCase().replace(/[^a-z0-9_-]/g, '');
-  const displayChannel = tagLabels[nameTag] ?? video.channelName;
   const html = renderPlayer(
     lang,
     video.title,
-    displayChannel,
+    video.channelName,
     `<img class="player-thumb" src="/t/${esc(id)}" alt="${esc(video.title)}">
   <audio id="audio-player" controls autoplay preload="metadata" src="/media/a/${esc(id)}">Your browser does not support the audio element.</audio>
   <div class="audio-seek">

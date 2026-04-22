@@ -5,7 +5,7 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { requireSession, html } from '../lib/http.ts';
 import { getAllVideos, getVideosByTag, getReadyVideos } from '../lib/video.ts';
-import { getAllTags, getTagLabels } from '../lib/channel.ts';
+import { getAllTags, getTagLabels, getAllChannels } from '../lib/channel.ts';
 import { renderFeedPage } from '../view/render.ts';
 import { config } from '../config.ts';
 
@@ -24,6 +24,7 @@ export function handleFeed(
     tag === 'all' ? getAllVideos() : tag === 'ready' ? getReadyVideos() : getVideosByTag(tag);
   const tags = getAllTags();
   const tagLabels = getTagLabels();
+  const channels = getAllChannels();
 
-  html(res, renderFeedPage({ lang, cards, tags, tagLabels, activeTag: tag, since: Date.now() }));
+  html(res, renderFeedPage({ lang, cards, tags, tagLabels, activeTag: tag, channels, since: Date.now() }));
 }

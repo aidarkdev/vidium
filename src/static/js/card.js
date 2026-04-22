@@ -44,9 +44,7 @@ function esc(str) {
 // ── Card rendering ────────────────────────────────────────────────────────────
 
 function resolveChannelName(name) {
-  if (typeof TAG_LABELS === 'undefined') return name;
-  const key = name.toLowerCase().replace(/[^a-z0-9_-]/g, '');
-  return TAG_LABELS[key] || name;
+  return name;
 }
 
 function actionButton(id, type, status) {

@@ -7,36 +7,49 @@ import { esc } from './esc.ts';
 import { t } from './lang.ts';
 
 export function renderLoginPage(lang: string, error?: string): string {
+  const title = t(lang, 'auth.login.title');
+  const heading = t(lang, 'auth.login');
   const errorHtml = error ? `<p class="form-error">${esc(t(lang, error))}</p>` : '';
+  const loginLabel = t(lang, 'auth.field.login');
+  const passwordLabel = t(lang, 'auth.field.password');
+  const submitLabel = t(lang, 'auth.login');
+  const registerLabel = t(lang, 'auth.register');
 
   const body = `<div class="auth-form">
-  <h1>${t(lang, 'auth.login')}</h1>
+  <h1>${heading}</h1>
   ${errorHtml}
   <form method="post" action="/login">
-    <label>${t(lang, 'auth.field.login')}<input type="text" name="login" autocomplete="username" required></label>
-    <label>${t(lang, 'auth.field.password')}<input type="password" name="password" autocomplete="current-password" required></label>
-    <button type="submit">${t(lang, 'auth.login')}</button>
+    <label>${loginLabel}<input type="text" name="login" autocomplete="username" required></label>
+    <label>${passwordLabel}<input type="password" name="password" autocomplete="current-password" required></label>
+    <button type="submit">${submitLabel}</button>
   </form>
-  <p><a href="/register">${t(lang, 'auth.register')}</a></p>
+  <p><a href="/register">${registerLabel}</a></p>
 </div>`;
 
-  return page({ title: t(lang, 'auth.login.title'), lang, body });
+  return page({ title, lang, body });
 }
 
 export function renderRegisterPage(lang: string, error?: string): string {
+  const title = t(lang, 'auth.register.title');
+  const heading = t(lang, 'auth.register');
   const errorHtml = error ? `<p class="form-error">${esc(t(lang, error))}</p>` : '';
+  const inviteLabel = t(lang, 'auth.field.invite');
+  const loginLabel = t(lang, 'auth.field.login');
+  const passwordLabel = t(lang, 'auth.field.password');
+  const submitLabel = t(lang, 'auth.register');
+  const loginLink = t(lang, 'auth.login');
 
   const body = `<div class="auth-form">
-  <h1>${t(lang, 'auth.register')}</h1>
+  <h1>${heading}</h1>
   ${errorHtml}
   <form method="post" action="/register">
-    <label>${t(lang, 'auth.field.invite')}<input type="text" name="invite" required></label>
-    <label>${t(lang, 'auth.field.login')}<input type="text" name="login" autocomplete="username" required></label>
-    <label>${t(lang, 'auth.field.password')}<input type="password" name="password" autocomplete="new-password" required></label>
-    <button type="submit">${t(lang, 'auth.register')}</button>
+    <label>${inviteLabel}<input type="text" name="invite" required></label>
+    <label>${loginLabel}<input type="text" name="login" autocomplete="username" required></label>
+    <label>${passwordLabel}<input type="password" name="password" autocomplete="new-password" required></label>
+    <button type="submit">${submitLabel}</button>
   </form>
-  <p><a href="/login">${t(lang, 'auth.login')}</a></p>
+  <p><a href="/login">${loginLink}</a></p>
 </div>`;
 
-  return page({ title: t(lang, 'auth.register.title'), lang, body });
+  return page({ title, lang, body });
 }

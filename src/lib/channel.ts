@@ -7,6 +7,7 @@ import { db } from './db.ts';
 export interface Channel {
   id: number;
   name: string;
+  displayName: string;
   url: string;
   youtubeChannelId: string;
   tags: string;
@@ -15,7 +16,7 @@ export interface Channel {
 // ── Statements ────────────────────────────────────────────────────────────────
 
 const stmtGetById = db.prepare(
-  `SELECT id, name, url, youtube_channel_id, tags FROM channels WHERE id = ?`,
+  `SELECT id, name, display_name, url, youtube_channel_id, tags FROM channels WHERE id = ?`,
 );
 const stmtGetByUrl = db.prepare(`SELECT id FROM channels WHERE url = ?`);
 const stmtInsert = db.prepare(
@@ -30,6 +31,13 @@ const stmtGetLabels = db.prepare(`SELECT tag, label FROM tag_labels`);
 const stmtSetLabel = db.prepare(
   `INSERT INTO tag_labels (tag, label) VALUES (?, ?) ON CONFLICT (tag) DO UPDATE SET label = excluded.label`,
 );
+const stmtGetAllChannelNames = db.prepare(`SELECT id, name FROM channels`);
+const stmtSetDisplayName = db.prepare(`UPDATE channels SET display_name = ? WHERE id = ?`);
+const stmtGetAll = db.prepare(
+  `SELECT id, name, display_name, url, youtube_channel_id, tags
+   FROM channels
+   ORDER BY COALESCE(NULLIF(display_name,''), name)`,
+);
 const stmtGetRss = db.prepare(
   `SELECT id, youtube_channel_id FROM channels WHERE youtube_channel_id != ''`,
 );
@@ -39,6 +47,7 @@ const stmtGetRss = db.prepare(
 type RawChannel = {
   id: number;
   name: string;
+  display_name: string;
   url: string;
   youtube_channel_id: string;
   tags: string;
@@ -48,6 +57,7 @@ function toChannel(r: RawChannel): Channel {
   return {
     id: r.id,
     name: r.name,
+    displayName: r.display_name,
     url: r.url,
     youtubeChannelId: r.youtube_channel_id,
     tags: r.tags,
@@ -103,6 +113,15 @@ export function getTagLabels(): Record<string, string> {
 
 export function setTagLabel(tag: string, label: string): void {
   stmtSetLabel.run(tag, label);
+  const channels = stmtGetAllChannelNames.all() as { id: number; name: string }[];
+  for (const ch of channels) {
+    const slug = ch.name.toLowerCase().replace(/[^a-z0-9_-]/g, '');
+    if (slug === tag) stmtSetDisplayName.run(label, ch.id);
+  }
+}
+
+export function getAllChannels(): Channel[] {
+  return (stmtGetAll.all() as RawChannel[]).map(toChannel);
 }
 
 export function getRssChannels(): { id: number; youtubeChannelId: string }[] {

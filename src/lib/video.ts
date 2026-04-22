@@ -25,7 +25,7 @@ export interface VideoEntry {
 
 const SEL = `
   SELECT v.youtube_id, v.title, v.date, v.duration, v.video_status, v.audio_status,
-         COALESCE(c.name, '') AS channel_name
+         COALESCE(NULLIF(c.display_name,''), c.name, '') AS channel_name
   FROM videos v LEFT JOIN channels c ON v.channel_id = c.id`;
 
 const stmtGetById = db.prepare(`${SEL} WHERE v.youtube_id = ?`);
@@ -36,7 +36,7 @@ const stmtGetByChannel = db.prepare(
 const stmtCountByChannel = db.prepare(`SELECT COUNT(*) as n FROM videos WHERE channel_id = ?`);
 const stmtGetByTag = db.prepare(`
   SELECT v.youtube_id, v.title, v.date, v.duration, v.video_status, v.audio_status,
-         COALESCE(c.name, '') AS channel_name
+         COALESCE(NULLIF(c.display_name,''), c.name, '') AS channel_name
   FROM videos v JOIN channels c ON v.channel_id = c.id
   WHERE (',' || c.tags || ',') LIKE ('%,' || ? || ',%')
   ORDER BY v.date DESC, v.created_at DESC LIMIT 200`);

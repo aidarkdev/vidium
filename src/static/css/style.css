@@ -57,79 +57,98 @@ a:hover { text-decoration: underline; }
   padding: 1.5rem;
 }
 
-/* ── Tags ────────────────────────────────────────────────────────────────── */
+/* ── Topbar ───────────────────────────────────────────────────────────────── */
 
-.feed-tags {
-  padding: 0.75rem 0;
-  margin-bottom: 1.5rem;
-  background: #111;
-}
-
-.feed-tags.collapsed {
+.topbar {
   position: sticky;
   top: 0;
-  z-index: 10;
-}
-
-.tags-list {
+  z-index: 90;
+  background: #111;
+  border-bottom: 1px solid #333;
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0;
+  margin-bottom: 1.25rem;
 }
 
-.feed-tags.collapsed .tags-list {
-  flex-wrap: nowrap;
-  overflow: hidden;
+.topbar-label {
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: #eee;
 }
 
-.feed-tags.collapsed .tags-list a:not(.active) {
-  display: none;
-}
+/* ── Channel sidebar ─────────────────────────────────────────────────────── */
 
-.tags-toggle {
+.sidebar-toggle {
   background: none;
   border: none;
   color: #7cb8ff;
   cursor: pointer;
-  font-size: 1.1rem;
-  font-weight: 700;
-  padding: 0.35rem 0.5rem;
+  font-size: 1.6rem;
+  padding: 0.3rem 0.5rem;
   line-height: 1;
-  transition: transform 0.2s ease;
-  transform: rotate(0deg);
+  flex-shrink: 0;
 }
-.tags-toggle.open { transform: rotate(90deg); }
 
-.tags-toggle:hover { color: #aaa; }
+.sidebar-toggle:hover { color: #aaa; }
 
-.feed-tags a {
-  padding: 0.35rem 0.9rem;
-  border-radius: 1rem;
+.sidebar-panel {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 240px;
+  background: #1a1a1a;
+  border-right: 1px solid #333;
+  z-index: 150;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 1rem 0.75rem;
+  padding-top: 4rem;
+  overflow-y: auto;
+  scrollbar-width: none;
+  transform: translateX(-100%);
+  transition: transform 0.2s ease;
+}
+
+.sidebar-panel.open { transform: translateX(0); }
+.sidebar-panel::-webkit-scrollbar { display: none; }
+
+.sidebar-system {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.sidebar-divider {
+  height: 1px;
+  background: #333;
+  margin: 0.25rem 0;
+}
+
+.sidebar-channels {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.sidebar-panel a {
+  display: block;
+  padding: 0.45rem 0.85rem;
+  border-radius: 0.5rem;
   background: #222;
   color: #ccc;
-  font-size: 1rem;
-}
-
-.feed-tags a.active {
-  background: #7cb8ff;
-  color: #111;
-}
-
-.feed-tags a.editing {
-  outline: 2px solid #7cb8ff;
-  cursor: text;
-}
-
-
-.nav-edit-tags {
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-  font-size: 0.875rem;
-  color: #aaa;
-  cursor: pointer;
+  text-decoration: none;
+  font-size: 0.95rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+.sidebar-panel a:hover { background: #2a2a2a; color: #eee; }
+.sidebar-panel a.active { background: #7cb8ff; color: #111; }
 
 /* ── Cards ───────────────────────────────────────────────────────────────── */
 
@@ -443,6 +462,11 @@ button.btn-audio:hover {
 .channel-title {
   font-size: 1.5rem;
   margin-bottom: 1.5rem;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: #111;
+  padding: 0.75rem 0;
 }
 
 /* ── Auth forms ──────────────────────────────────────────────────────────── */

@@ -15,27 +15,34 @@ export interface PageOptions {
 }
 
 export function page(opts: PageOptions): string {
+  const title = esc(opts.title);
+  const lang = esc(opts.lang);
+  const head = opts.head ?? '';
+  const navExtra = opts.navExtra ?? '';
+  const langHref = `/lang/${opts.lang === 'ru' ? 'en' : 'ru'}`;
+  const langLabel = opts.lang === 'ru' ? 'EN' : 'RU';
+  const logoutLabel = t(opts.lang, 'nav.logout');
   const scripts = (opts.scripts ?? [])
     .map((src) => `<script src="${esc(src)}"></script>`)
     .join('\n');
 
   return `<!DOCTYPE html>
-<html lang="${esc(opts.lang)}">
+<html lang="${lang}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${esc(opts.title)}</title>
+<title>${title}</title>
 <link rel="stylesheet" href="/static/css/style.css">
-${opts.head ?? ''}
+${head}
 </head>
 <body>
 <nav class="nav">
   <a class="nav-logo" href="/">vidium</a>
   <div class="nav-links">
-    ${opts.navExtra ?? ''}
-    <a href="/lang/${opts.lang === 'ru' ? 'en' : 'ru'}" class="nav-lang">${opts.lang === 'ru' ? 'EN' : 'RU'}</a>
+    ${navExtra}
+    <a href="${langHref}" class="nav-lang">${langLabel}</a>
     <form method="post" action="/logout">
-      <button type="submit">${t(opts.lang, 'nav.logout')}</button>
+      <button type="submit">${logoutLabel}</button>
     </form>
   </div>
 </nav>

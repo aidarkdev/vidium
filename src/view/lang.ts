@@ -8,9 +8,7 @@ export type Lang = 'en' | 'ru';
 const strings: Record<Lang, Record<string, string>> = {
   en: {
     // Nav
-    'nav.all': 'All',
     'nav.logout': 'Log out',
-    'nav.edit_tags': 'tags',
 
     // Auth
     'auth.login': 'Log in',
@@ -37,10 +35,8 @@ const strings: Record<Lang, Record<string, string>> = {
 
     // Feed
     'feed.load_more': 'Load more',
-    'feed.all': 'All',
     'tag.ready': 'Ready',
     'tag.all': 'All',
-    'tag.manual': 'manual',
 
     // Player
     'player.back': 'Back',
@@ -63,9 +59,7 @@ const strings: Record<Lang, Record<string, string>> = {
 
   ru: {
     // Nav
-    'nav.all': 'Все',
     'nav.logout': 'Выйти',
-    'nav.edit_tags': 'теги',
 
     // Auth
     'auth.login': 'Войти',
@@ -92,10 +86,8 @@ const strings: Record<Lang, Record<string, string>> = {
 
     // Feed
     'feed.load_more': 'Загрузить ещё',
-    'feed.all': 'Все',
     'tag.ready': 'Готовое',
     'tag.all': 'Все',
-    'tag.manual': 'manual',
 
     // Player
     'player.back': 'Назад',
