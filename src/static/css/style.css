@@ -198,7 +198,9 @@ a:hover { text-decoration: underline; }
   padding: 0.45rem 1rem;
   border: 1px solid transparent;
   border-radius: 0.25rem;
+  font: inherit;
   font-size: 0.9rem;
+  line-height: 1.2;
   cursor: pointer;
   text-align: center;
   text-decoration: none;
@@ -361,6 +363,7 @@ button.btn-audio:hover {
 }
 
 .player video {
+  max-height: 80vh;
   width: 100%;
   border-radius: 0.5rem;
   background: #000;
