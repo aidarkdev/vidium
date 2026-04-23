@@ -37,6 +37,9 @@ const strings: Record<Lang, Record<string, string>> = {
     'feed.load_more': 'Load more',
     'tag.ready': 'Ready',
     'tag.all': 'All',
+    'sidebar.edit': 'Edit',
+    'sidebar.move_up': 'Move up',
+    'sidebar.move_down': 'Move down',
 
     // Player
     'player.back': 'Back',
@@ -51,6 +54,7 @@ const strings: Record<Lang, Record<string, string>> = {
     // Add channel
     'channel.add': '+channel',
     'channel.add.placeholder': 'https://www.youtube.com/@channel',
+    'channel.add.display_name_placeholder': 'Display name',
     'channel.add.tags_placeholder': 'tag1,tag2',
     'channel.added': 'Channel added — crawling started',
     'channel.exists': 'Channel already exists',
@@ -88,6 +92,9 @@ const strings: Record<Lang, Record<string, string>> = {
     'feed.load_more': 'Загрузить ещё',
     'tag.ready': 'Готовое',
     'tag.all': 'Все',
+    'sidebar.edit': 'Редакт.',
+    'sidebar.move_up': 'Выше',
+    'sidebar.move_down': 'Ниже',
 
     // Player
     'player.back': 'Назад',
@@ -102,6 +109,7 @@ const strings: Record<Lang, Record<string, string>> = {
     // Add channel
     'channel.add': '+канал',
     'channel.add.placeholder': 'https://www.youtube.com/@channel',
+    'channel.add.display_name_placeholder': 'Название в боковой панели',
     'channel.add.tags_placeholder': 'тег1,тег2',
     'channel.added': 'Канал добавлен — краулинг запущен',
     'channel.exists': 'Канал уже добавлен',

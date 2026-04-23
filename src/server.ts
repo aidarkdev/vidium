@@ -26,6 +26,7 @@ import {
   handleAddChannel,
   handleAddVideo,
   handleSetTagLabel,
+  handleReorderChannel,
 } from './handlers/api.ts';
 
 const router = new Router();
@@ -60,6 +61,7 @@ router.post('/api/download', handleDownload);
 router.post('/api/channel', handleAddChannel);
 router.post('/api/video', handleAddVideo);
 router.post('/api/tag-label', handleSetTagLabel);
+router.post('/api/channel/reorder', handleReorderChannel);
 router.get('/api/status', handleStatus);
 router.get('/api/since', handleSince);
 

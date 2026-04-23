@@ -78,6 +78,20 @@ a:hover { text-decoration: underline; }
   color: #eee;
 }
 
+.nav-edit {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: #bfbfbf;
+  font-size: 0.95rem;
+  user-select: none;
+}
+
+.nav-edit input {
+  margin: 0;
+  accent-color: #7cb8ff;
+}
+
 /* ── Channel sidebar ─────────────────────────────────────────────────────── */
 
 .sidebar-toggle {
@@ -134,6 +148,11 @@ a:hover { text-decoration: underline; }
   gap: 0.4rem;
 }
 
+.sidebar-channel-row {
+  position: relative;
+  width: 100%;
+}
+
 .sidebar-panel a {
   display: block;
   padding: 0.45rem 0.85rem;
@@ -149,6 +168,68 @@ a:hover { text-decoration: underline; }
 
 .sidebar-panel a:hover { background: #2a2a2a; color: #eee; }
 .sidebar-panel a.active { background: #7cb8ff; color: #111; }
+
+.sidebar-channel-link {
+  display: block;
+  width: 100%;
+  min-width: 0;
+}
+
+.sidebar-channel-actions {
+  position: absolute;
+  top: 50%;
+  right: 0.45rem;
+  transform: translateY(-50%);
+  display: none;
+  gap: 0.25rem;
+  z-index: 1;
+}
+
+.sidebar-order-btn {
+  width: 2.25rem;
+  height: 2.25rem;
+  border: 1px solid #3b3b3b;
+  border-radius: 0.5rem;
+  background: #222;
+  color: #9ec7ff;
+  cursor: pointer;
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+
+.sidebar-panel.edit-mode .sidebar-channel-actions {
+  display: flex;
+}
+
+.sidebar-panel.edit-mode .sidebar-order-btn {
+  visibility: visible;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.sidebar-order-btn:hover:not(:disabled) {
+  background: #2a2a2a;
+  color: #fff;
+}
+
+.sidebar-order-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+@media (pointer: coarse) {
+  .sidebar-channel-actions {
+    gap: 0.35rem;
+    right: 0.35rem;
+  }
+
+  .sidebar-order-btn {
+    width: 2.75rem;
+    height: 2.75rem;
+  }
+}
 
 /* ── Cards ───────────────────────────────────────────────────────────────── */
 

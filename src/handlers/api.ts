@@ -20,7 +20,12 @@ import {
   insertVideos,
   getNewVideosSince,
 } from '../lib/video.ts';
-import { addChannel, MANUAL_CHANNEL_ID, setTagLabel } from '../lib/channel.ts';
+import {
+  addChannel,
+  MANUAL_CHANNEL_ID,
+  setTagLabel,
+  moveChannel as moveChannelOrder,
+} from '../lib/channel.ts';
 import { fetchMeta } from '../lib/ytdlp.ts';
 
 // ── Handlers ──────────────────────────────────────────────────────────────────
@@ -88,7 +93,7 @@ export async function handleAddChannel(req: IncomingMessage, res: ServerResponse
   if (!requireSessionApi(req, res)) return;
   if (!checkCsrf(req, res)) return;
 
-  let data: { url: string; tags?: string };
+  let data: { url: string; tags?: string; displayName?: string };
   try {
     data = JSON.parse(await readBody(req));
   } catch {
@@ -105,10 +110,11 @@ export async function handleAddChannel(req: IncomingMessage, res: ServerResponse
     .replace(/[^a-zA-Z0-9,_-]/g, '')
     .split(',')
     .filter(Boolean);
+  const displayName = (data.displayName ?? '').trim();
   const nameTag = name.toLowerCase().replace(/[^a-z0-9_-]/g, '');
   const tags = [...new Set([nameTag, ...userTags])].filter(Boolean).join(',');
 
-  const { id, created } = addChannel(name, canonicalUrl, tags);
+  const { id, created } = addChannel(name, canonicalUrl, tags, displayName);
   if (!created) return json(res, 200, { ok: true, status: 'exists' });
 
   enqueue('crawl_channel', { channelId: id, url: canonicalUrl });
@@ -170,4 +176,30 @@ export async function handleSetTagLabel(req: IncomingMessage, res: ServerRespons
 
   setTagLabel(data.tag, data.label.trim());
   json(res, 200, { ok: true });
+}
+
+export async function handleReorderChannel(
+  req: IncomingMessage,
+  res: ServerResponse,
+): Promise<void> {
+  if (!requireSessionApi(req, res)) return;
+  if (!checkCsrf(req, res)) return;
+
+  let data: { channelId: number; direction: 'up' | 'down' };
+  try {
+    data = JSON.parse(await readBody(req));
+  } catch {
+    return json(res, 400, { error: 'invalid json' });
+  }
+
+  if (
+    !Number.isInteger(data.channelId) ||
+    data.channelId <= 1 ||
+    !['up', 'down'].includes(data.direction)
+  ) {
+    return json(res, 400, { error: 'invalid request' });
+  }
+
+  const moved = moveChannelOrder(data.channelId, data.direction);
+  json(res, 200, { ok: true, moved });
 }

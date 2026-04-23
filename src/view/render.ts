@@ -69,6 +69,8 @@ function renderSidebar(
 ): string {
   const allLabel = t(lang, 'tag.all');
   const readyLabel = t(lang, 'tag.ready');
+  const moveUpLabel = esc(t(lang, 'sidebar.move_up'));
+  const moveDownLabel = esc(t(lang, 'sidebar.move_down'));
   const manualCh = channels.find((ch) => ch.id === 1);
   const manualLabel = esc(manualCh?.displayName || manualCh?.name || 'manual');
   const regularChannels = channels.filter((ch) => ch.id !== 1);
@@ -85,7 +87,13 @@ function renderSidebar(
     .map((ch) => {
       const label = esc(ch.displayName || ch.name);
       const active = ch.id === activeChannelId ? ' class="active"' : '';
-      return `<a href="/channel/${ch.id}"${active}>${label}</a>`;
+      return `<div class="sidebar-channel-row" data-channel-id="${ch.id}">
+  <a class="sidebar-channel-link${active ? ' active' : ''}" href="/channel/${ch.id}">${label}</a>
+  <div class="sidebar-channel-actions">
+    <button class="sidebar-order-btn" type="button" data-action="move-channel" data-direction="up" data-channel-id="${ch.id}" aria-label="${moveUpLabel}" title="${moveUpLabel}">&#8593;</button>
+    <button class="sidebar-order-btn" type="button" data-action="move-channel" data-direction="down" data-channel-id ="${ch.id}" aria-label="${moveDownLabel}" title="${moveDownLabel}">&#8595;</button>
+  </div>
+</div>`;
     })
     .join('\n');
 
@@ -96,14 +104,23 @@ function renderSidebar(
 </div>`;
 }
 
+function renderTopbar(_lang: string, label: string): string {
+  return `<div class="topbar">
+  <button class="sidebar-toggle" id="sidebar-toggle">&#9776;</button>
+  <span class="topbar-label">${label}</span>
+</div>`;
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function renderAddForms(lang: string): { navExtra: string; headScripts: string } {
   const addChannelLabel = t(lang, 'channel.add');
   const addChannelPlaceholder = esc(t(lang, 'channel.add.placeholder'));
+  const addChannelDisplayNamePlaceholder = esc(t(lang, 'channel.add.display_name_placeholder'));
   const addChannelTagsPlaceholder = esc(t(lang, 'channel.add.tags_placeholder'));
   const addVideoLabel = t(lang, 'video.add');
   const addVideoPlaceholder = esc(t(lang, 'video.add.placeholder'));
+  const editLabel = esc(t(lang, 'sidebar.edit'));
 
   const addStringsJson = JSON.stringify({
     added: t(lang, 'channel.added'),
@@ -116,11 +133,16 @@ function renderAddForms(lang: string): { navExtra: string; headScripts: string }
     error: t(lang, 'video.error'),
   });
 
-  const navExtra = `<details class="add-channel">
+  const navExtra = `<label class="nav-edit">
+  <input type="checkbox" id="sidebar-edit-toggle">
+  <span>${editLabel}</span>
+</label>
+<details class="add-channel">
 <summary>${addChannelLabel}</summary>
 <div class="add-channel-panel">
   <form id="add-channel-form" class="add-channel-form">
     <input name="url" type="url" required placeholder="${addChannelPlaceholder}">
+    <input name="displayName" placeholder="${addChannelDisplayNamePlaceholder}">
     <input name="tags" placeholder="${addChannelTagsPlaceholder}">
     <button type="submit">${addChannelLabel}</button>
   </form>
@@ -161,10 +183,7 @@ export function renderFeedPage(opts: FeedPageOptions): string {
   const currentLabel = systemLabels[opts.activeTag] ?? opts.tagLabels[opts.activeTag] ?? opts.activeTag;
   const sidebar = renderSidebar(opts.channels, opts.lang, undefined, opts.activeTag);
 
-  const body = `<div class="topbar">
-  <button class="sidebar-toggle" id="sidebar-toggle">&#9776;</button>
-  <span class="topbar-label">${esc(currentLabel)}</span>
-</div>
+  const body = `${renderTopbar(opts.lang, esc(currentLabel))}
 ${sidebar}
 <div class="cards" id="cards"></div>
 <button class="btn-more" id="btn-more">Load more</button>`;
@@ -188,10 +207,7 @@ export function renderChannelPage(opts: ChannelPageOptions): string {
   const { navExtra, headScripts: addHeadScripts } = renderAddForms(opts.lang);
   const headScripts = [bakedScript(opts.cards, opts.lang, opts.since), addHeadScripts].join('\n');
 
-  const body = `<div class="topbar">
-  <button class="sidebar-toggle" id="sidebar-toggle">&#9776;</button>
-  <span class="topbar-label">${channelName}</span>
-</div>
+  const body = `${renderTopbar(opts.lang, channelName)}
 ${sidebar}
 <div class="cards" id="cards"></div>
 ${loadMore}`;

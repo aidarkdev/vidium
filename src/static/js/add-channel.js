@@ -11,12 +11,13 @@ if (addForm) {
     addMsg.textContent = '';
 
     const url = addForm.elements.url.value.trim();
+    const displayName = addForm.elements.displayName.value.trim();
     const tags = addForm.elements.tags.value.trim();
 
     const res = await fetch('/api/channel', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url, tags }),
+      body: JSON.stringify({ url, displayName, tags }),
     });
 
     const data = await res.json();
