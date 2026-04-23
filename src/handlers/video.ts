@@ -14,6 +14,9 @@ import { getVideoById } from '../lib/video.ts';
 import { page } from '../view/page.ts';
 import { esc } from '../view/esc.ts';
 import { t } from '../view/lang.ts';
+import { renderAudioMedia } from './video/audio-media.view.ts';
+import { renderPlayerBody } from './video/player-body.view.ts';
+import { renderVideoMedia } from './video/video-media.view.ts';
 
 function accel(res: ServerResponse, path: string, contentType: string): void {
   res.writeHead(200, { 'Content-Type': contentType, 'X-Accel-Redirect': path });
@@ -24,14 +27,12 @@ function renderPlayer(lang: string, title: string, channelName: string, mediaEl:
   return page({
     title,
     lang,
-    body: `<div class="player">
-  ${mediaEl}
-  <div class="player-title">
-    ${channelName ? `<div class="player-channel">${esc(channelName)}</div>` : ''}
-    <div class="player-title-text">${esc(title)}</div>
-  </div>
-  <button class="player-back" onclick="history.length > 1 ? history.back() : (location.href='/feed')">&larr; ${esc(t(lang, 'player.back'))}</button>
-</div>`,
+    body: renderPlayerBody({
+      mediaHtml: mediaEl,
+      channelHtml: channelName ? `<div class="player-channel">${esc(channelName)}</div>` : '',
+      title: esc(title),
+      backLabel: esc(t(lang, 'player.back')),
+    }),
   });
 }
 
@@ -55,19 +56,7 @@ export function handleVideo(
     lang,
     video.title,
     video.channelName,
-    `<video id="video-player" controls autoplay preload="metadata" src="/media/v/${esc(id)}">Your browser does not support the video element.</video>
-  <div class="audio-seek">
-    <button onclick="seek(-30)">−30s</button>
-    <button onclick="seek(-15)">−15s</button>
-    <button id="audio-playpause" class="audio-playpause" onclick="togglePlay()">&#9654;</button>
-    <button onclick="seek(15)">+15s</button>
-    <button onclick="seek(30)">+30s</button>
-  </div>
-  <script>
-function seek(s){var a=document.getElementById('video-player');a.currentTime=Math.max(0,a.currentTime+s);}
-function togglePlay(){var a=document.getElementById('video-player');if(a.paused)a.play();else a.pause();}
-(function(){var a=document.getElementById('video-player');var b=document.getElementById('audio-playpause');function sync(){b.innerHTML=a.paused?'&#9654;':'&#9646;&#9646;';}a.addEventListener('play',sync);a.addEventListener('pause',sync);sync();})();
-  </script>`,
+    renderVideoMedia(`/media/v/${esc(id)}`),
   );
 
   res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
@@ -92,20 +81,7 @@ export function handleAudio(
     lang,
     video.title,
     video.channelName,
-    `<img class="player-thumb" src="/t/${esc(id)}" alt="${esc(video.title)}">
-  <audio id="audio-player" controls autoplay preload="metadata" src="/media/a/${esc(id)}">Your browser does not support the audio element.</audio>
-  <div class="audio-seek">
-    <button onclick="seek(-30)">−30s</button>
-    <button onclick="seek(-15)">−15s</button>
-    <button id="audio-playpause" class="audio-playpause" onclick="togglePlay()">&#9654;</button>
-    <button onclick="seek(15)">+15s</button>
-    <button onclick="seek(30)">+30s</button>
-  </div>
-  <script>
-function seek(s){var a=document.getElementById('audio-player');a.currentTime=Math.max(0,a.currentTime+s);}
-function togglePlay(){var a=document.getElementById('audio-player');if(a.paused)a.play();else a.pause();}
-(function(){var a=document.getElementById('audio-player');var b=document.getElementById('audio-playpause');function sync(){b.innerHTML=a.paused?'&#9654;':'&#9646;&#9646;';}a.addEventListener('play',sync);a.addEventListener('pause',sync);sync();})();
-  </script>`,
+    renderAudioMedia(`/t/${esc(id)}`, esc(video.title), `/media/a/${esc(id)}`),
   );
 
   res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });

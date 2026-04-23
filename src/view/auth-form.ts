@@ -5,6 +5,7 @@
 import { page } from './page.ts';
 import { esc } from './esc.ts';
 import { t } from './lang.ts';
+import { renderAuthFormBody } from './auth-form/auth-form-body.view.ts';
 
 export function renderLoginPage(lang: string, error?: string): string {
   const title = t(lang, 'auth.login.title');
@@ -15,16 +16,17 @@ export function renderLoginPage(lang: string, error?: string): string {
   const submitLabel = t(lang, 'auth.login');
   const registerLabel = t(lang, 'auth.register');
 
-  const body = `<div class="auth-form">
-  <h1>${heading}</h1>
-  ${errorHtml}
-  <form method="post" action="/login">
-    <label>${loginLabel}<input type="text" name="login" autocomplete="username" required></label>
-    <label>${passwordLabel}<input type="password" name="password" autocomplete="current-password" required></label>
-    <button type="submit">${submitLabel}</button>
-  </form>
-  <p><a href="/register">${registerLabel}</a></p>
-</div>`;
+  const fieldsHtml = `<label>${loginLabel}<input type="text" name="login" autocomplete="username" required></label>
+    <label>${passwordLabel}<input type="password" name="password" autocomplete="current-password" required></label>`;
+  const body = renderAuthFormBody({
+    heading,
+    errorHtml,
+    action: '/login',
+    fieldsHtml,
+    linkHref: '/register',
+    linkLabel: registerLabel,
+    submitLabel,
+  });
 
   return page({ title, lang, body });
 }
@@ -39,17 +41,18 @@ export function renderRegisterPage(lang: string, error?: string): string {
   const submitLabel = t(lang, 'auth.register');
   const loginLink = t(lang, 'auth.login');
 
-  const body = `<div class="auth-form">
-  <h1>${heading}</h1>
-  ${errorHtml}
-  <form method="post" action="/register">
-    <label>${inviteLabel}<input type="text" name="invite" required></label>
+  const fieldsHtml = `<label>${inviteLabel}<input type="text" name="invite" required></label>
     <label>${loginLabel}<input type="text" name="login" autocomplete="username" required></label>
-    <label>${passwordLabel}<input type="password" name="password" autocomplete="new-password" required></label>
-    <button type="submit">${submitLabel}</button>
-  </form>
-  <p><a href="/login">${loginLink}</a></p>
-</div>`;
+    <label>${passwordLabel}<input type="password" name="password" autocomplete="new-password" required></label>`;
+  const body = renderAuthFormBody({
+    heading,
+    errorHtml,
+    action: '/register',
+    fieldsHtml,
+    linkHref: '/login',
+    linkLabel: loginLink,
+    submitLabel,
+  });
 
   return page({ title, lang, body });
 }

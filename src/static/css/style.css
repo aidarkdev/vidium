@@ -193,19 +193,17 @@ a:hover { text-decoration: underline; }
   background: #222;
   color: #9ec7ff;
   cursor: pointer;
-  visibility: hidden;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.15s ease;
 }
 
 .sidebar-panel.edit-mode .sidebar-channel-actions {
   display: flex;
 }
 
+.sidebar-panel.edit-mode .sidebar-channel-link {
+  padding-right: 4.6rem;
+}
+
 .sidebar-panel.edit-mode .sidebar-order-btn {
-  visibility: visible;
-  opacity: 1;
   pointer-events: auto;
 }
 
@@ -221,13 +219,17 @@ a:hover { text-decoration: underline; }
 
 @media (pointer: coarse) {
   .sidebar-channel-actions {
-    gap: 0.35rem;
-    right: 0.35rem;
+    gap: 0.2rem;
+    right: 0.3rem;
   }
 
   .sidebar-order-btn {
-    width: 2.75rem;
-    height: 2.75rem;
+    width: 2rem;
+    height: 2rem;
+  }
+
+  .sidebar-panel.edit-mode .sidebar-channel-link {
+    padding-right: 4.15rem;
   }
 }
 
@@ -463,6 +465,7 @@ button.btn-audio:hover {
 }
 
 .player video {
+  min-height: 65vh;
   max-height: 80vh;
   width: 100%;
   border-radius: 0.5rem;

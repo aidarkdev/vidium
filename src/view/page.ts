@@ -4,6 +4,7 @@
 
 import { esc } from './esc.ts';
 import { t } from './lang.ts';
+import { renderPageHtml } from './page/page-html.view.ts';
 
 export interface PageOptions {
   title: string;
@@ -26,32 +27,15 @@ export function page(opts: PageOptions): string {
     .map((src) => `<script src="${esc(src)}"></script>`)
     .join('\n');
 
-  return `<!DOCTYPE html>
-<html lang="${lang}">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${title}</title>
-<link rel="stylesheet" href="/static/css/style.css">
-${head}
-</head>
-<body>
-<nav class="nav">
-  <a class="nav-logo" href="/">vidium</a>
-  <div class="nav-links">
-    ${navExtra}
-    <a href="${langHref}" class="nav-lang">${langLabel}</a>
-    <form method="post" action="/logout">
-      <button type="submit">${logoutLabel}</button>
-    </form>
-  </div>
-</nav>
-<main class="main">
-${opts.body}
-</main>
-<button class="btn-top" id="btn-top" onclick="window.scrollTo({top:0,behavior:'smooth'})">&#8679;</button>
-<script>(()=>{const b=document.getElementById('btn-top');window.addEventListener('scroll',()=>b.classList.toggle('visible',window.scrollY>300),{passive:true});})();</script>
-${scripts}
-</body>
-</html>`;
+  return renderPageHtml({
+    title,
+    lang,
+    head,
+    navExtra,
+    langHref,
+    langLabel,
+    logoutLabel,
+    scripts,
+    body: opts.body,
+  });
 }
