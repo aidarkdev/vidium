@@ -1,15 +1,15 @@
-(function () {
+(() => {
   const toggle = document.getElementById('sidebar-toggle');
   const panel = document.getElementById('sidebar-panel');
   const editToggle = document.getElementById('sidebar-edit-toggle');
   if (!toggle || !panel) return;
 
-  toggle.addEventListener('click', function (e) {
+  toggle.addEventListener('click', (e) => {
     e.stopPropagation();
     panel.classList.toggle('open');
   });
 
-  document.addEventListener('click', function (e) {
+  document.addEventListener('click', (e) => {
     if (panel.classList.contains('open') && !panel.contains(e.target) && e.target !== toggle) {
       panel.classList.remove('open');
     }
@@ -17,7 +17,7 @@
 
   function updateMoveButtons() {
     const rows = panel.querySelectorAll('.sidebar-channel-row');
-    rows.forEach(function (row, index) {
+    rows.forEach((row, index) => {
       const up = row.querySelector('[data-direction="up"]');
       const down = row.querySelector('[data-direction="down"]');
       if (up) up.disabled = index === 0;
@@ -26,12 +26,12 @@
   }
 
   if (editToggle) {
-    editToggle.addEventListener('change', function () {
+    editToggle.addEventListener('change', () => {
       panel.classList.toggle('edit-mode', editToggle.checked);
     });
   }
 
-  panel.addEventListener('click', async function (e) {
+  panel.addEventListener('click', async (e) => {
     const btn = e.target.closest('[data-action="move-channel"]');
     if (!btn) return;
 
@@ -47,7 +47,7 @@
     if (!swapRow) return;
 
     const buttons = row.querySelectorAll('.sidebar-order-btn');
-    buttons.forEach(function (item) {
+    buttons.forEach((item) => {
       item.disabled = true;
     });
 
@@ -68,7 +68,7 @@
       updateMoveButtons();
     } catch (_err) {
     } finally {
-      buttons.forEach(function (item) {
+      buttons.forEach((item) => {
         item.disabled = false;
       });
       updateMoveButtons();

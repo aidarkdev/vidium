@@ -5,9 +5,9 @@ export function renderBakedScript(
   since: number,
 ): string {
   return `<script>
-const UI_LANG = ${langJson};
-const UI_STRINGS = ${stringsJson};
-const CARDS = ${cardsJson};
-const SINCE = ${since};
-</script>`;
+    const UI_LANG = ${langJson};
+    const UI_STRINGS = ${stringsJson};
+    const CARDS = ${cardsJson};
+    const SINCE = ${since};
+  </script>`;
 }

@@ -14,9 +14,9 @@ import { getVideoById } from '../lib/video.ts';
 import { page } from '../view/page.ts';
 import { esc } from '../view/esc.ts';
 import { t } from '../view/lang.ts';
-import { renderAudioMedia } from './video/audio-media.view.ts';
-import { renderPlayerBody } from './video/player-body.view.ts';
-import { renderVideoMedia } from './video/video-media.view.ts';
+import { renderAudioMedia } from '../view/player/audio-media.view.ts';
+import { renderPlayerBody } from '../view/player/player-body.view.ts';
+import { renderVideoMedia } from '../view/player/video-media.view.ts';
 
 function accel(res: ServerResponse, path: string, contentType: string): void {
   res.writeHead(200, { 'Content-Type': contentType, 'X-Accel-Redirect': path });

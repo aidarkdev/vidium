@@ -10,12 +10,12 @@ export interface AuthFormBodyOptions {
 
 export function renderAuthFormBody(opts: AuthFormBodyOptions): string {
   return `<div class="auth-form">
-  <h1>${opts.heading}</h1>
-  ${opts.errorHtml}
-  <form method="post" action="${opts.action}">
-    ${opts.fieldsHtml}
-    <button type="submit">${opts.submitLabel}</button>
-  </form>
-  <p><a href="${opts.linkHref}">${opts.linkLabel}</a></p>
-</div>`;
+    <h1>${opts.heading}</h1>
+    ${opts.errorHtml}
+    <form method="post" action="${opts.action}">
+      ${opts.fieldsHtml}
+      <button type="submit">${opts.submitLabel}</button>
+    </form>
+    <p><a href="${opts.linkHref}">${opts.linkLabel}</a></p>
+  </div>`;
 }

@@ -26,5 +26,8 @@ export function handleFeed(
   const tagLabels = getTagLabels();
   const channels = getAllChannels();
 
-  html(res, renderFeedPage({ lang, cards, tags, tagLabels, activeTag: tag, channels, since: Date.now() }));
+  html(
+    res,
+    renderFeedPage({ lang, cards, tags, tagLabels, activeTag: tag, channels, since: Date.now() }),
+  );
 }

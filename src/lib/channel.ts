@@ -143,7 +143,9 @@ export function getAllChannels(): Channel[] {
 }
 
 export function moveChannel(channelId: number, direction: ChannelMoveDirection): boolean {
-  const orderedIds = (stmtGetOrderedIds.all(MANUAL_CHANNEL_ID) as { id: number }[]).map((r) => r.id);
+  const orderedIds = (stmtGetOrderedIds.all(MANUAL_CHANNEL_ID) as { id: number }[]).map(
+    (r) => r.id,
+  );
   const index = orderedIds.indexOf(channelId);
   if (index === -1) return false;
 

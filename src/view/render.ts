@@ -149,7 +149,8 @@ export function renderFeedPage(opts: FeedPageOptions): string {
     ready: t(opts.lang, 'tag.ready'),
     manual: manualCh?.displayName || manualCh?.name || 'manual',
   };
-  const currentLabel = systemLabels[opts.activeTag] ?? opts.tagLabels[opts.activeTag] ?? opts.activeTag;
+  const currentLabel =
+    systemLabels[opts.activeTag] ?? opts.tagLabels[opts.activeTag] ?? opts.activeTag;
   const sidebar = renderSidebar(opts.channels, opts.lang, undefined, opts.activeTag);
 
   const body = renderFeedBodyView(renderTopbar(opts.lang, esc(currentLabel)), sidebar);
