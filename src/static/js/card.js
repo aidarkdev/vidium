@@ -10,13 +10,13 @@
 
 const PAGE_SIZE = 21;
 let rendered = 0;
+let since = SINCE;
 
 // ── i18n ──────────────────────────────────────────────────────────────────────
 
 // UI_STRINGS is baked by the server from lang.ts for the current user language.
 const lang = UI_STRINGS;
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
+if (!_CardView) throw new Error('CardView is not loaded');
 
 function formatDate(iso) {
   if (!iso || iso.length < 10) return iso;
@@ -41,44 +41,38 @@ function esc(str) {
     .replaceAll("'", '&#39;');
 }
 
-// ── Card rendering ────────────────────────────────────────────────────────────
-
 function resolveChannelName(name) {
   return name;
 }
 
-function actionButton(id, type, status) {
+function renderActionButton(id, type, status, strings) {
   if (status === 'ready') {
     const href = type === 'video' ? `/v/${id}` : `/a/${id}`;
-    const label = type === 'video' ? lang.watch : lang.listen;
+    const label = type === 'video' ? strings.watch : strings.listen;
     return `<a class="btn btn-${type}" href="${href}">${label}</a>`;
   }
   if (status === 'queued' || status === 'downloading') {
-    const label = status === 'queued' ? lang.queued : lang.downloading;
+    const label = status === 'queued' ? strings.queued : strings.downloading;
     return `<span class="btn btn-${type} btn-pending" data-id="${id}" data-type="${type}">${label}</span>`;
   }
-  const label = type === 'video' ? lang.downloadVideo : lang.downloadAudio;
+  const label = type === 'video' ? strings.downloadVideo : strings.downloadAudio;
   return `<button class="btn btn-${type}" data-action="download" data-id="${esc(id)}" data-type="${type}">${label}</button>`;
 }
 
-function renderCard(card) {
-  return `<article class="card" data-id="${esc(card.youtubeId)}">
-  <img class="card-thumb" src="/t/${esc(card.youtubeId)}" alt="${esc(card.title)}" loading="lazy">
-  <div class="card-body">
-    <h2 class="card-title">
-      ${card.channelName ? `<div class="card-channel">${esc(resolveChannelName(card.channelName))}</div>` : ''}<div class="card-title-text">${esc(card.title)}</div>
-    </h2>
-    <div class="card-meta">
-      <span class="card-date">${esc(formatDate(card.date))}</span>
-      ${card.duration ? `<span class="card-duration">${formatDuration(card.duration)}</span>` : ''}
-    </div>
-    <div class="card-actions">
-      ${actionButton(card.youtubeId, 'video', card.videoStatus)}
-      ${actionButton(card.youtubeId, 'audio', card.audioStatus)}
-    </div>
-  </div>
-</article>`;
+function getActionsHtml(id, videoStatus, audioStatus) {
+  return (
+    renderActionButton(id, 'video', videoStatus, lang) +
+    renderActionButton(id, 'audio', audioStatus, lang)
+  );
 }
+
+const viewCtx = {
+  formatDate,
+  formatDuration,
+  esc,
+  resolveChannelName,
+  getActionsHtml,
+};
 
 // ── Pagination ────────────────────────────────────────────────────────────────
 
@@ -87,7 +81,10 @@ const btnMore = document.getElementById('btn-more');
 
 function renderNext() {
   const batch = CARDS.slice(rendered, rendered + PAGE_SIZE);
-  container.insertAdjacentHTML('beforeend', batch.map(renderCard).join(''));
+  container.insertAdjacentHTML(
+    'beforeend',
+    batch.map((card) => _CardView.renderCardView(card, viewCtx)).join(''),
+  );
   rendered += batch.length;
   if (rendered >= CARDS.length && btnMore) btnMore.style.display = 'none';
 }
@@ -158,19 +155,21 @@ function updateCard(id, videoStatus, audioStatus) {
   if (!card) return;
   const actions = card.querySelector('.card-actions');
   if (!actions) return;
-  actions.innerHTML =
-    actionButton(id, 'video', videoStatus) + actionButton(id, 'audio', audioStatus);
+  actions.innerHTML = getActionsHtml(id, videoStatus, audioStatus);
 }
 
 // ── New videos since page load ────────────────────────────────────────────────
 
 async function checkSince() {
-  const res = await fetch(`/api/since?t=${SINCE}`);
+  const res = await fetch(`/api/since?t=${since}`);
   const items = await res.json();
   if (!items.length) return;
-  SINCE = Date.now();
+  since = Date.now();
   CARDS.unshift(...items);
-  container.insertAdjacentHTML('afterbegin', items.map(renderCard).join(''));
+  container.insertAdjacentHTML(
+    'afterbegin',
+    items.map((card) => _CardView.renderCardView(card, viewCtx)).join(''),
+  );
 }
 
 setInterval(() => {

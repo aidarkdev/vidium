@@ -40,6 +40,12 @@ const stmtGetByTag = db.prepare(`
   FROM videos v JOIN channels c ON v.channel_id = c.id
   WHERE (',' || c.tags || ',') LIKE ('%,' || ? || ',%')
   ORDER BY v.date DESC, v.created_at DESC LIMIT 200`);
+const stmtGetByTagManual = db.prepare(`
+  SELECT v.youtube_id, v.title, v.date, v.duration, v.video_status, v.audio_status,
+         COALESCE(NULLIF(c.display_name,''), c.name, '') AS channel_name
+  FROM videos v JOIN channels c ON v.channel_id = c.id
+  WHERE (',' || c.tags || ',') LIKE ('%,' || ? || ',%')
+  ORDER BY v.created_at DESC, v.date DESC LIMIT 200`);
 const stmtGetSince = db.prepare(
   `${SEL} WHERE v.created_at > ? ORDER BY v.date DESC, v.created_at DESC LIMIT 50`,
 );
@@ -106,7 +112,8 @@ export function countVideosByChannel(channelId: number): number {
 }
 
 export function getVideosByTag(tag: string): VideoRow[] {
-  return (stmtGetByTag.all(tag) as RawRow[]).map(toRow);
+  const stmt = tag === 'manual' ? stmtGetByTagManual : stmtGetByTag;
+  return (stmt.all(tag) as RawRow[]).map(toRow);
 }
 
 export function getNewVideosSince(isoTimestamp: string): VideoRow[] {

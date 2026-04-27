@@ -161,7 +161,12 @@ export function renderFeedPage(opts: FeedPageOptions): string {
     head: headScripts,
     navExtra,
     body,
-    scripts: ['/static/js/card.js', '/static/js/add-channel.js', '/static/js/sidebar.js'],
+    scripts: [
+      '/static/js/card.view.js',
+      '/static/js/card.js',
+      '/static/js/add-channel.js',
+      '/static/js/sidebar.js',
+    ],
   });
 }
 
@@ -182,6 +187,11 @@ export function renderChannelPage(opts: ChannelPageOptions): string {
     head: headScripts,
     navExtra,
     body,
-    scripts: ['/static/js/card.js', '/static/js/add-channel.js', '/static/js/sidebar.js'],
+    scripts: [
+      '/static/js/card.view.js',
+      '/static/js/card.js',
+      '/static/js/add-channel.js',
+      '/static/js/sidebar.js',
+    ],
   });
 }
