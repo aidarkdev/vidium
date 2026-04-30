@@ -9,6 +9,8 @@ import { getVideosByChannel, countVideosByChannel } from '../lib/video.ts';
 import { renderChannelPage } from '../view/render.ts';
 import { config } from '../config.ts';
 
+const CHANNEL_PAGE_SIZE = 21;
+
 export function handleChannel(
   req: IncomingMessage,
   res: ServerResponse,
@@ -32,7 +34,7 @@ export function handleChannel(
       channelId: channel.id,
       channelName: channel.displayName || channel.name,
       cards,
-      hasMore: total > 100,
+      hasMore: total > CHANNEL_PAGE_SIZE,
       since: Date.now(),
       channels: getAllChannels(),
     }),

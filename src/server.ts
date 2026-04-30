@@ -12,6 +12,7 @@ import { Router } from './lib/router.ts';
 import { handleLogin, handleRegister, handleLogout, handleLang } from './handlers/auth.ts';
 import { handleFeed } from './handlers/feed.ts';
 import { handleChannel } from './handlers/channel.ts';
+import { handleAdmin } from './handlers/admin.ts';
 import {
   handleVideo,
   handleAudio,
@@ -27,6 +28,9 @@ import {
   handleAddVideo,
   handleSetTagLabel,
   handleReorderChannel,
+  handleAdminDeleteVideoFiles,
+  handleAdminDeleteVideo,
+  handleAdminDeleteJob,
 } from './handlers/api.ts';
 
 const router = new Router();
@@ -46,6 +50,7 @@ router.get('/feed/:tag', handleFeed);
 
 // Channel
 router.get('/channel/:id', handleChannel);
+router.get('/admin', handleAdmin);
 
 // Player pages
 router.get('/v/:id', handleVideo);
@@ -62,6 +67,9 @@ router.post('/api/channel', handleAddChannel);
 router.post('/api/video', handleAddVideo);
 router.post('/api/tag-label', handleSetTagLabel);
 router.post('/api/channel/reorder', handleReorderChannel);
+router.post('/api/admin/video/files/delete', handleAdminDeleteVideoFiles);
+router.post('/api/admin/video/delete', handleAdminDeleteVideo);
+router.post('/api/admin/job/delete', handleAdminDeleteJob);
 router.get('/api/status', handleStatus);
 router.get('/api/since', handleSince);
 

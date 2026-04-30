@@ -20,6 +20,16 @@ export interface Job {
   payload: string; // JSON string
 }
 
+export interface JobAdminRow {
+  id: number;
+  type: JobType;
+  status: 'pending' | 'processing' | 'done' | 'failed';
+  attempts: number;
+  youtubeId: string;
+  error: string;
+  createdAt: string;
+}
+
 // ── Statements ────────────────────────────────────────────────────────────────
 
 const stmtEnqueue = db.prepare(`
@@ -58,6 +68,18 @@ const stmtResetStale = db.prepare(`
   SET status = 'pending'  WHERE status = 'processing'
 `);
 
+const stmtGetRecentJobs = db.prepare(`
+  SELECT id, type, status, attempts, payload, COALESCE(error, '') AS error, created_at
+  FROM jobs
+  ORDER BY id DESC
+  LIMIT ?
+`);
+const stmtDeleteJobById = db.prepare(`DELETE FROM jobs WHERE id = ?`);
+const stmtDeleteJobsByYoutubeId = db.prepare(`
+  DELETE FROM jobs
+  WHERE json_extract(payload, '$.youtubeId') = ?
+`);
+
 // ── Public API ────────────────────────────────────────────────────────────────
 
 export function enqueue(type: JobType, payload: Record<string, unknown>): void {
@@ -86,4 +108,45 @@ export function fail(id: number, error: string): void {
 
 export function resetStale(): void {
   stmtResetStale.run();
+}
+
+export function getRecentJobs(limit = 200): JobAdminRow[] {
+  const rows = stmtGetRecentJobs.all(limit) as {
+    id: number;
+    type: JobType;
+    status: 'pending' | 'processing' | 'done' | 'failed';
+    attempts: number;
+    payload: string;
+    error: string;
+    created_at: string;
+  }[];
+
+  return rows.map((r) => {
+    let youtubeId = '';
+    try {
+      const payload = JSON.parse(r.payload) as { youtubeId?: unknown };
+      if (typeof payload.youtubeId === 'string') youtubeId = payload.youtubeId;
+    } catch {
+      youtubeId = '';
+    }
+    return {
+      id: r.id,
+      type: r.type,
+      status: r.status,
+      attempts: r.attempts,
+      youtubeId,
+      error: r.error,
+      createdAt: r.created_at,
+    };
+  });
+}
+
+export function deleteJobById(jobId: number): boolean {
+  const r = stmtDeleteJobById.run(jobId);
+  return r.changes > 0;
+}
+
+export function deleteJobsByYoutubeId(youtubeId: string): number {
+  const r = stmtDeleteJobsByYoutubeId.run(youtubeId);
+  return r.changes;
 }

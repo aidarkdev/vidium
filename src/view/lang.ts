@@ -9,6 +9,8 @@ const strings: Record<Lang, Record<string, string>> = {
   en: {
     // Nav
     'nav.logout': 'Log out',
+    'nav.manage': 'Manage',
+    'nav.controls': 'Controls',
 
     // Auth
     'auth.login': 'Log in',
@@ -59,11 +61,41 @@ const strings: Record<Lang, Record<string, string>> = {
     'channel.added': 'Channel added — crawling started',
     'channel.exists': 'Channel already exists',
     'channel.error': 'Error adding channel',
+
+    // Admin
+    'admin.title': 'Management',
+    'admin.jobs': 'Jobs queue',
+    'admin.statuses': 'Video statuses',
+    'admin.problem_rows': 'Active/problem statuses',
+    'admin.downloaded': 'Downloaded videos',
+    'admin.col.id': 'ID',
+    'admin.col.type': 'Type',
+    'admin.col.status': 'Status',
+    'admin.col.attempts': 'Attempts',
+    'admin.col.youtube_id': 'YouTube ID',
+    'admin.col.error': 'Error',
+    'admin.col.created_at': 'Created at',
+    'admin.col.video': 'Video',
+    'admin.col.audio': 'Audio',
+    'admin.col.title': 'Title',
+    'admin.col.ready_at': 'Ready at',
+    'admin.col.actions': 'Actions',
+    'admin.action.delete_files': 'Delete files',
+    'admin.action.delete_video': 'Delete from DB',
+    'admin.action.delete_job': 'Delete job',
+    'admin.action.deleting': 'Deleting...',
+    'admin.confirm.delete_files': 'Delete audio/video files for this row?',
+    'admin.confirm.delete_video': 'Delete video from DB and files (and related jobs)?',
+    'admin.confirm.delete_job': 'Delete this job row?',
+    'admin.error.action_failed': 'Action failed',
+    'admin.empty': 'No rows',
   },
 
   ru: {
     // Nav
     'nav.logout': 'Выйти',
+    'nav.manage': 'Управление',
+    'nav.controls': 'Действия',
 
     // Auth
     'auth.login': 'Войти',
@@ -114,6 +146,34 @@ const strings: Record<Lang, Record<string, string>> = {
     'channel.added': 'Канал добавлен — краулинг запущен',
     'channel.exists': 'Канал уже добавлен',
     'channel.error': 'Ошибка добавления канала',
+
+    // Admin
+    'admin.title': 'Управление',
+    'admin.jobs': 'Очередь джобов',
+    'admin.statuses': 'Статусы видео',
+    'admin.problem_rows': 'Активные/проблемные статусы',
+    'admin.downloaded': 'Скачанные видео',
+    'admin.col.id': 'ID',
+    'admin.col.type': 'Тип',
+    'admin.col.status': 'Статус',
+    'admin.col.attempts': 'Попытки',
+    'admin.col.youtube_id': 'YouTube ID',
+    'admin.col.error': 'Ошибка',
+    'admin.col.created_at': 'Создано',
+    'admin.col.video': 'Видео',
+    'admin.col.audio': 'Аудио',
+    'admin.col.title': 'Заголовок',
+    'admin.col.ready_at': 'Готово в',
+    'admin.col.actions': 'Действия',
+    'admin.action.delete_files': 'Удалить файлы',
+    'admin.action.delete_video': 'Удалить из БД',
+    'admin.action.delete_job': 'Удалить джоб',
+    'admin.action.deleting': 'Удаление...',
+    'admin.confirm.delete_files': 'Удалить аудио/видео файлы для этой строки?',
+    'admin.confirm.delete_video': 'Удалить видео из БД и файлы (и связанные джобы)?',
+    'admin.confirm.delete_job': 'Удалить эту джобу?',
+    'admin.error.action_failed': 'Ошибка действия',
+    'admin.empty': 'Нет данных',
   },
 };
 

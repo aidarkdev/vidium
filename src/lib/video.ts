@@ -21,6 +21,30 @@ export interface VideoEntry {
   duration?: number;
 }
 
+export interface VideoStatusSummary {
+  status: string;
+  videoCount: number;
+  audioCount: number;
+}
+
+export interface VideoStatusRow {
+  youtubeId: string;
+  title: string;
+  videoStatus: string;
+  audioStatus: string;
+  readyAt: string;
+  createdAt: string;
+}
+
+export interface DownloadedVideoRow {
+  youtubeId: string;
+  title: string;
+  videoStatus: string;
+  audioStatus: string;
+  readyAt: string;
+  createdAt: string;
+}
+
 // ── Statements ────────────────────────────────────────────────────────────────
 
 const SEL = `
@@ -49,6 +73,24 @@ const stmtGetByTagManual = db.prepare(`
 const stmtGetSince = db.prepare(
   `${SEL} WHERE v.created_at > ? ORDER BY v.date DESC, v.created_at DESC LIMIT 50`,
 );
+const stmtGetSinceByChannel = db.prepare(
+  `${SEL} WHERE v.created_at > ? AND v.channel_id = ? ORDER BY v.date DESC, v.created_at DESC LIMIT 50`,
+);
+const stmtGetSinceByTag = db.prepare(`
+  SELECT v.youtube_id, v.title, v.date, v.duration, v.video_status, v.audio_status,
+         COALESCE(NULLIF(c.display_name,''), c.name, '') AS channel_name
+  FROM videos v JOIN channels c ON v.channel_id = c.id
+  WHERE v.created_at > ? AND (',' || c.tags || ',') LIKE ('%,' || ? || ',%')
+  ORDER BY v.date DESC, v.created_at DESC LIMIT 50`);
+const stmtGetSinceByTagManual = db.prepare(`
+  SELECT v.youtube_id, v.title, v.date, v.duration, v.video_status, v.audio_status,
+         COALESCE(NULLIF(c.display_name,''), c.name, '') AS channel_name
+  FROM videos v JOIN channels c ON v.channel_id = c.id
+  WHERE v.created_at > ? AND (',' || c.tags || ',') LIKE ('%,' || ? || ',%')
+  ORDER BY v.created_at DESC, v.date DESC LIMIT 50`);
+const stmtGetSinceReady = db.prepare(
+  `${SEL} WHERE (v.video_status = 'ready' OR v.audio_status = 'ready') AND v.ready_at > ? ORDER BY v.ready_at DESC LIMIT 50`,
+);
 const stmtGetReady = db.prepare(
   `${SEL} WHERE v.video_status = 'ready' OR v.audio_status = 'ready' ORDER BY v.ready_at DESC LIMIT 200`,
 );
@@ -67,6 +109,34 @@ const stmtInsert = db.prepare(`
   VALUES (?, ?, ?, ?, ?, ?)
   ON CONFLICT (youtube_id) DO NOTHING
 `);
+const stmtGetStatusSummary = db.prepare(`
+  WITH s(status) AS (VALUES ('none'), ('queued'), ('downloading'), ('ready'), ('expired'))
+  SELECT
+    s.status AS status,
+    (SELECT COUNT(*) FROM videos WHERE video_status = s.status) AS video_count,
+    (SELECT COUNT(*) FROM videos WHERE audio_status = s.status) AS audio_count
+  FROM s
+`);
+const stmtGetProblemStatusRows = db.prepare(`
+  SELECT youtube_id, title, video_status, audio_status,
+         COALESCE(ready_at, '') AS ready_at, created_at
+  FROM videos
+  WHERE video_status IN ('queued', 'downloading', 'expired')
+     OR audio_status IN ('queued', 'downloading', 'expired')
+  ORDER BY created_at DESC
+  LIMIT ?
+`);
+const stmtGetDownloadedVideos = db.prepare(`
+  SELECT youtube_id, title, video_status, audio_status,
+         COALESCE(ready_at, '') AS ready_at, created_at
+  FROM videos
+  WHERE video_status = 'ready' OR audio_status = 'ready'
+  ORDER BY COALESCE(ready_at, created_at) DESC
+  LIMIT ?
+`);
+const stmtDeleteVideoByYoutubeId = db.prepare(`DELETE FROM videos WHERE youtube_id = ?`);
+const stmtSetVideoNone = db.prepare(`UPDATE videos SET video_status = 'none' WHERE youtube_id = ?`);
+const stmtSetAudioNone = db.prepare(`UPDATE videos SET audio_status = 'none' WHERE youtube_id = ?`);
 
 // ── Internal ──────────────────────────────────────────────────────────────────
 
@@ -78,6 +148,30 @@ type RawRow = {
   duration: number;
   video_status: string;
   audio_status: string;
+};
+
+type RawVideoStatusSummary = {
+  status: string;
+  video_count: number;
+  audio_count: number;
+};
+
+type RawVideoStatusRow = {
+  youtube_id: string;
+  title: string;
+  video_status: string;
+  audio_status: string;
+  ready_at: string;
+  created_at: string;
+};
+
+type RawDownloadedVideoRow = {
+  youtube_id: string;
+  title: string;
+  video_status: string;
+  audio_status: string;
+  ready_at: string;
+  created_at: string;
 };
 
 function toRow(r: RawRow): VideoRow {
@@ -120,6 +214,19 @@ export function getNewVideosSince(isoTimestamp: string): VideoRow[] {
   return (stmtGetSince.all(isoTimestamp) as RawRow[]).map(toRow);
 }
 
+export function getNewVideosSinceByChannel(isoTimestamp: string, channelId: number): VideoRow[] {
+  return (stmtGetSinceByChannel.all(isoTimestamp, channelId) as RawRow[]).map(toRow);
+}
+
+export function getNewVideosSinceByTag(isoTimestamp: string, tag: string): VideoRow[] {
+  const stmt = tag === 'manual' ? stmtGetSinceByTagManual : stmtGetSinceByTag;
+  return (stmt.all(isoTimestamp, tag) as RawRow[]).map(toRow);
+}
+
+export function getNewReadyVideosSince(isoTimestamp: string): VideoRow[] {
+  return (stmtGetSinceReady.all(isoTimestamp) as RawRow[]).map(toRow);
+}
+
 export function getReadyVideos(): VideoRow[] {
   return (stmtGetReady.all() as RawRow[]).map(toRow);
 }
@@ -151,4 +258,47 @@ export function insertVideos(entries: VideoEntry[], channelId: number, sourceTyp
     db.exec('ROLLBACK');
     throw err;
   }
+}
+
+export function getVideoStatusSummary(): VideoStatusSummary[] {
+  return (stmtGetStatusSummary.all() as RawVideoStatusSummary[]).map((r) => ({
+    status: r.status,
+    videoCount: r.video_count,
+    audioCount: r.audio_count,
+  }));
+}
+
+export function getProblemStatusRows(limit = 200): VideoStatusRow[] {
+  return (stmtGetProblemStatusRows.all(limit) as RawVideoStatusRow[]).map((r) => ({
+    youtubeId: r.youtube_id,
+    title: r.title,
+    videoStatus: r.video_status,
+    audioStatus: r.audio_status,
+    readyAt: r.ready_at,
+    createdAt: r.created_at,
+  }));
+}
+
+export function getDownloadedVideos(limit = 300): DownloadedVideoRow[] {
+  return (stmtGetDownloadedVideos.all(limit) as RawDownloadedVideoRow[]).map((r) => ({
+    youtubeId: r.youtube_id,
+    title: r.title,
+    videoStatus: r.video_status,
+    audioStatus: r.audio_status,
+    readyAt: r.ready_at,
+    createdAt: r.created_at,
+  }));
+}
+
+export function deleteVideoByYoutubeId(youtubeId: string): boolean {
+  const r = stmtDeleteVideoByYoutubeId.run(youtubeId);
+  return r.changes > 0;
+}
+
+export function setMediaStatusesNone(
+  youtubeId: string,
+  opts: { video: boolean; audio: boolean },
+): void {
+  if (opts.video) stmtSetVideoNone.run(youtubeId);
+  if (opts.audio) stmtSetAudioNone.run(youtubeId);
 }

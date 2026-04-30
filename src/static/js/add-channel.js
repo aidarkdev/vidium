@@ -4,6 +4,7 @@
 
 const addForm = document.getElementById('add-channel-form');
 const addMsg = document.getElementById('add-channel-msg');
+const addChannelDetails = addForm ? addForm.closest('details') : null;
 
 if (addForm) {
   addForm.addEventListener('submit', async (e) => {
@@ -31,16 +32,19 @@ if (addForm) {
     if (data.status === 'exists') {
       addMsg.textContent = ADD_STRINGS.exists;
       addMsg.className = 'add-channel-msg warn';
+      if (addChannelDetails) addChannelDetails.open = false;
     } else {
       addMsg.textContent = ADD_STRINGS.added;
       addMsg.className = 'add-channel-msg ok';
       addForm.reset();
+      if (addChannelDetails) addChannelDetails.open = false;
     }
   });
 }
 
 const addVideoForm = document.getElementById('add-video-form');
 const addVideoMsg = document.getElementById('add-video-msg');
+const addVideoDetails = addVideoForm ? addVideoForm.closest('details') : null;
 
 if (addVideoForm) {
   addVideoForm.addEventListener('submit', async (e) => {
@@ -66,10 +70,12 @@ if (addVideoForm) {
     if (data.status === 'exists') {
       addVideoMsg.textContent = ADD_VIDEO_STRINGS.exists;
       addVideoMsg.className = 'add-channel-msg warn';
+      if (addVideoDetails) addVideoDetails.open = false;
     } else {
       addVideoMsg.textContent = ADD_VIDEO_STRINGS.added;
       addVideoMsg.className = 'add-channel-msg ok';
       addVideoForm.reset();
+      if (addVideoDetails) addVideoDetails.open = false;
     }
   });
 }

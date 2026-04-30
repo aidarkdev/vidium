@@ -9,16 +9,23 @@
  */
 
 import type { IncomingMessage, ServerResponse } from 'node:http';
+import { unlink } from 'node:fs/promises';
+import { config } from '../config.ts';
 import { requireSessionApi, checkCsrf, readBody, getQuery, json } from '../lib/http.ts';
-import { enqueue } from '../lib/queue.ts';
+import { deleteJobById, deleteJobsByYoutubeId, enqueue } from '../lib/queue.ts';
 import { isValidVideoId, CHANNEL_URL_RE, VIDEO_URL_RE } from '../lib/validation.ts';
 import {
+  deleteVideoByYoutubeId,
   getVideoById,
   videoExists,
   setVideoStatus,
   setAudioStatus,
+  setMediaStatusesNone,
   insertVideos,
   getNewVideosSince,
+  getNewVideosSinceByChannel,
+  getNewVideosSinceByTag,
+  getNewReadyVideosSince,
 } from '../lib/video.ts';
 import {
   addChannel,
@@ -27,6 +34,17 @@ import {
   moveChannel as moveChannelOrder,
 } from '../lib/channel.ts';
 import { fetchMeta } from '../lib/ytdlp.ts';
+
+async function unlinkIfExists(path: string): Promise<boolean> {
+  try {
+    await unlink(path);
+    return true;
+  } catch (err) {
+    const e = err as { code?: string };
+    if (e.code === 'ENOENT') return false;
+    throw err;
+  }
+}
 
 // ── Handlers ──────────────────────────────────────────────────────────────────
 
@@ -72,8 +90,19 @@ export function handleStatus(req: IncomingMessage, res: ServerResponse): void {
 export function handleSince(req: IncomingMessage, res: ServerResponse): void {
   if (!requireSessionApi(req, res)) return;
 
-  const ts = parseInt(getQuery(req).t ?? '0', 10);
-  const rows = getNewVideosSince(new Date(ts).toISOString());
+  const q = getQuery(req);
+  const ts = parseInt(q.t ?? '0', 10);
+  const sinceIso = new Date(Number.isFinite(ts) ? ts : 0).toISOString();
+  const tag = (q.tag ?? '').trim();
+  const channelId = Number.parseInt(q.channelId ?? '', 10);
+
+  const rows = Number.isInteger(channelId) && channelId > 0
+    ? getNewVideosSinceByChannel(sinceIso, channelId)
+    : tag === 'ready'
+      ? getNewReadyVideosSince(sinceIso)
+      : tag && tag !== 'all'
+        ? getNewVideosSinceByTag(sinceIso, tag)
+        : getNewVideosSince(sinceIso);
 
   json(
     res,
@@ -81,6 +110,7 @@ export function handleSince(req: IncomingMessage, res: ServerResponse): void {
     rows.map((r) => ({
       youtubeId: r.youtubeId,
       title: r.title,
+      channelName: r.channelName,
       date: r.date,
       duration: r.duration,
       videoStatus: r.videoStatus,
@@ -202,4 +232,71 @@ export async function handleReorderChannel(
 
   const moved = moveChannelOrder(data.channelId, data.direction);
   json(res, 200, { ok: true, moved });
+}
+
+export async function handleAdminDeleteVideoFiles(
+  req: IncomingMessage,
+  res: ServerResponse,
+): Promise<void> {
+  if (!requireSessionApi(req, res)) return;
+  if (!checkCsrf(req, res)) return;
+
+  let data: { youtubeId: string };
+  try {
+    data = JSON.parse(await readBody(req));
+  } catch {
+    return json(res, 400, { error: 'invalid json' });
+  }
+  if (!isValidVideoId(data.youtubeId)) return json(res, 400, { error: 'invalid request' });
+
+  const videoDeleted = await unlinkIfExists(`${config.MEDIA_DIR}/videos/${data.youtubeId}.mp4`);
+  const audioDeleted = await unlinkIfExists(`${config.MEDIA_DIR}/audio/${data.youtubeId}.m4a`);
+  setMediaStatusesNone(data.youtubeId, { video: videoDeleted, audio: audioDeleted });
+
+  json(res, 200, { ok: true, videoDeleted, audioDeleted });
+}
+
+export async function handleAdminDeleteVideo(
+  req: IncomingMessage,
+  res: ServerResponse,
+): Promise<void> {
+  if (!requireSessionApi(req, res)) return;
+  if (!checkCsrf(req, res)) return;
+
+  let data: { youtubeId: string };
+  try {
+    data = JSON.parse(await readBody(req));
+  } catch {
+    return json(res, 400, { error: 'invalid json' });
+  }
+  if (!isValidVideoId(data.youtubeId)) return json(res, 400, { error: 'invalid request' });
+
+  const videoDeleted = await unlinkIfExists(`${config.MEDIA_DIR}/videos/${data.youtubeId}.mp4`);
+  const audioDeleted = await unlinkIfExists(`${config.MEDIA_DIR}/audio/${data.youtubeId}.m4a`);
+  const videoRemoved = deleteVideoByYoutubeId(data.youtubeId);
+  const jobsRemoved = deleteJobsByYoutubeId(data.youtubeId);
+
+  json(res, 200, { ok: true, videoDeleted, audioDeleted, videoRemoved, jobsRemoved });
+}
+
+export async function handleAdminDeleteJob(
+  req: IncomingMessage,
+  res: ServerResponse,
+): Promise<void> {
+  if (!requireSessionApi(req, res)) return;
+  if (!checkCsrf(req, res)) return;
+
+  let data: { jobId: number };
+  try {
+    data = JSON.parse(await readBody(req));
+  } catch {
+    return json(res, 400, { error: 'invalid json' });
+  }
+
+  if (!Number.isInteger(data.jobId) || data.jobId <= 0) {
+    return json(res, 400, { error: 'invalid request' });
+  }
+
+  const deleted = deleteJobById(data.jobId);
+  json(res, 200, { ok: true, deleted });
 }

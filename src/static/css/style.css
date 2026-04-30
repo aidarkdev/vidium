@@ -377,29 +377,21 @@ button.btn-audio:hover {
 }
 .btn-top:hover { color: #fff; border-color: #aaa; background: #333; }
 
-/* ── Add channel ─────────────────────────────────────────────────────────── */
+/* ── Nav dropdown / actions ─────────────────────────────────────────────── */
 
-.add-channel {
-  margin-bottom: 1.5rem;
+.nav-dropdown {
   position: relative;
 }
 
-.nav-links .add-channel {
-  margin-bottom: 0;
-  display: flex;
-  align-items: center;
-  position: relative;
-}
-
-.add-channel summary {
+.nav-dropdown > summary {
+  list-style: none;
   cursor: pointer;
   color: #7cb8ff;
-  font-size: 0.9rem;
-  list-style: none;
 }
-.add-channel summary::-webkit-details-marker { display: none; }
 
-.nav-links .add-channel[open] .add-channel-panel {
+.nav-dropdown > summary::-webkit-details-marker { display: none; }
+
+.nav-dropdown[open] .nav-dropdown-panel {
   position: absolute;
   top: calc(100% + 0.5rem);
   right: 0;
@@ -409,10 +401,43 @@ button.btn-audio:hover {
   border-radius: 0.4rem;
   padding: 0.75rem;
   z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.nav-dropdown-link {
+  color: #7cb8ff;
+  font-size: 0.9rem;
+  text-decoration: none;
+}
+
+.nav-dropdown-link:hover { text-decoration: underline; }
+
+.add-channel {
+  margin-bottom: 0;
+  position: relative;
+}
+
+.add-channel summary {
+  cursor: pointer;
+  color: #7cb8ff;
+  font-size: 0.9rem;
+  list-style: none;
+}
+
+.add-channel summary::-webkit-details-marker { display: none; }
+
+.add-channel[open] .add-channel-panel {
+  margin-top: 0.5rem;
+  background: #151515;
+  border: 1px solid #333;
+  border-radius: 0.4rem;
+  padding: 0.75rem;
 }
 
 @media (max-width: 600px) {
-  .nav-links .add-channel[open] .add-channel-panel {
+  .nav-dropdown[open] .nav-dropdown-panel {
     position: fixed;
     top: 3.5rem;
     left: 1rem;
@@ -456,6 +481,72 @@ button.btn-audio:hover {
 .add-channel-msg.ok { color: #4ade80; }
 .add-channel-msg.warn { color: #fbbf24; }
 .add-channel-msg.error { color: #f87171; }
+
+/* ── Admin ───────────────────────────────────────────────────────────────── */
+
+.admin-section {
+  margin-bottom: 1.5rem;
+}
+
+.admin-section h2 {
+  margin-bottom: 0.6rem;
+  font-size: 1.05rem;
+}
+
+.admin-table-wrap {
+  overflow-x: auto;
+  border: 1px solid #333;
+  border-radius: 0.5rem;
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 680px;
+}
+
+.admin-table th,
+.admin-table td {
+  text-align: left;
+  padding: 0.5rem 0.6rem;
+  border-bottom: 1px solid #2a2a2a;
+  vertical-align: top;
+  font-size: 0.86rem;
+}
+
+.admin-table th {
+  background: #181818;
+  color: #ddd;
+  position: sticky;
+  top: 0;
+}
+
+.admin-actions-cell {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.admin-btn {
+  padding: 0.25rem 0.6rem;
+  background: #2a2a2a;
+  color: #d7d7d7;
+  border: 1px solid #444;
+}
+
+.admin-btn:hover {
+  background: #353535;
+}
+
+.admin-btn-danger {
+  border-color: #7f1d1d;
+  color: #fecaca;
+  background: #3b1313;
+}
+
+.admin-btn-danger:hover {
+  background: #4b1818;
+}
 
 /* ── Player ──────────────────────────────────────────────────────────────── */
 

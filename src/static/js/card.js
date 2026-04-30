@@ -89,6 +89,10 @@ function renderNext() {
   if (rendered >= CARDS.length && btnMore) btnMore.style.display = 'none';
 }
 
+if (btnMore) {
+  btnMore.style.display = CARDS.length > PAGE_SIZE ? 'block' : 'none';
+}
+
 renderNext();
 
 if (btnMore) {
@@ -161,7 +165,15 @@ function updateCard(id, videoStatus, audioStatus) {
 // ── New videos since page load ────────────────────────────────────────────────
 
 async function checkSince() {
-  const res = await fetch(`/api/since?t=${since}`);
+  const params = new URLSearchParams({ t: String(since) });
+  const path = window.location.pathname.split('/').filter(Boolean);
+  if (path[0] === 'channel' && path[1] && /^\d+$/.test(path[1])) {
+    params.set('channelId', path[1]);
+  } else if (path[0] === 'feed') {
+    params.set('tag', path[1] || 'all');
+  }
+
+  const res = await fetch(`/api/since?${params.toString()}`);
   const items = await res.json();
   if (!items.length) return;
   since = Date.now();
