@@ -1,4 +1,4 @@
-import { cardsHtml, sidebarHtml } from './template.js';
+import { cardHtml, cardsHtml, sidebarHtml } from './template.js';
 
 const PAGE_SIZE = 21;
 const pendingStatuses = new Set(['queued', 'downloading']);
@@ -18,6 +18,18 @@ function rerenderSidebar(part) {
   part.refs.sidebarChannels = next.querySelector('[data-ref="sidebarChannels"]');
 }
 
+function rerenderUpdatedCards(part, ids) {
+  for (const id of ids) {
+    const card = part.state.cards.find((item) => item.youtubeId === id);
+    const node = part.refs.cards.querySelector(`[data-id="${CSS.escape(id)}"]`);
+    if (!card || !node) continue;
+
+    const fresh = document.createElement('template');
+    fresh.innerHTML = cardHtml(card, part.state.strings);
+    node.replaceWith(fresh.content.firstElementChild);
+  }
+}
+
 function updateCardStatus(cards, id, videoStatus, audioStatus) {
   return cards.map((card) =>
     card.youtubeId === id ? { ...card, videoStatus, audioStatus } : card,
@@ -30,13 +42,21 @@ async function poll(part) {
   const data = await res.json();
   let cards = part.state.cards;
   let pollingIds = part.state.pollingIds;
+  const updatedCardIds = [];
   for (const [id, status] of Object.entries(data)) {
+    const current = cards.find((card) => card.youtubeId === id);
+    if (
+      current &&
+      (current.videoStatus !== status.video || current.audioStatus !== status.audio)
+    ) {
+      updatedCardIds.push(id);
+    }
     cards = updateCardStatus(cards, id, status.video, status.audio);
     if (!pendingStatuses.has(status.video) && !pendingStatuses.has(status.audio)) {
       pollingIds = pollingIds.filter((item) => item !== id);
     }
   }
-  part.set({ cards, pollingIds });
+  part.set({ cards, pollingIds, updatedCardIds });
   if (pollingIds.length)
     part.private.pollTimer = setTimeout(() => poll(part).catch(() => {}), 5000);
 }
@@ -78,7 +98,7 @@ export default {
       const pollingIds = part.state.pollingIds.includes(id)
         ? part.state.pollingIds
         : [...part.state.pollingIds, id];
-      part.set({ cards, pollingIds });
+      part.set({ cards, pollingIds, updatedCardIds: [id] });
       await fetch('/api/download', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -114,8 +134,9 @@ export default {
     },
   },
   state: {
-    cards: rerenderCards,
+    cards: () => {},
     visibleCount: rerenderCards,
+    updatedCardIds: rerenderUpdatedCards,
     channels: rerenderSidebar,
     sidebarOpen: (part, value) => part.refs.sidebar.classList.toggle('open', value),
     editMode: (part, value) => part.refs.sidebar.classList.toggle('edit-mode', value),
