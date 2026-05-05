@@ -18,8 +18,8 @@ function rerenderSidebar(part) {
   part.refs.sidebarChannels = next.querySelector('[data-ref="sidebarChannels"]');
 }
 
-function rerenderUpdatedCards(part, ids) {
-  for (const id of ids) {
+function rerenderUpdatedCards(part, updates) {
+  for (const { id } of updates) {
     const card = part.state.cards.find((item) => item.youtubeId === id);
     const node = part.refs.cards.querySelector(`[data-id="${CSS.escape(id)}"]`);
     if (!card || !node) continue;
@@ -30,33 +30,43 @@ function rerenderUpdatedCards(part, ids) {
   }
 }
 
-function updateCardStatus(cards, id, videoStatus, audioStatus) {
-  return cards.map((card) =>
-    card.youtubeId === id ? { ...card, videoStatus, audioStatus } : card,
-  );
+function applyCardStatusUpdates(part, updates) {
+  part.state.cards = part.state.cards.map((card) => {
+    const update = updates.find((item) => item.id === card.youtubeId);
+    if (!update) return card;
+
+    return {
+      ...card,
+      videoStatus: update.videoStatus ?? card.videoStatus,
+      audioStatus: update.audioStatus ?? card.audioStatus,
+    };
+  });
+  rerenderUpdatedCards(part, updates);
 }
 
 async function poll(part) {
   if (!part.state.pollingIds.length) return;
   const res = await fetch(`/api/status?ids=${part.state.pollingIds.join(',')}`);
   const data = await res.json();
-  let cards = part.state.cards;
   let pollingIds = part.state.pollingIds;
-  const updatedCardIds = [];
+  const cardStatusUpdates = [];
   for (const [id, status] of Object.entries(data)) {
-    const current = cards.find((card) => card.youtubeId === id);
+    const current = part.state.cards.find((card) => card.youtubeId === id);
     if (
       current &&
       (current.videoStatus !== status.video || current.audioStatus !== status.audio)
     ) {
-      updatedCardIds.push(id);
+      cardStatusUpdates.push({
+        id,
+        videoStatus: status.video,
+        audioStatus: status.audio,
+      });
     }
-    cards = updateCardStatus(cards, id, status.video, status.audio);
     if (!pendingStatuses.has(status.video) && !pendingStatuses.has(status.audio)) {
       pollingIds = pollingIds.filter((item) => item !== id);
     }
   }
-  part.set({ cards, pollingIds, updatedCardIds });
+  part.set({ pollingIds, cardStatusUpdates });
   if (pollingIds.length)
     part.private.pollTimer = setTimeout(() => poll(part).catch(() => {}), 5000);
 }
@@ -91,14 +101,12 @@ export default {
       const btn = event.target.closest('[data-action="download"]');
       const id = btn.dataset.id;
       const type = btn.dataset.type;
-      const statusKey = type === 'video' ? 'videoStatus' : 'audioStatus';
-      const cards = part.state.cards.map((card) =>
-        card.youtubeId === id ? { ...card, [statusKey]: 'queued' } : card,
-      );
+      const statusUpdate =
+        type === 'video' ? { id, videoStatus: 'queued' } : { id, audioStatus: 'queued' };
       const pollingIds = part.state.pollingIds.includes(id)
         ? part.state.pollingIds
         : [...part.state.pollingIds, id];
-      part.set({ cards, pollingIds, updatedCardIds: [id] });
+      part.set({ pollingIds, cardStatusUpdates: [statusUpdate] });
       await fetch('/api/download', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -134,9 +142,9 @@ export default {
     },
   },
   state: {
-    cards: () => {},
+    cards: rerenderCards,
     visibleCount: rerenderCards,
-    updatedCardIds: rerenderUpdatedCards,
+    cardStatusUpdates: applyCardStatusUpdates,
     channels: rerenderSidebar,
     sidebarOpen: (part, value) => part.refs.sidebar.classList.toggle('open', value),
     editMode: (part, value) => part.refs.sidebar.classList.toggle('edit-mode', value),
