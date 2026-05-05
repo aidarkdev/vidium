@@ -83,26 +83,26 @@ export function renderPartPage(opts: PartPageOptions): string {
 
   return `<!DOCTYPE html>
   <html lang="${lang}">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>${title}</title>
-    <link rel="stylesheet" href="/static/css/style.css">
-    <link rel="icon" type="image/png" href="/static/favicon.png">
-    <script type="module" src="/engine/core.js"></script>
-    <script type="application/json" id="__BAKED__">${safeJson(baked)}</script>
-  </head>
-  <body>
-    <nav class="nav">
-      <a class="nav-logo" href="/">vidium</a>
-      <div class="nav-links">
-        ${navControls}
-      </div>
-    </nav>
-    <main class="main">
-      ${opts.body}
-    </main>
-    ${backTop}
-  </body>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1">
+      <title>${title}</title>
+      <link rel="stylesheet" href="/static/css/style.css">
+      <link rel="icon" type="image/png" href="/static/favicon.png">
+      <script type="module" src="/engine/core.js"></script>
+      <script type="application/json" id="__BAKED__">${safeJson(baked)}</script>
+    </head>
+    <body>
+      <nav class="nav">
+        <a class="nav-logo" href="/">vidium</a>
+        <div class="nav-links">
+          ${navControls}
+        </div>
+      </nav>
+      <main class="main">
+        ${opts.body}
+      </main>
+      ${backTop}
+    </body>
   </html>`;
 }
