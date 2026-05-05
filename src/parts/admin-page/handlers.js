@@ -1,0 +1,98 @@
+import { jobsHead, renderDownloaded, renderJobs, table, videoHead } from './template.js';
+
+async function postJson(url, body) {
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || !data.ok) throw new Error(data.error || 'error');
+  return data;
+}
+
+export default {
+  events: {
+    'click [data-action="admin-delete-files"]': async (part, event) => {
+      const btn = event.target.closest('[data-action]');
+      const youtubeId = btn.dataset.youtubeId;
+      if (!confirm(part.state.confirm.deleteFiles)) return;
+      part.set('pendingAction', { action: 'files', id: youtubeId });
+      try {
+        await postJson('/api/admin/video/files/delete', { youtubeId });
+        part.set('reloadRequested', part.state.reloadRequested + 1);
+      } catch (err) {
+        part.set('errorMessage', err.message || part.state.actions.error);
+      } finally {
+        part.set('pendingAction', null);
+      }
+    },
+    'click [data-action="admin-delete-video"]': async (part, event) => {
+      const btn = event.target.closest('[data-action]');
+      const youtubeId = btn.dataset.youtubeId;
+      if (!confirm(part.state.confirm.deleteVideo)) return;
+      part.set('pendingAction', { action: 'video', id: youtubeId });
+      try {
+        await postJson('/api/admin/video/delete', { youtubeId });
+        part.set(
+          'downloadedVideos',
+          part.state.downloadedVideos.filter((row) => row.youtubeId !== youtubeId),
+        );
+      } catch (err) {
+        part.set('errorMessage', err.message || part.state.actions.error);
+      } finally {
+        part.set('pendingAction', null);
+      }
+    },
+    'click [data-action="admin-delete-job"]': async (part, event) => {
+      const btn = event.target.closest('[data-action]');
+      const jobId = Number(btn.dataset.jobId);
+      if (!confirm(part.state.confirm.deleteJob)) return;
+      part.set('pendingAction', { action: 'job', id: String(jobId) });
+      try {
+        await postJson('/api/admin/job/delete', { jobId });
+        part.set(
+          'jobs',
+          part.state.jobs.filter((row) => row.id !== jobId),
+        );
+      } catch (err) {
+        part.set('errorMessage', err.message || part.state.actions.error);
+      } finally {
+        part.set('pendingAction', null);
+      }
+    },
+  },
+  state: {
+    jobs: (part) => {
+      part.refs.jobs.innerHTML = table(
+        part.state.sections.jobs,
+        jobsHead(part.state.cols),
+        renderJobs(part.state),
+      );
+    },
+    downloadedVideos: (part) => {
+      part.refs.downloaded.innerHTML = table(
+        part.state.sections.downloaded,
+        videoHead(part.state.cols, true),
+        renderDownloaded(part.state),
+      );
+    },
+    pendingAction: (part, value) => {
+      for (const btn of part.root.querySelectorAll('[data-action^="admin-"]')) btn.disabled = false;
+      if (!value) return;
+      const selector =
+        value.action === 'job'
+          ? `[data-job-id="${value.id}"]`
+          : `[data-youtube-id="${CSS.escape(value.id)}"]`;
+      const btn = part.root.querySelector(selector);
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = part.state.actions.deleting;
+      }
+    },
+    errorMessage: (_part, value) => {
+      if (value) alert(value);
+    },
+    reloadRequested: () => window.location.reload(),
+  },
+};

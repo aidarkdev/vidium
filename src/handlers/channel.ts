@@ -5,11 +5,9 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { requireSession, notFound, html } from '../lib/http.ts';
 import { getChannelById, getAllChannels } from '../lib/channel.ts';
-import { getVideosByChannel, countVideosByChannel } from '../lib/video.ts';
-import { renderChannelPage } from '../view/render.ts';
+import { getVideosByChannel } from '../lib/video.ts';
+import { renderChannelPage } from '../pages/channel.ts';
 import { config } from '../config.ts';
-
-const CHANNEL_PAGE_SIZE = 21;
 
 export function handleChannel(
   req: IncomingMessage,
@@ -25,7 +23,6 @@ export function handleChannel(
 
   const lang = session.data.lang ?? config.DEFAULT_LANG;
   const cards = getVideosByChannel(channelId);
-  const total = countVideosByChannel(channelId);
 
   html(
     res,
@@ -34,7 +31,6 @@ export function handleChannel(
       channelId: channel.id,
       channelName: channel.displayName || channel.name,
       cards,
-      hasMore: total > CHANNEL_PAGE_SIZE,
       since: Date.now(),
       channels: getAllChannels(),
     }),

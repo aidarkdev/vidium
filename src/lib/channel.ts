@@ -27,7 +27,6 @@ const stmtUpdateYtId = db.prepare(`UPDATE channels SET youtube_channel_id = ? WH
 const stmtUpdateCrawled = db.prepare(
   `UPDATE channels SET last_crawled = strftime('%Y-%m-%dT%H:%M:%SZ','now') WHERE id = ?`,
 );
-const stmtGetAllTags = db.prepare(`SELECT DISTINCT tags FROM channels WHERE tags != ''`);
 const stmtGetLabels = db.prepare(`SELECT tag, label FROM tag_labels`);
 const stmtSetLabel = db.prepare(
   `INSERT INTO tag_labels (tag, label) VALUES (?, ?) ON CONFLICT (tag) DO UPDATE SET label = excluded.label`,
@@ -109,19 +108,6 @@ export function updateLastCrawled(channelId: number): void {
 
 export const MANUAL_CHANNEL_ID = 1;
 export type ChannelMoveDirection = 'up' | 'down';
-
-/** Returns tags list with 'ready', 'all', 'manual' pinned first. */
-export function getAllTags(): string[] {
-  const PINNED = ['ready', 'all', 'manual'];
-  const rest = [
-    ...new Set(
-      (stmtGetAllTags.all() as { tags: string }[])
-        .flatMap((r) => r.tags.split(','))
-        .filter((t) => t && !PINNED.includes(t)),
-    ),
-  ];
-  return [...PINNED, ...rest];
-}
 
 export function getTagLabels(): Record<string, string> {
   return Object.fromEntries(

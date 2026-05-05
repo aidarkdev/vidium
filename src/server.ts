@@ -8,6 +8,7 @@
 import { createServer } from 'node:http';
 import { config } from './config.ts';
 import { Router } from './lib/router.ts';
+import type { Handler } from './lib/router.ts';
 
 import { handleLogin, handleRegister, handleLogout, handleLang } from './handlers/auth.ts';
 import { handleFeed } from './handlers/feed.ts';
@@ -33,45 +34,163 @@ import {
   handleAdminDeleteJob,
 } from './handlers/api.ts';
 
+type RouteMethod = 'get' | 'post';
+
+interface RouteConfig {
+  method: RouteMethod;
+  path: string;
+  handler: Handler;
+}
+
+const routes: RouteConfig[] = [
+  // Auth
+  {
+    method: 'get',
+    path: '/login',
+    handler: handleLogin,
+  },
+  {
+    method: 'post',
+    path: '/login',
+    handler: handleLogin,
+  },
+  {
+    method: 'get',
+    path: '/register',
+    handler: handleRegister,
+  },
+  {
+    method: 'post',
+    path: '/register',
+    handler: handleRegister,
+  },
+  {
+    method: 'post',
+    path: '/logout',
+    handler: handleLogout,
+  },
+  {
+    method: 'get',
+    path: '/lang/:code',
+    handler: handleLang,
+  },
+
+  // Feed
+  {
+    method: 'get',
+    path: '/',
+    handler: handleFeed,
+  },
+  {
+    method: 'get',
+    path: '/feed',
+    handler: handleFeed,
+  },
+  {
+    method: 'get',
+    path: '/feed/:tag',
+    handler: handleFeed,
+  },
+
+  // Channel/admin
+  {
+    method: 'get',
+    path: '/channel/:id',
+    handler: handleChannel,
+  },
+  {
+    method: 'get',
+    path: '/admin',
+    handler: handleAdmin,
+  },
+
+  // Player pages
+  {
+    method: 'get',
+    path: '/v/:id',
+    handler: handleVideo,
+  },
+  {
+    method: 'get',
+    path: '/a/:id',
+    handler: handleAudio,
+  },
+
+  // Raw media — Node authorizes, nginx serves via X-Accel-Redirect
+  {
+    method: 'get',
+    path: '/media/v/:id',
+    handler: handleMediaVideo,
+  },
+  {
+    method: 'get',
+    path: '/media/a/:id',
+    handler: handleMediaAudio,
+  },
+  {
+    method: 'get',
+    path: '/t/:id',
+    handler: handleThumb,
+  },
+
+  // API
+  {
+    method: 'post',
+    path: '/api/download',
+    handler: handleDownload,
+  },
+  {
+    method: 'post',
+    path: '/api/channel',
+    handler: handleAddChannel,
+  },
+  {
+    method: 'post',
+    path: '/api/video',
+    handler: handleAddVideo,
+  },
+  {
+    method: 'post',
+    path: '/api/tag-label',
+    handler: handleSetTagLabel,
+  },
+  {
+    method: 'post',
+    path: '/api/channel/reorder',
+    handler: handleReorderChannel,
+  },
+  {
+    method: 'post',
+    path: '/api/admin/video/files/delete',
+    handler: handleAdminDeleteVideoFiles,
+  },
+  {
+    method: 'post',
+    path: '/api/admin/video/delete',
+    handler: handleAdminDeleteVideo,
+  },
+  {
+    method: 'post',
+    path: '/api/admin/job/delete',
+    handler: handleAdminDeleteJob,
+  },
+  {
+    method: 'get',
+    path: '/api/status',
+    handler: handleStatus,
+  },
+  {
+    method: 'get',
+    path: '/api/since',
+    handler: handleSince,
+  },
+];
+
 const router = new Router();
 
-// Auth
-router.get('/login', handleLogin);
-router.post('/login', handleLogin);
-router.get('/register', handleRegister);
-router.post('/register', handleRegister);
-router.post('/logout', handleLogout);
-router.get('/lang/:code', handleLang);
-
-// Feed
-router.get('/', handleFeed);
-router.get('/feed', handleFeed);
-router.get('/feed/:tag', handleFeed);
-
-// Channel
-router.get('/channel/:id', handleChannel);
-router.get('/admin', handleAdmin);
-
-// Player pages
-router.get('/v/:id', handleVideo);
-router.get('/a/:id', handleAudio);
-
-// Raw media — Node authorizes, nginx serves via X-Accel-Redirect
-router.get('/media/v/:id', handleMediaVideo);
-router.get('/media/a/:id', handleMediaAudio);
-router.get('/t/:id', handleThumb);
-
-// API
-router.post('/api/download', handleDownload);
-router.post('/api/channel', handleAddChannel);
-router.post('/api/video', handleAddVideo);
-router.post('/api/tag-label', handleSetTagLabel);
-router.post('/api/channel/reorder', handleReorderChannel);
-router.post('/api/admin/video/files/delete', handleAdminDeleteVideoFiles);
-router.post('/api/admin/video/delete', handleAdminDeleteVideo);
-router.post('/api/admin/job/delete', handleAdminDeleteJob);
-router.get('/api/status', handleStatus);
-router.get('/api/since', handleSince);
+for (const route of routes) {
+  router[route.method](route.path, route.handler);
+}
 
 // Server
 const server = createServer((req, res) => {

@@ -96,13 +96,14 @@ export function handleSince(req: IncomingMessage, res: ServerResponse): void {
   const tag = (q.tag ?? '').trim();
   const channelId = Number.parseInt(q.channelId ?? '', 10);
 
-  const rows = Number.isInteger(channelId) && channelId > 0
-    ? getNewVideosSinceByChannel(sinceIso, channelId)
-    : tag === 'ready'
-      ? getNewReadyVideosSince(sinceIso)
-      : tag && tag !== 'all'
-        ? getNewVideosSinceByTag(sinceIso, tag)
-        : getNewVideosSince(sinceIso);
+  const rows =
+    Number.isInteger(channelId) && channelId > 0
+      ? getNewVideosSinceByChannel(sinceIso, channelId)
+      : tag === 'ready'
+        ? getNewReadyVideosSince(sinceIso)
+        : tag && tag !== 'all'
+          ? getNewVideosSinceByTag(sinceIso, tag)
+          : getNewVideosSince(sinceIso);
 
   json(
     res,

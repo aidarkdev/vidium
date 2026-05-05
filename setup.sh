@@ -68,7 +68,7 @@ EOF
 
 echo "=== Setting permissions for nginx ==="
 # nginx (www-data) needs execute on each parent dir to reach static/media files
-chmod o+x $(dirname "${APP_DIR}") "${APP_DIR}" "${APP_DIR}/src" "${APP_DIR}/src/static"
+chmod o+x $(dirname "${APP_DIR}") "${APP_DIR}" "${APP_DIR}/src" "${APP_DIR}/src/static" "${APP_DIR}/src/engine" "${APP_DIR}/src/parts"
 # Symlink so nginx alias /static/ works without knowing about src/
 ln -sfn "${APP_DIR}/src/static" "${APP_DIR}/static"
 
@@ -88,9 +88,22 @@ server {
         proxy_set_header X-Forwarded-Proto \$scheme;
     }
 
-    # Static files — nginx serves directly (CSS, JS, fonts)
+    # Static frontend assets served directly by nginx.
     location /static/ {
         alias ${APP_DIR}/static/;
+        try_files \$uri =404;
+    }
+
+    # Client runtime modules.
+    location /engine/ {
+        alias ${APP_DIR}/src/engine/;
+        try_files \$uri =404;
+    }
+
+    # Client part modules.
+    location /parts/ {
+        alias ${APP_DIR}/src/parts/;
+        try_files \$uri =404;
     }
 
     # Protected media — only via X-Accel-Redirect from Node

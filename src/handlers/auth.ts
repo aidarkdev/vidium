@@ -13,7 +13,7 @@ import {
 } from '../lib/auth/sessions.ts';
 import { checkLoginRateLimit, resetLoginRateLimit } from '../lib/auth/ratelimit.ts';
 import { authenticate, register, checkInviteCode } from '../lib/auth/auth.ts';
-import { renderLoginPage, renderRegisterPage } from '../view/auth-form.ts';
+import { renderLoginPage, renderRegisterPage } from '../pages/auth.ts';
 import { redirect, html, readBody, parseForm } from '../lib/http.ts';
 import { config } from '../config.ts';
 

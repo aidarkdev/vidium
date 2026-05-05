@@ -57,7 +57,6 @@ const stmtGetAll = db.prepare(`${SEL} ORDER BY v.date DESC, v.created_at DESC LI
 const stmtGetByChannel = db.prepare(
   `${SEL} WHERE v.channel_id = ? ORDER BY v.date DESC, v.created_at DESC LIMIT 100`,
 );
-const stmtCountByChannel = db.prepare(`SELECT COUNT(*) as n FROM videos WHERE channel_id = ?`);
 const stmtGetByTag = db.prepare(`
   SELECT v.youtube_id, v.title, v.date, v.duration, v.video_status, v.audio_status,
          COALESCE(NULLIF(c.display_name,''), c.name, '') AS channel_name
@@ -199,10 +198,6 @@ export function getAllVideos(): VideoRow[] {
 
 export function getVideosByChannel(channelId: number): VideoRow[] {
   return (stmtGetByChannel.all(channelId) as RawRow[]).map(toRow);
-}
-
-export function countVideosByChannel(channelId: number): number {
-  return (stmtCountByChannel.get(channelId) as { n: number }).n;
 }
 
 export function getVideosByTag(tag: string): VideoRow[] {
