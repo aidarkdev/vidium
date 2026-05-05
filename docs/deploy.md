@@ -83,7 +83,7 @@ rsync -av --delete \
   --include='/src/***' \
   --include='/package.json' \
   --exclude='*' \
-  ~/prjcts/opnsrs/own/vidium/ \
+  ~/<project_path>/vidium/ \
   root@<VPS_IP>:/root/vidium/
 ```
 
@@ -105,7 +105,7 @@ rsync -av --delete \
   --include='/scripts/***' \
   --include='/package.json' \
   --exclude='*' \
-  ~/prjcts/opnsrs/own/vidium/ \
+  ~/<project_path>/vidium/ \
   root@<VPS_IP>:/root/vidium/
 ```
 
