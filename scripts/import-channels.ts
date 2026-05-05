@@ -2,65 +2,77 @@
  * import-channels.ts — reads a channels file and inserts them into the database.
  * Enqueues a crawl_channel job for each new channel so the worker crawls immediately.
  *
- * File format (one channel per line, fields separated by tab or multiple spaces):
- *   https://www.youtube.com/@channel   tech,podcast
- *   https://www.youtube.com/@another   news
+ * File format (one channel per line, tab-separated):
+ *   https://www.youtube.com/@channel<TAB>Display name<TAB>tech,podcast
+ *   https://www.youtube.com/@another/streams<TAB>Another Channel<TAB>news
  *
- * Tags are optional. Lines starting with # are ignored.
+ * Display name and tags are optional. Lines starting with # are ignored.
  *
  * Usage:
- *   node --env-file=.env --experimental-sqlite scripts/import-channels.ts channels.txt
+ *   node --env-file=.env --experimental-sqlite scripts/import-channels.ts
  */
 
 import { readFileSync } from 'node:fs';
-import { db } from '../src/lib/db.ts';
+import { addChannel } from '../src/lib/channel.ts';
 import { enqueue } from '../src/lib/queue.ts';
+import { CHANNEL_URL_RE } from '../src/lib/validation.ts';
 
-const file = process.argv[2];
-
-if (!file) {
-  console.error('Usage: node --env-file=.env scripts/import-channels.ts <file>');
-  process.exit(1);
-}
+const DEFAULT_FILE = 'scripts/channels.txt';
+const file = process.argv[2] ?? DEFAULT_FILE;
 
 const lines = readFileSync(file, 'utf8')
   .split('\n')
   .map((l) => l.trim())
   .filter((l) => l && !l.startsWith('#'));
 
-const stmtInsert = db.prepare(`
-  INSERT INTO channels (name, url, tags)
-  VALUES (?, ?, ?)
-  ON CONFLICT (url) DO NOTHING
-`);
+function parseLine(line: string): { url: string; displayName: string; tags: string } {
+  const [url = '', displayName = '', tags = ''] = line.split('\t');
+  return {
+    url: url.trim(),
+    displayName: displayName.trim(),
+    tags: tags.trim(),
+  };
+}
 
-const stmtGetByUrl = db.prepare(`
-  SELECT id FROM channels WHERE url = ?
-`);
+function channelNameFromUrl(url: string): string {
+  return decodeURIComponent(url.match(/youtube\.com\/@([^/?#]+)/)?.[1] ?? '');
+}
+
+function normalizeTags(rawTags: string): string {
+  return rawTags
+    .replace(/[^a-zA-Z0-9,_-]/g, '')
+    .split(',')
+    .filter(Boolean)
+    .join(',');
+}
 
 let inserted = 0;
 let skipped = 0;
 
 for (const line of lines) {
-  const [url, tags = ''] = line.split(/\s+/);
+  const { url, displayName, tags: rawTags } = parseLine(line);
 
-  if (!url.startsWith('http')) {
+  if (!CHANNEL_URL_RE.test(url)) {
     console.warn(`skipping invalid line: ${line}`);
     continue;
   }
 
-  const name = url.replace(/https?:\/\/(www\.)?youtube\.com\/@?/, '');
-  const result = stmtInsert.run(name, url, tags.trim());
+  const name = channelNameFromUrl(url);
+  const canonicalUrl = `https://www.youtube.com/@${name}`;
+  const tags = normalizeTags(rawTags);
+  const result = addChannel(name, canonicalUrl, tags, displayName);
 
-  if (result.changes === 0) {
-    console.log(`skip (already exists): ${url}`);
+  if (!result.created) {
+    console.log(`skip (already exists): ${canonicalUrl}`);
     skipped++;
     continue;
   }
 
-  const row = stmtGetByUrl.get(url) as { id: number };
-  enqueue('crawl_channel', { channelId: row.id, url });
-  console.log(`added: ${url} [${tags}] → crawl_channel enqueued`);
+  enqueue('crawl_channel', { channelId: result.id, url: canonicalUrl });
+  if (url !== canonicalUrl) {
+    enqueue('crawl_channel', { channelId: result.id, url });
+  }
+  console.log(`added: ${canonicalUrl} [${displayName}] [${tags}] -> crawl_channel enqueued`);
   inserted++;
 }
 

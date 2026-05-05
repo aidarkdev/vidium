@@ -1,0 +1,8 @@
+https://www.youtube.com/@rozetked	rozetked	tech,tech-reviews,gadgets,ru
+https://www.youtube.com/@LinusTechTips	LinusTechTips	tech,tech-reviews,gadgets,en
+https://www.youtube.com/@ThePrimeTimeagen/streams	ThePrimeTimeagen	dev,en
+https://www.youtube.com/@yegor256/streams	YegorBugaenko	dev,ru
+https://www.youtube.com/@veritasium	veritasium	science,en
+https://www.youtube.com/@nplusodin/streams	n+1	science,ru
+https://www.youtube.com/@VertDiderScience	VertDider	science,ru
+https://www.youtube.com/@mkbhd	mkbhd	tech,tech-reviews,gadgets,en

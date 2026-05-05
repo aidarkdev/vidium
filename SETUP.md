@@ -68,17 +68,20 @@ On the feed page, click **"Add channel"**, paste a YouTube channel URL (`https:/
 
 ### From the CLI (bulk import)
 
-Create a channels file — one channel per line, optional tags separated by whitespace:
+Create a channels file — one channel per line, tab-separated fields:
 
 ```
 # channels.txt
-https://www.youtube.com/@lexfridman      podcast
+https://www.youtube.com/@lexfridman	Lex Fridman	podcast,interview
+https://www.youtube.com/@ThePrimeTimeagen/streams	ThePrimeTime	streams,dev
 ```
+
+Format: `url<TAB>display name<TAB>tag1,tag2`. Display name and tags are optional.
 
 Run:
 
 ```bash
-node --env-file=.env scripts/import-channels.ts channels.txt
+node --env-file=.env scripts/import-channels.ts
 ```
 
 Watch progress:
