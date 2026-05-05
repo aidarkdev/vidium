@@ -67,7 +67,9 @@ See `SETUP.md` for full usage guide (adding channels, bulk import, troubleshooti
 
 ### Subsequent deploys
 
-On the VPS:
+Both git-based and rsync-based deployments are supported. See `docs/deploy.md`.
+
+Git-based deploy on the VPS:
 
 ```bash
 cd /root/vidium
@@ -86,7 +88,9 @@ ssh root@<VPS_IP> 'journalctl -u vidium-worker -n 50 --no-pager'
 
 ## Development
 
-**Prerequisites:** Node.js 24, [Biome](https://biomejs.dev) installed globally (`npm i -g @biomejs/biome`).
+**Prerequisites:** Node.js 24 and development tools for type checking/linting.
+
+Runtime code should stay free of application-level npm dependencies. See `docs/dependencies.md`.
 
 ### Type checking
 

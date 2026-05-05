@@ -143,6 +143,8 @@ X-Accel-Redirect: /protected_media/thumbs/:id.jpg
 
 ## Deployment Notes
 
+Deployment commands and git/rsync workflows live in `docs/deploy.md`.
+
 `setup.sh` creates or updates:
 
 - runtime directories

@@ -2,7 +2,14 @@
 
 Do not invent architecture or add code before inspecting the current implementation. Less code is better: fewer moving parts means fewer bugs. If a requested change is ambiguous, inspect first and ask a concrete question before writing code.
 
-Before changing frontend parts, read `docs/frontend-parts.md` and follow it. For server-side data loading and baked state, read `docs/server-bakers.md`. For nginx/Node runtime behavior, read `docs/server-runtime.md`.
+Before changing frontend parts, read `docs/frontend-parts.md` and follow it. For server-side data loading and baked state, read `docs/server-bakers.md`. For nginx/Node runtime behavior, read `docs/server-runtime.md`. For dependency decisions, read `docs/dependencies.md`. For deployment, read `docs/deploy.md`.
+
+Dependency policy:
+
+- Do not add application-level npm dependencies by default.
+- Prefer Node.js 24 built-ins, browser APIs, SQLite/runtime APIs already in use, nginx, systemd, and `yt-dlp`.
+- `package.json` is a development command manifest, not a runtime dependency manifest.
+- Runtime code must not import npm packages unless the dependency is explicitly justified and documented.
 
 Current frontend boundaries:
 
