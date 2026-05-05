@@ -108,17 +108,9 @@ export function mount(partModule, params) {
   if (!params?.id) throw new Error('mount params.id is required');
   if (instanceIds.has(params.id)) throw new Error(`Duplicate part id ${params.id}`);
   instanceIds.add(params.id);
-  const hasBaker = typeof partModule.baker === 'function';
-  if (hasBaker && typeof params.useBaker !== 'boolean')
-    throw new Error(`useBaker is required for part ${params.id}`);
-  if (!hasBaker && Object.hasOwn(params, 'useBaker')) {
-    console.warn(`useBaker provided for part without baker: ${params.id}`);
-  }
 
   const baked = readBaked();
-  const state = params.useBaker ? baked[params.id] : (baked[params.id] ?? params.microState);
-  if (params.useBaker && state === undefined)
-    throw new Error(`Missing baked JSON slice for ${params.id}`);
+  const state = baked[params.id] ?? params.microState;
 
   const handlers = partModule.handlers ?? {};
   const instance = {

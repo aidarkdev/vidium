@@ -3,11 +3,9 @@
  */
 
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import { requireSession, notFound, html } from '../lib/http.ts';
-import { getChannelById, getAllChannels } from '../lib/channel.ts';
-import { getVideosByChannel } from '../lib/video.ts';
-import { renderChannelPage } from '../pages/channel.ts';
 import { config } from '../config.ts';
+import { requireSession, notFound, html } from '../lib/http.ts';
+import { renderChannelPage } from '../pages/channel.ts';
 
 export function handleChannel(
   req: IncomingMessage,
@@ -17,22 +15,11 @@ export function handleChannel(
   const session = requireSession(req, res);
   if (!session) return;
 
-  const channelId = parseInt(params.id, 10);
-  const channel = getChannelById(channelId);
-  if (!channel) return notFound(res, 'Channel not found');
+  const page = renderChannelPage({
+    lang: session.data.lang ?? config.DEFAULT_LANG,
+    params,
+  });
+  if (!page) return notFound(res, 'Channel not found');
 
-  const lang = session.data.lang ?? config.DEFAULT_LANG;
-  const cards = getVideosByChannel(channelId);
-
-  html(
-    res,
-    renderChannelPage({
-      lang,
-      channelId: channel.id,
-      channelName: channel.displayName || channel.name,
-      cards,
-      since: Date.now(),
-      channels: getAllChannels(),
-    }),
-  );
+  html(res, page);
 }

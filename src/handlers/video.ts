@@ -3,9 +3,8 @@
  */
 
 import type { IncomingMessage, ServerResponse } from 'node:http';
+import { config } from '../config.ts';
 import { requireSession, notFound, html } from '../lib/http.ts';
-import { getVideoById } from '../lib/video.ts';
-import { t } from '../pages/lang.ts';
 import { renderPlayerPage } from '../pages/player.ts';
 
 function accel(res: ServerResponse, path: string, contentType: string): void {
@@ -20,26 +19,15 @@ export function handleVideo(
 ): void {
   const session = requireSession(req, res);
   if (!session) return;
-  const id = params.id;
-  if (!id) return notFound(res);
-  const video = getVideoById(id);
-  if (!video) return notFound(res);
-  const lang = session.data.lang ?? 'en';
-  html(
-    res,
-    renderPlayerPage(lang, `player-video-${id}`, {
-      kind: 'video',
-      title: video.title,
-      channelName: video.channelName,
-      mediaSrc: `/media/v/${id}`,
-      backLabel: t(lang, 'player.back'),
-      backRequested: 0,
-      seekDelta: 0,
-      seekRequested: 0,
-      playRequested: 0,
-      paused: true,
-    }),
-  );
+
+  const page = renderPlayerPage({
+    kind: 'video',
+    lang: session.data.lang ?? config.DEFAULT_LANG,
+    params,
+  });
+  if (!page) return notFound(res);
+
+  html(res, page);
 }
 
 export function handleAudio(
@@ -49,27 +37,15 @@ export function handleAudio(
 ): void {
   const session = requireSession(req, res);
   if (!session) return;
-  const id = params.id;
-  if (!id) return notFound(res);
-  const video = getVideoById(id);
-  if (!video) return notFound(res);
-  const lang = session.data.lang ?? 'en';
-  html(
-    res,
-    renderPlayerPage(lang, `player-audio-${id}`, {
-      kind: 'audio',
-      title: video.title,
-      channelName: video.channelName,
-      mediaSrc: `/media/a/${id}`,
-      thumbSrc: `/t/${id}`,
-      backLabel: t(lang, 'player.back'),
-      backRequested: 0,
-      seekDelta: 0,
-      seekRequested: 0,
-      playRequested: 0,
-      paused: true,
-    }),
-  );
+
+  const page = renderPlayerPage({
+    kind: 'audio',
+    lang: session.data.lang ?? config.DEFAULT_LANG,
+    params,
+  });
+  if (!page) return notFound(res);
+
+  html(res, page);
 }
 
 export function handleMediaVideo(
