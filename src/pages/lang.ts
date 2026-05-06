@@ -30,8 +30,8 @@ const strings: Record<Lang, Record<string, string>> = {
     // Card
     'card.watch': 'Watch',
     'card.listen': 'Listen',
-    'card.download.video': 'Download video',
-    'card.download.audio': 'Download audio',
+    'card.download.video': 'Will watch',
+    'card.download.audio': 'Will listen',
     'card.queued': 'Queued',
     'card.downloading': 'Downloading',
 
@@ -42,6 +42,7 @@ const strings: Record<Lang, Record<string, string>> = {
     'sidebar.edit': 'Edit',
     'sidebar.move_up': 'Move up',
     'sidebar.move_down': 'Move down',
+    'sidebar.save': 'Save',
 
     // Player
     'player.back': 'Back',
@@ -115,8 +116,8 @@ const strings: Record<Lang, Record<string, string>> = {
     // Card
     'card.watch': 'Смотреть',
     'card.listen': 'Слушать',
-    'card.download.video': 'Скачать видео',
-    'card.download.audio': 'Скачать аудио',
+    'card.download.video': 'Буду смотреть',
+    'card.download.audio': 'Буду слушать',
     'card.queued': 'В очереди',
     'card.downloading': 'Загружается',
 
@@ -127,6 +128,7 @@ const strings: Record<Lang, Record<string, string>> = {
     'sidebar.edit': 'Редакт.',
     'sidebar.move_up': 'Выше',
     'sidebar.move_down': 'Ниже',
+    'sidebar.save': 'Сохранить',
 
     // Player
     'player.back': 'Назад',

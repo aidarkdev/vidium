@@ -6,6 +6,7 @@
  * GET  /api/since     — new videos since a timestamp
  * POST /api/channel   — add channel + enqueue crawl
  * POST /api/video     — add single video by URL
+ * POST /api/channel/display-name — rename channel in sidebar
  */
 
 import type { IncomingMessage, ServerResponse } from 'node:http';
@@ -30,7 +31,7 @@ import {
 import {
   addChannel,
   MANUAL_CHANNEL_ID,
-  setTagLabel,
+  setChannelDisplayName,
   moveChannel as moveChannelOrder,
 } from '../lib/channel.ts';
 import { fetchMeta } from '../lib/ytdlp.ts';
@@ -190,23 +191,30 @@ export async function handleAddVideo(req: IncomingMessage, res: ServerResponse):
   json(res, 200, { ok: true, status: 'added', youtubeId });
 }
 
-export async function handleSetTagLabel(req: IncomingMessage, res: ServerResponse): Promise<void> {
+export async function handleSetChannelDisplayName(
+  req: IncomingMessage,
+  res: ServerResponse,
+): Promise<void> {
   if (!requireSessionApi(req, res)) return;
   if (!checkCsrf(req, res)) return;
 
-  let data: { tag: string; label: string };
+  let data: { channelId: number; displayName: string };
   try {
     data = JSON.parse(await readBody(req));
   } catch {
     return json(res, 400, { error: 'invalid json' });
   }
 
-  if (!data.tag || typeof data.label !== 'string') {
+  if (
+    !Number.isInteger(data.channelId) ||
+    data.channelId <= MANUAL_CHANNEL_ID ||
+    typeof data.displayName !== 'string'
+  ) {
     return json(res, 400, { error: 'invalid request' });
   }
 
-  setTagLabel(data.tag, data.label.trim());
-  json(res, 200, { ok: true });
+  const saved = setChannelDisplayName(data.channelId, data.displayName.trim());
+  json(res, 200, { ok: true, saved });
 }
 
 export async function handleReorderChannel(

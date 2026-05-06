@@ -36,11 +36,11 @@ function channelHtml(state) {
 export default function template(state) {
   return `<div class="player">
     ${mediaHtml(state)}
-    <div class="audio-seek">
+    <div class="player-seek">
       <button type="button" data-action="seek" data-seek="-30">-30s</button>
       <button type="button" data-action="seek" data-seek="-15">-15s</button>
       <button
-        class="audio-playpause"
+        class="player-playpause"
         data-action="toggle-play"
         data-ref="playButton"
         type="button"

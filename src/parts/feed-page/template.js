@@ -91,18 +91,37 @@ function orderButton(ch, direction, label, disabled) {
   >${direction === 'up' ? '&#8593;' : '&#8595;'}</button>`;
 }
 
-function sidebarItem(ch, activeChannelId, labels, movingId) {
-  const disabled = movingId === ch.id;
+function sidebarEditForm(ch, labels, disabled) {
+  return `<form class="sidebar-channel-edit" data-action="save-channel-name">
+    <input
+      class="sidebar-channel-name-input"
+      name="displayName"
+      value="${htmlEscape(ch.displayName || ch.name)}"
+      autocomplete="off"
+      ${disabled ? 'disabled' : ''}
+    >
+    <button
+      class="sidebar-save-btn"
+      type="submit"
+      data-channel-id="${ch.id}"
+      aria-label="${htmlEscape(labels.save)}"
+      title="${htmlEscape(labels.save)}"
+      ${disabled ? 'disabled' : ''}
+    >✓</button>
+    ${orderButton(ch, 'up', labels.moveUp, disabled)}
+    ${orderButton(ch, 'down', labels.moveDown, disabled)}
+  </form>`;
+}
+
+function sidebarItem(ch, activeChannelId, labels, movingId, savingId) {
+  const disabled = movingId === ch.id || savingId === ch.id;
 
   return `<div class="sidebar-channel-row" data-channel-id="${ch.id}">
     <a
       class="sidebar-channel-link${ch.id === activeChannelId ? ' active' : ''}"
       href="/channel/${ch.id}"
     >${htmlEscape(ch.displayName || ch.name)}</a>
-    <div class="sidebar-channel-actions">
-      ${orderButton(ch, 'up', labels.moveUp, disabled)}
-      ${orderButton(ch, 'down', labels.moveDown, disabled)}
-    </div>
+    ${sidebarEditForm(ch, labels, disabled)}
   </div>`;
 }
 
@@ -126,7 +145,7 @@ export function sidebarHtml(state) {
     </div>
     <div class="sidebar-divider"></div>
     <div class="sidebar-channels" data-ref="sidebarChannels">
-      ${regular.map((ch) => sidebarItem(ch, state.activeChannelId, state.labels, state.movingChannelId)).join('')}
+      ${regular.map((ch) => sidebarItem(ch, state.activeChannelId, state.labels, state.movingChannelId, state.savingChannelNameId)).join('')}
     </div>
   </div>`;
 }
@@ -146,7 +165,7 @@ export default function template(state) {
   return `<section class="feed-part">
     <div class="topbar">
       <button class="sidebar-toggle" data-action="toggle-sidebar">&#9776;</button>
-      <span class="topbar-label">${htmlEscape(state.title)}</span>
+      <span class="topbar-label" data-ref="title">${htmlEscape(state.title)}</span>
     </div>
     ${sidebarHtml(state)}
     <div class="cards" data-ref="cards">${cardsHtml(state)}</div>

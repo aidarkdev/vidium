@@ -112,7 +112,7 @@ a:hover { text-decoration: underline; }
   top: 0;
   left: 0;
   bottom: 0;
-  width: 240px;
+  width: 320px;
   background: #1a1a1a;
   border-right: 1px solid #333;
   z-index: 150;
@@ -175,36 +175,61 @@ a:hover { text-decoration: underline; }
   min-width: 0;
 }
 
-.sidebar-channel-actions {
-  position: absolute;
-  top: 50%;
-  right: 0.45rem;
-  transform: translateY(-50%);
+.sidebar-channel-edit {
   display: none;
   gap: 0.25rem;
-  z-index: 1;
+  width: 100%;
 }
 
-.sidebar-order-btn {
-  width: 2.25rem;
-  height: 2.25rem;
+.sidebar-channel-name-input {
+  min-width: 0;
+  width: 100%;
+  padding: 0.45rem 0.65rem;
   border: 1px solid #3b3b3b;
   border-radius: 0.5rem;
   background: #222;
-  color: #9ec7ff;
-  cursor: pointer;
+  color: #eee;
+  font: inherit;
+  font-size: 0.95rem;
 }
 
-.sidebar-panel.edit-mode .sidebar-channel-actions {
-  display: flex;
+.sidebar-save-btn,
+.sidebar-order-btn {
+  width: 2.25rem;
+  height: 2.25rem;
+  flex: 0 0 auto;
+  border: 1px solid #3b3b3b;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  font: inherit;
+  line-height: 1;
+}
+
+.sidebar-save-btn {
+  background: #1f3a24;
+  color: #a8ffbd;
+}
+
+.sidebar-order-btn {
+  background: #222;
+  color: #9ec7ff;
 }
 
 .sidebar-panel.edit-mode .sidebar-channel-link {
-  padding-right: 4.6rem;
+  display: none;
+}
+
+.sidebar-panel.edit-mode .sidebar-channel-edit {
+  display: flex;
 }
 
 .sidebar-panel.edit-mode .sidebar-order-btn {
   pointer-events: auto;
+}
+
+.sidebar-save-btn:hover:not(:disabled) {
+  background: #285230;
+  color: #fff;
 }
 
 .sidebar-order-btn:hover:not(:disabled) {
@@ -212,24 +237,23 @@ a:hover { text-decoration: underline; }
   color: #fff;
 }
 
+.sidebar-save-btn:disabled,
 .sidebar-order-btn:disabled {
   opacity: 0.3;
   cursor: default;
 }
 
-@media (pointer: coarse) {
-  .sidebar-channel-actions {
-    gap: 0.2rem;
-    right: 0.3rem;
+@media (max-width: 700px) {
+  .sidebar-panel {
+    width: 240px;
   }
+}
 
+@media (pointer: coarse) {
+  .sidebar-save-btn,
   .sidebar-order-btn {
     width: 2rem;
     height: 2rem;
-  }
-
-  .sidebar-panel.edit-mode .sidebar-channel-link {
-    padding-right: 4.15rem;
   }
 }
 
@@ -572,7 +596,7 @@ button.btn-audio:hover {
 }
 
 
-.audio-seek {
+.player-seek {
   display: flex;
   gap: clamp(0.4rem, 3vw, 2rem);
   margin: 1.25rem auto 0;
@@ -580,7 +604,7 @@ button.btn-audio:hover {
   max-width: 100%;
 }
 
-.audio-seek button {
+.player-seek button {
   padding: 0.4rem clamp(0.3rem, 2.5vw, 1rem);
   background: #222;
   color: #fff;
@@ -593,14 +617,14 @@ button.btn-audio:hover {
   white-space: nowrap;
 }
 
-.audio-seek .audio-playpause {
+.player-seek .player-playpause {
   font-size: clamp(0.9rem, 3vw, 1.2rem);
   padding: 0.4rem 0;
   width: clamp(3.5rem, 10vw, 5rem);
   text-align: center;
 }
 
-.audio-seek button:hover {
+.player-seek button:hover {
   background: #333;
   border-color: #888;
 }
@@ -621,12 +645,13 @@ button.btn-audio:hover {
 
 .player-title { margin: 1rem 0 0.75rem; }
 .player-channel {
-  font-size: 0.95rem;
+  font-size: 1.15rem;
+  font-weight: 700;
   margin-bottom: 0.25rem;
 }
 .player-title-text {
   font-size: 1.25rem;
-  font-weight: 600;
+  font-weight: 400;
   color: #eee;
 }
 

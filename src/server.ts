@@ -27,7 +27,7 @@ import {
   handleSince,
   handleAddChannel,
   handleAddVideo,
-  handleSetTagLabel,
+  handleSetChannelDisplayName,
   handleReorderChannel,
   handleAdminDeleteVideoFiles,
   handleAdminDeleteVideo,
@@ -151,8 +151,8 @@ const routes: RouteConfig[] = [
   },
   {
     method: 'post',
-    path: '/api/tag-label',
-    handler: handleSetTagLabel,
+    path: '/api/channel/display-name',
+    handler: handleSetChannelDisplayName,
   },
   {
     method: 'post',

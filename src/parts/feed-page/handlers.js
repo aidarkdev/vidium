@@ -88,6 +88,16 @@ async function checkSince(part) {
   });
 }
 
+function updateChannelDisplayName(channels, channelId, displayName) {
+  return channels.map((channel) =>
+    channel.id === channelId ? { ...channel, displayName } : channel,
+  );
+}
+
+function channelTitle(channel, displayName) {
+  return displayName || channel.name;
+}
+
 export default {
   events: {
     'click [data-action="toggle-sidebar"]': (part) =>
@@ -140,15 +150,48 @@ export default {
         part.set('movingChannelId', 0);
       }
     },
+    'submit [data-action="save-channel-name"]': async (part, event) => {
+      event.preventDefault();
+      const form = event.target;
+      const btn = form.querySelector('[data-channel-id]');
+      const channelId = Number(btn.dataset.channelId);
+      const displayName = form.elements.displayName.value.trim();
+      if (!Number.isInteger(channelId) || channelId <= 1) return;
+      part.set('savingChannelNameId', channelId);
+      try {
+        const res = await fetch('/api/channel/display-name', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ channelId, displayName }),
+        });
+        const data = await res.json();
+        if (!res.ok || !data.ok || !data.saved) return;
+        const channel = part.state.channels.find((item) => item.id === channelId);
+        const updates = {
+          channels: updateChannelDisplayName(part.state.channels, channelId, displayName),
+        };
+        if (channelId === part.state.activeChannelId && channel) {
+          updates.title = channelTitle(channel, displayName);
+        }
+        part.set(updates);
+      } finally {
+        part.set('savingChannelNameId', 0);
+      }
+    },
   },
   state: {
     cards: rerenderCards,
     visibleCount: rerenderCards,
     cardStatusUpdates: applyCardStatusUpdates,
+    title: (part, value) => {
+      part.refs.title.textContent = value;
+      document.title = value;
+    },
     channels: rerenderSidebar,
     sidebarOpen: (part, value) => part.refs.sidebar.classList.toggle('open', value),
     editMode: (part, value) => part.refs.sidebar.classList.toggle('edit-mode', value),
     movingChannelId: rerenderSidebar,
+    savingChannelNameId: rerenderSidebar,
     pollingIds: () => {},
     since: () => {},
   },
@@ -163,9 +206,7 @@ export default {
         return;
       part.set('sidebarOpen', false);
     };
-    part.private.onEdit = (event) => part.set('editMode', !!event.detail?.edit);
     document.addEventListener('click', part.private.onDocClick);
-    document.addEventListener('vidium:sidebar-edit', part.private.onEdit);
     part.private.sinceTimer = setInterval(() => checkSince(part).catch(() => {}), 60000);
     const initialPolling = part.state.cards
       .filter(
@@ -179,7 +220,6 @@ export default {
   },
   onDestroy: (part) => {
     document.removeEventListener('click', part.private.onDocClick);
-    document.removeEventListener('vidium:sidebar-edit', part.private.onEdit);
     clearInterval(part.private.sinceTimer);
     clearTimeout(part.private.pollTimer);
   },

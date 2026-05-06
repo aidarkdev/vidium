@@ -14,6 +14,9 @@ export function renderChannelPage(ctx: ChannelRenderContext): string | undefined
     lang: ctx.lang,
     title: page.title,
     baked: { [page.id]: page.state },
-    body: mountScript('/parts/feed-page/index.js', page.id),
+    body: mountScript('/parts/feed-page/index.js', page.id, {
+      expose: ['title'],
+      subscribe: { editMode: 'nav-controls.sidebarEdit' },
+    }),
   });
 }

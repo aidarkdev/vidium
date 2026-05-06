@@ -78,7 +78,9 @@ export function renderPartPage(opts: PartPageOptions): string {
     'nav-controls': navState(opts.lang),
     'back-top': { visible: false, scrollTopRequested: 0 },
   };
-  const navControls = mountScript('/parts/nav-controls/index.js', 'nav-controls');
+  const navControls = mountScript('/parts/nav-controls/index.js', 'nav-controls', {
+    expose: ['sidebarEdit'],
+  });
   const backTop = mountScript('/parts/back-top/index.js', 'back-top');
 
   return `<!DOCTYPE html>

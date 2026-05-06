@@ -27,11 +27,6 @@ const stmtUpdateYtId = db.prepare(`UPDATE channels SET youtube_channel_id = ? WH
 const stmtUpdateCrawled = db.prepare(
   `UPDATE channels SET last_crawled = strftime('%Y-%m-%dT%H:%M:%SZ','now') WHERE id = ?`,
 );
-const stmtGetLabels = db.prepare(`SELECT tag, label FROM tag_labels`);
-const stmtSetLabel = db.prepare(
-  `INSERT INTO tag_labels (tag, label) VALUES (?, ?) ON CONFLICT (tag) DO UPDATE SET label = excluded.label`,
-);
-const stmtGetAllChannelNames = db.prepare(`SELECT id, name FROM channels`);
 const stmtSetDisplayName = db.prepare(`UPDATE channels SET display_name = ? WHERE id = ?`);
 const stmtGetAll = db.prepare(
   `SELECT id, name, display_name, url, youtube_channel_id, tags, sort_order
@@ -109,19 +104,8 @@ export function updateLastCrawled(channelId: number): void {
 export const MANUAL_CHANNEL_ID = 1;
 export type ChannelMoveDirection = 'up' | 'down';
 
-export function getTagLabels(): Record<string, string> {
-  return Object.fromEntries(
-    (stmtGetLabels.all() as { tag: string; label: string }[]).map((r) => [r.tag, r.label]),
-  );
-}
-
-export function setTagLabel(tag: string, label: string): void {
-  stmtSetLabel.run(tag, label);
-  const channels = stmtGetAllChannelNames.all() as { id: number; name: string }[];
-  for (const ch of channels) {
-    const slug = ch.name.toLowerCase().replace(/[^a-z0-9_-]/g, '');
-    if (slug === tag) stmtSetDisplayName.run(label, ch.id);
-  }
+export function setChannelDisplayName(channelId: number, displayName: string): boolean {
+  return stmtSetDisplayName.run(displayName, channelId).changes > 0;
 }
 
 export function getAllChannels(): Channel[] {

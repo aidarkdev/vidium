@@ -63,9 +63,6 @@ export default {
     },
   },
   state: {
-    sidebarEdit: (_part, value) => {
-      document.dispatchEvent(new CustomEvent('vidium:sidebar-edit', { detail: { edit: value } }));
-    },
     dropdownOpen: (part, value) => {
       part.refs.dropdown.open = value;
       part.refs.summary.setAttribute('aria-expanded', value ? 'true' : 'false');

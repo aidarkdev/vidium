@@ -1,4 +1,4 @@
-import { getAllChannels, getChannelById, getTagLabels } from '../../lib/channel.ts';
+import { getAllChannels, getChannelById } from '../../lib/channel.ts';
 import {
   getAllVideos,
   getReadyVideos,
@@ -36,6 +36,7 @@ function labels(lang: string): Record<string, string> {
     ready: t(lang, 'tag.ready'),
     moveUp: t(lang, 'sidebar.move_up'),
     moveDown: t(lang, 'sidebar.move_down'),
+    save: t(lang, 'sidebar.save'),
   };
 }
 
@@ -48,14 +49,13 @@ export function bakeFeedPage(ctx: FeedBakeContext): SuccessfulPageBake {
         ? getReadyVideos()
         : getVideosByTag(activeTag);
   const channels = getAllChannels();
-  const tagLabels = getTagLabels();
   const manualCh = channels.find((ch) => ch.id === 1);
   const systemLabels: Record<string, string> = {
     all: t(ctx.lang, 'tag.all'),
     ready: t(ctx.lang, 'tag.ready'),
     manual: manualCh?.displayName || manualCh?.name || 'manual',
   };
-  const title = systemLabels[activeTag] ?? tagLabels[activeTag] ?? activeTag;
+  const title = systemLabels[activeTag] ?? activeTag;
 
   return {
     ok: true,
@@ -73,6 +73,7 @@ export function bakeFeedPage(ctx: FeedBakeContext): SuccessfulPageBake {
       sidebarOpen: false,
       editMode: false,
       movingChannelId: 0,
+      savingChannelNameId: 0,
       pollingIds: [],
       cardStatusUpdates: [],
       labels: labels(ctx.lang),
@@ -105,6 +106,7 @@ export function bakeChannelPage(ctx: FeedBakeContext): PageBakeResult {
       sidebarOpen: false,
       editMode: false,
       movingChannelId: 0,
+      savingChannelNameId: 0,
       pollingIds: [],
       cardStatusUpdates: [],
       labels: labels(ctx.lang),
