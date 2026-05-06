@@ -55,8 +55,8 @@ function navState(lang: string): Record<string, unknown> {
     videoDetailsOpen: false,
     sidebarEdit: false,
     dropdownOpen: false,
-    channelResetRequested: 0,
-    videoResetRequested: 0,
+    eventChannelReset: 0,
+    eventVideoReset: 0,
     langHref: `/lang/${lang === 'ru' ? 'en' : 'ru'}`,
     langLabel: lang === 'ru' ? 'EN' : 'RU',
     logoutLabel: t(lang, 'nav.logout'),
@@ -76,7 +76,7 @@ export function renderPartPage(opts: PartPageOptions): string {
   const baked = {
     ...opts.baked,
     'nav-controls': navState(opts.lang),
-    'back-top': { visible: false, scrollTopRequested: 0 },
+    'back-top': { visible: false, eventScrollTop: 0 },
   };
   const navControls = mountScript('/parts/nav-controls/index.js', 'nav-controls', {
     expose: ['sidebarEdit'],

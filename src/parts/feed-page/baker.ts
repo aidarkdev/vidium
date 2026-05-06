@@ -75,7 +75,9 @@ export function bakeFeedPage(ctx: FeedBakeContext): SuccessfulPageBake {
       movingChannelId: 0,
       savingChannelNameId: 0,
       pollingIds: [],
-      cardStatusUpdates: [],
+      patchCardStatusUpdates: [],
+      patchChannelDisplayNameUpdates: [],
+      patchChannelOrderIds: [],
       labels: labels(ctx.lang),
     },
   };
@@ -108,7 +110,9 @@ export function bakeChannelPage(ctx: FeedBakeContext): PageBakeResult {
       movingChannelId: 0,
       savingChannelNameId: 0,
       pollingIds: [],
-      cardStatusUpdates: [],
+      patchCardStatusUpdates: [],
+      patchChannelDisplayNameUpdates: [],
+      patchChannelOrderIds: [],
       labels: labels(ctx.lang),
     },
   };

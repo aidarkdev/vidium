@@ -1,28 +1,28 @@
 export default {
   events: {
-    'click [data-action="back"]': (part) => part.set('backRequested', part.state.backRequested + 1),
+    'click [data-action="back"]': (part) => part.set('eventBack', part.state.eventBack + 1),
     'click [data-action="seek"]': (part, event) => {
       const delta = Number(event.target.closest('[data-seek]').dataset.seek || 0);
       part.set({
         seekDelta: delta,
-        seekRequested: part.state.seekRequested + 1,
+        eventSeek: part.state.eventSeek + 1,
       });
     },
     'click [data-action="toggle-play"]': (part) =>
-      part.set('playRequested', part.state.playRequested + 1),
+      part.set('eventPlay', part.state.eventPlay + 1),
   },
   state: {
-    backRequested: () => {
+    eventBack: () => {
       if (history.length > 1) history.back();
       else location.href = '/feed';
     },
-    seekRequested: (part) => {
+    eventSeek: (part) => {
       part.refs.media.currentTime = Math.max(
         0,
         part.refs.media.currentTime + part.state.seekDelta,
       );
     },
-    playRequested: (part) => {
+    eventPlay: (part) => {
       if (part.refs.media.paused) part.refs.media.play();
       else part.refs.media.pause();
     },

@@ -29,10 +29,10 @@ export function bakePlayerPage(
       mediaSrc: ctx.kind === 'video' ? `/media/v/${youtubeId}` : `/media/a/${youtubeId}`,
       thumbSrc: ctx.kind === 'audio' ? `/t/${youtubeId}` : '',
       backLabel: t(ctx.lang, 'player.back'),
-      backRequested: 0,
+      eventBack: 0,
       seekDelta: 0,
-      seekRequested: 0,
-      playRequested: 0,
+      eventSeek: 0,
+      eventPlay: 0,
       paused: true,
     },
   };

@@ -1,11 +1,11 @@
 export default {
   events: {
     'click [data-action="top"]': (part) =>
-      part.set('scrollTopRequested', part.state.scrollTopRequested + 1),
+      part.set('eventScrollTop', part.state.eventScrollTop + 1),
   },
   state: {
     visible: (part, value) => part.refs.button.classList.toggle('visible', value),
-    scrollTopRequested: () => window.scrollTo({ top: 0, behavior: 'smooth' }),
+    eventScrollTop: () => window.scrollTo({ top: 0, behavior: 'smooth' }),
   },
   onMount: (part) => {
     part.private.onScroll = () => part.set('visible', window.scrollY > 300);

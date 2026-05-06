@@ -113,7 +113,7 @@ function sidebarEditForm(ch, labels, disabled) {
   </form>`;
 }
 
-function sidebarItem(ch, activeChannelId, labels, movingId, savingId) {
+export function sidebarItem(ch, activeChannelId, labels, movingId, savingId) {
   const disabled = movingId === ch.id || savingId === ch.id;
 
   return `<div class="sidebar-channel-row" data-channel-id="${ch.id}">

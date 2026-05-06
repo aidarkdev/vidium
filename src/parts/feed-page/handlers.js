@@ -18,6 +18,22 @@ function rerenderSidebar(part) {
   part.refs.sidebarChannels = next.querySelector('[data-ref="sidebarChannels"]');
 }
 
+function replaceSidebarRow(part, channelId) {
+  const channel = part.state.channels.find((item) => item.id === channelId);
+  const row = part.refs.sidebar.querySelector(`[data-channel-id="${CSS.escape(String(channelId))}"]`);
+  if (!channel || !row) return;
+
+  const fresh = document.createElement('template');
+  fresh.innerHTML = part.templates.sidebarItem(
+    channel,
+    part.state.activeChannelId,
+    part.state.labels,
+    part.state.movingChannelId,
+    part.state.savingChannelNameId,
+  );
+  row.replaceWith(fresh.content.firstElementChild);
+}
+
 function rerenderUpdatedCards(part, updates) {
   for (const { id } of updates) {
     const card = part.state.cards.find((item) => item.youtubeId === id);
@@ -49,14 +65,14 @@ async function poll(part) {
   const res = await fetch(`/api/status?ids=${part.state.pollingIds.join(',')}`);
   const data = await res.json();
   let pollingIds = part.state.pollingIds;
-  const cardStatusUpdates = [];
+  const patchCardStatusUpdates = [];
   for (const [id, status] of Object.entries(data)) {
     const current = part.state.cards.find((card) => card.youtubeId === id);
     if (
       current &&
       (current.videoStatus !== status.video || current.audioStatus !== status.audio)
     ) {
-      cardStatusUpdates.push({
+      patchCardStatusUpdates.push({
         id,
         videoStatus: status.video,
         audioStatus: status.audio,
@@ -66,7 +82,7 @@ async function poll(part) {
       pollingIds = pollingIds.filter((item) => item !== id);
     }
   }
-  part.set({ pollingIds, cardStatusUpdates });
+  part.set({ pollingIds, patchCardStatusUpdates });
   if (pollingIds.length)
     part.private.pollTimer = setTimeout(() => poll(part).catch(() => {}), 5000);
 }
@@ -92,6 +108,37 @@ function updateChannelDisplayName(channels, channelId, displayName) {
   return channels.map((channel) =>
     channel.id === channelId ? { ...channel, displayName } : channel,
   );
+}
+
+function reorderChannels(channels, regularIds) {
+  const manual = channels.filter((channel) => channel.id === 1);
+  const byId = new Map(channels.filter((channel) => channel.id !== 1).map((channel) => [channel.id, channel]));
+  return [...manual, ...regularIds.map((id) => byId.get(id)).filter(Boolean)];
+}
+
+function applyPatchChannelDisplayNameUpdates(part, updates) {
+  for (const { id, displayName } of updates) {
+    const channel = part.state.channels.find((item) => item.id === id);
+    if (!channel) continue;
+
+    part.state.channels = updateChannelDisplayName(part.state.channels, id, displayName);
+    replaceSidebarRow(part, id);
+    if (id === part.state.activeChannelId) {
+      part.set('title', channelTitle(channel, displayName));
+    }
+  }
+}
+
+function applyPatchChannelOrderIds(part, regularIds) {
+  if (!regularIds.length) return;
+  part.state.channels = reorderChannels(part.state.channels, regularIds);
+
+  for (const id of regularIds) {
+    const row = part.refs.sidebarChannels.querySelector(
+      `[data-channel-id="${CSS.escape(String(id))}"]`,
+    );
+    if (row) part.refs.sidebarChannels.append(row);
+  }
 }
 
 function setChannelControlsDisabled(part, channelId, disabled) {
@@ -125,7 +172,7 @@ export default {
       const pollingIds = part.state.pollingIds.includes(id)
         ? part.state.pollingIds
         : [...part.state.pollingIds, id];
-      part.set({ pollingIds, cardStatusUpdates: [statusUpdate] });
+      part.set({ pollingIds, patchCardStatusUpdates: [statusUpdate] });
       await fetch('/api/download', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -154,8 +201,7 @@ export default {
         if (!res.ok || !data.ok || !data.moved) return;
         const reordered = [...regular];
         [reordered[index], reordered[nextIndex]] = [reordered[nextIndex], reordered[index]];
-        const manual = part.state.channels.filter((ch) => ch.id === 1);
-        part.set('channels', [...manual, ...reordered]);
+        part.set('patchChannelOrderIds', reordered.map((channel) => channel.id));
       } finally {
         part.set('movingChannelId', 0);
       }
@@ -176,14 +222,7 @@ export default {
         });
         const data = await res.json();
         if (!res.ok || !data.ok || !data.saved) return;
-        const channel = part.state.channels.find((item) => item.id === channelId);
-        const updates = {
-          channels: updateChannelDisplayName(part.state.channels, channelId, displayName),
-        };
-        if (channelId === part.state.activeChannelId && channel) {
-          updates.title = channelTitle(channel, displayName);
-        }
-        part.set(updates);
+        part.set('patchChannelDisplayNameUpdates', [{ id: channelId, displayName }]);
       } finally {
         part.set('savingChannelNameId', 0);
       }
@@ -192,15 +231,20 @@ export default {
   state: {
     cards: rerenderCards,
     visibleCount: rerenderCards,
-    cardStatusUpdates: applyCardStatusUpdates,
+    patchCardStatusUpdates: applyCardStatusUpdates,
     title: (part, value) => {
       part.refs.title.textContent = value;
       document.title = value;
     },
     channels: rerenderSidebar,
+    patchChannelDisplayNameUpdates: applyPatchChannelDisplayNameUpdates,
+    patchChannelOrderIds: applyPatchChannelOrderIds,
     sidebarOpen: (part, value) => part.refs.sidebar.classList.toggle('open', value),
     editMode: (part, value) => part.refs.sidebar.classList.toggle('edit-mode', value),
-    movingChannelId: rerenderSidebar,
+    movingChannelId: (part, value, oldValue) => {
+      setChannelControlsDisabled(part, oldValue, false);
+      setChannelControlsDisabled(part, value, true);
+    },
     savingChannelNameId: (part, value, oldValue) => {
       setChannelControlsDisabled(part, oldValue, false);
       setChannelControlsDisabled(part, value, true);

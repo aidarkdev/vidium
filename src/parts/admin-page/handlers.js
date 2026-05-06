@@ -20,7 +20,7 @@ export default {
       part.set('pendingAction', { action: 'files', id: youtubeId });
       try {
         await postJson('/api/admin/video/files/delete', { youtubeId });
-        part.set('reloadRequested', part.state.reloadRequested + 1);
+        part.set('eventReload', part.state.eventReload + 1);
       } catch (err) {
         part.set('errorMessage', err.message || part.state.actions.error);
       } finally {
@@ -93,6 +93,6 @@ export default {
     errorMessage: (_part, value) => {
       if (value) alert(value);
     },
-    reloadRequested: () => window.location.reload(),
+    eventReload: () => window.location.reload(),
   },
 };

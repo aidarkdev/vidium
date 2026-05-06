@@ -389,15 +389,15 @@ For collection updates, authors MAY split "replace the whole collection" from "p
 ```js
 state: {
   items: rerenderWholeList,
-  itemStatusUpdates: applyItemStatusUpdates,
+  patchItemStatusUpdates: applyPatchItemStatusUpdates,
 }
 ```
 
 In this pattern:
 
 - `items` means "replace the collection" and usually performs a region re-render.
-- `itemStatusUpdates` is a patch state field carrying serializable state changes for known items.
-- The `itemStatusUpdates` state-handler applies the patch to `part.state.items` and updates only the affected DOM nodes.
+- `patchItemStatusUpdates` is a patch state field carrying serializable state changes for known items.
+- The `patchItemStatusUpdates` state-handler applies the patch to `part.state.items` and updates only the affected DOM nodes.
 
 Example:
 
@@ -405,14 +405,14 @@ Example:
 events: {
   'click [data-action="download"]': (part, event) => {
     part.set({
-      itemStatusUpdates: [{ id: event.target.dataset.id, status: 'queued' }],
+      patchItemStatusUpdates: [{ id: event.target.dataset.id, status: 'queued' }],
     });
   },
 },
 
 state: {
   items: rerenderItems,
-  itemStatusUpdates: (part, updates) => {
+  patchItemStatusUpdates: (part, updates) => {
     part.state.items = part.state.items.map((item) => {
       const update = updates.find((entry) => entry.id === item.id);
       return update ? { ...item, status: update.status } : item;
@@ -424,7 +424,9 @@ state: {
 
 This is allowed because DOM writes still live in `handlers.state[*]`, and event handlers still only call `part.set`. The direct assignment to `part.state.items` is a controlled silent write inside the state synchronization step. It MUST NOT be used from DOM event handlers as a shortcut.
 
-Patch-trigger fields MUST NOT turn microState or MacroState into an event bus. A patch field is valid only when it represents a real state delta that can be folded into the backing state. Do not introduce command-shaped fields such as `itemMoveRequested`, `channelOrderMove`, or `doRefresh` just to trigger behavior. If the durable state is a reordered collection, update the collection state; if targeted DOM movement is needed, the `items` state-handler may compare `newValue` and `oldValue` and move only affected nodes.
+Patch-trigger fields MUST NOT turn microState or MacroState into an event bus. A patch field is valid only when it represents a real state delta that can be folded into the backing state. Prefix patch fields with `patch`, for example `patchItemStatusUpdates`. Do not introduce command-shaped patch fields such as `patchItemMove`, `channelOrderMove`, or `doRefresh` just to trigger behavior. If the durable state is a reordered collection, update the collection state; if targeted DOM movement is needed, the `items` state-handler may compare `newValue` and `oldValue` and move only affected nodes.
+
+One-shot event trigger fields, when unavoidable, MUST use the `event` prefix, for example `eventScrollTop` or `eventReload`. Do not use a `Requested` suffix.
 
 ### 8.5 Security
 

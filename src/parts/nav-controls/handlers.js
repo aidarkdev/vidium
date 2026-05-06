@@ -32,7 +32,7 @@ export default {
       }
       part.set({
         channelDetailsOpen: false,
-        channelResetRequested: part.state.channelResetRequested + 1,
+        eventChannelReset: part.state.eventChannelReset + 1,
       });
       setMsg(part, 'channel', part.state.channelAdded, 'ok');
     },
@@ -48,7 +48,7 @@ export default {
       }
       part.set({
         videoDetailsOpen: false,
-        videoResetRequested: part.state.videoResetRequested + 1,
+        eventVideoReset: part.state.eventVideoReset + 1,
       });
       setMsg(part, 'video', part.state.videoAdded, 'ok');
     },
@@ -67,10 +67,10 @@ export default {
       part.refs.dropdown.open = value;
       part.refs.summary.setAttribute('aria-expanded', value ? 'true' : 'false');
     },
-    channelResetRequested: (part) => {
+    eventChannelReset: (part) => {
       part.root.querySelector('[data-action="add-channel"]')?.reset();
     },
-    videoResetRequested: (part) => {
+    eventVideoReset: (part) => {
       part.root.querySelector('[data-action="add-video"]')?.reset();
     },
     channelMsg: (part, value) => {

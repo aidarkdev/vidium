@@ -16,7 +16,7 @@ export function bakeAdminPage(lang: string): { id: string; title: string; state:
       downloadedVideos: getDownloadedVideos(300),
       pendingAction: null,
       errorMessage: '',
-      reloadRequested: 0,
+      eventReload: 0,
       empty: t(lang, 'admin.empty'),
       sections: {
         jobs: t(lang, 'admin.jobs'),
