@@ -14,6 +14,11 @@ export function renderChannelPage(ctx: ChannelRenderContext): string | undefined
     lang: ctx.lang,
     title: page.title,
     baked: { [page.id]: page.state },
+    /**
+     * MacroState contract:
+     * - owns: {page.id}.title
+     * - mirrors: editMode <- nav-controls.sidebarEdit
+     */
     body: mountScript('/parts/feed-page/index.js', page.id, {
       expose: ['title'],
       subscribe: { editMode: 'nav-controls.sidebarEdit' },

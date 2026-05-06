@@ -132,6 +132,18 @@ The engine MUST construct these paths and MUST NOT permit alternative naming. Au
 
 This separation is crucial: the part's code references only local names. Concrete remote paths are decided at the moment of instance creation by the parent. The same part can be instantiated against different remote paths in different contexts.
 
+When a page renderer wires instances with `expose` or `subscribe`, keep a short `MacroState contract` JSDoc comment near that page composition code. It MUST stay current when paths are added, renamed, removed, or moved to another module. Use the compact shape:
+
+```ts
+/**
+ * MacroState contract:
+ * - owns: product-card-42.inStock
+ * - mirrors: globalDiscount <- cart.discountPercent
+ */
+```
+
+Add this comment to other composing modules when they introduce page-level MacroState ownership or mirrors. Do not list ordinary microState fields there.
+
 ### 4.4 Serializability
 
 Instance parameters MUST contain only serializable values (primitives, plain objects, arrays). Functions, class instances, DOM nodes, etc. are FORBIDDEN. The page renderer on the server serializes parameters into the literal source code of the mount script.

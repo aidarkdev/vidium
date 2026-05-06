@@ -70,7 +70,8 @@ The page renderer:
    - The engine module link (`<script type="module" src="/engine/core.js">` in head, or equivalent).
    - `<script type="application/json" id="__BAKED__">` with the baked JSON.
    - One mount-script per instance, placed at the desired DOM location.
-4. Returns the HTML string, or a typed absence result if the page cannot be rendered.
+4. Keeps any page-level `MacroState contract` JSDoc near the mount-script composition current when `expose` or `subscribe` paths change.
+5. Returns the HTML string, or a typed absence result if the page cannot be rendered.
 
 The page renderer MUST NOT emit server-rendered page bodies. It emits shell, baked JSON, and mount scripts. The client part template creates the DOM body.
 

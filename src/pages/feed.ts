@@ -13,6 +13,11 @@ export function renderFeedPage(ctx: FeedRenderContext): string {
     lang: ctx.lang,
     title: page.title,
     baked: { [page.id]: page.state },
+    /**
+     * MacroState contract:
+     * - owns: feed-page.title
+     * - mirrors: editMode <- nav-controls.sidebarEdit
+     */
     body: mountScript('/parts/feed-page/index.js', page.id, {
       expose: ['title'],
       subscribe: { editMode: 'nav-controls.sidebarEdit' },

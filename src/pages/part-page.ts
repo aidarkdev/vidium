@@ -78,6 +78,11 @@ export function renderPartPage(opts: PartPageOptions): string {
     'nav-controls': navState(opts.lang),
     'back-top': { visible: false, eventScrollTop: 0 },
   };
+  /**
+   * Shared MacroState contract:
+   * - nav-controls owns nav-controls.sidebarEdit.
+   * - back-top has no MacroState paths.
+   */
   const navControls = mountScript('/parts/nav-controls/index.js', 'nav-controls', {
     expose: ['sidebarEdit'],
   });
