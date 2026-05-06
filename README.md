@@ -8,66 +8,35 @@ So maybe you will need make some movements to not be banned by this popular host
 
 ## Deploying to a VPS
 
-Tested on Ubuntu 24.04. Run all commands as root unless noted.
+Tested on Ubuntu 24.04. Full deployment documentation lives in `docs/deploy.md`.
 
-### First deploy
+Two deployment styles are supported:
 
-**1. Clone the repo on the VPS**
+- Git-based deployment on the VPS.
+- rsync deployment from a local checkout.
+
+### Quick Git Deploy
+
+Run as root on the VPS:
 
 ```bash
 ssh root@<VPS_IP>
 git clone https://github.com/aidarkdev/vidium /root/vidium
 cd /root/vidium
-```
-
-**2. Run the setup script**
-
-```bash
-sudo bash setup.sh
-```
-
-The script installs Node.js 24, nginx, certbot, "some_cli_tool"; creates `data/` and `media/` directories; sets up nginx config; creates systemd services `vidium-server` and `vidium-worker`; and generates a `.env` template.
-
-**3. Configure `.env`**
-
-```bash
+bash setup.sh
 nano /root/vidium/.env
+systemctl enable --now vidium-server vidium-worker
 ```
 
-Key variables:
-
-| Variable | Description |
-|---|---|
-| `DOMAIN` | Your domain name |
-| `INVITE_CODE` | Secret code for user registration (change from `changeme`) |
-| `DEFAULT_LANG` | `en` or `ru` |
-| `some_cli_tool_PROXY` | you know why |
-| `some_cli_tool_COOKIES` | you know why |
-
-**4. Get HTTPS**
-
-Point your domain DNS A-record to the VPS IP, then:
+For HTTPS, point DNS to the VPS and run:
 
 ```bash
 certbot --nginx -d your-domain.com
 ```
 
-**5. Start services**
-
-```bash
-systemctl enable --now vidium-server vidium-worker
-systemctl status vidium-server vidium-worker
-```
-
-Open `http://your-domain.com` — you'll be redirected to `/login`. Register using the invite code from `.env`.
-
-See `SETUP.md` for full usage guide (adding channels, bulk import, troubleshooting).
-
----
+Open the site, register with `INVITE_CODE` from `.env`, and continue with `SETUP.md` for usage details.
 
 ### Subsequent deploys
-
-Both git-based and rsync-based deployments are supported. See `docs/deploy.md`.
 
 Git-based deploy on the VPS:
 
@@ -76,6 +45,8 @@ cd /root/vidium
 git pull
 systemctl restart vidium-server vidium-worker
 ```
+
+For rsync deploys, first-machine setup, exact file lists, nginx reload rules, and runtime file policy, see `docs/deploy.md`.
 
 ### Logs
 

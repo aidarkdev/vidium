@@ -76,6 +76,30 @@ nginx -t && systemctl reload nginx
 
 Use this when local files are the source of truth and the VPS should receive only runtime-relevant files.
 
+### First rsync-based deploy
+
+On a fresh VPS, copy the bootstrap script first:
+
+```bash
+rsync -av ~/<project_path>/vidium/setup.sh root@<VPS_IP>:/root/vidium/setup.sh
+```
+
+Run setup once on the VPS:
+
+```bash
+ssh root@<VPS_IP>
+cd /root/vidium
+bash setup.sh
+nano .env
+systemctl enable --now vidium-server vidium-worker
+```
+
+`setup.sh` prepares the machine: installs system packages, creates `.env`, `data/`, `media/`, the `static` symlink, nginx config, and systemd services. Do not use it as a normal code deploy command.
+
+After setup, deploy the application files with rsync.
+
+### Subsequent rsync deploy
+
 From the local machine:
 
 ```bash
