@@ -24,6 +24,7 @@ export function handleVideo(
     kind: 'video',
     lang: session.data.lang ?? config.DEFAULT_LANG,
     params,
+    isAdmin: session.role === 'admin',
   });
   if (!page) return notFound(res);
 
@@ -42,6 +43,7 @@ export function handleAudio(
     kind: 'audio',
     lang: session.data.lang ?? config.DEFAULT_LANG,
     params,
+    isAdmin: session.role === 'admin',
   });
   if (!page) return notFound(res);
 

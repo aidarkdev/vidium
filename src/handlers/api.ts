@@ -12,7 +12,15 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { unlink } from 'node:fs/promises';
 import { config } from '../config.ts';
-import { requireSessionApi, checkCsrf, readBody, getQuery, json } from '../lib/http.ts';
+import {
+  requireSessionApi,
+  requireAdminApi,
+  checkCsrf,
+  readBody,
+  getQuery,
+  json,
+} from '../lib/http.ts';
+import { setUserRole, type UserRole } from '../lib/auth/auth.ts';
 import { deleteJobById, deleteJobsByYoutubeId, enqueue } from '../lib/queue.ts';
 import { isValidVideoId, CHANNEL_URL_RE, VIDEO_URL_RE } from '../lib/validation.ts';
 import {
@@ -122,7 +130,7 @@ export function handleSince(req: IncomingMessage, res: ServerResponse): void {
 }
 
 export async function handleAddChannel(req: IncomingMessage, res: ServerResponse): Promise<void> {
-  if (!requireSessionApi(req, res)) return;
+  if (!requireAdminApi(req, res)) return;
   if (!checkCsrf(req, res)) return;
 
   let data: { url: string; tags?: string; displayName?: string };
@@ -158,7 +166,7 @@ export async function handleAddChannel(req: IncomingMessage, res: ServerResponse
 }
 
 export async function handleAddVideo(req: IncomingMessage, res: ServerResponse): Promise<void> {
-  if (!requireSessionApi(req, res)) return;
+  if (!requireAdminApi(req, res)) return;
   if (!checkCsrf(req, res)) return;
 
   let data: { url: string };
@@ -195,7 +203,7 @@ export async function handleSetChannelDisplayName(
   req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
-  if (!requireSessionApi(req, res)) return;
+  if (!requireAdminApi(req, res)) return;
   if (!checkCsrf(req, res)) return;
 
   let data: { channelId: number; displayName: string };
@@ -221,7 +229,7 @@ export async function handleReorderChannel(
   req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
-  if (!requireSessionApi(req, res)) return;
+  if (!requireAdminApi(req, res)) return;
   if (!checkCsrf(req, res)) return;
 
   let data: { channelId: number; direction: 'up' | 'down' };
@@ -247,7 +255,7 @@ export async function handleAdminDeleteVideoFiles(
   req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
-  if (!requireSessionApi(req, res)) return;
+  if (!requireAdminApi(req, res)) return;
   if (!checkCsrf(req, res)) return;
 
   let data: { youtubeId: string };
@@ -269,7 +277,7 @@ export async function handleAdminDeleteVideo(
   req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
-  if (!requireSessionApi(req, res)) return;
+  if (!requireAdminApi(req, res)) return;
   if (!checkCsrf(req, res)) return;
 
   let data: { youtubeId: string };
@@ -292,7 +300,7 @@ export async function handleAdminDeleteJob(
   req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
-  if (!requireSessionApi(req, res)) return;
+  if (!requireAdminApi(req, res)) return;
   if (!checkCsrf(req, res)) return;
 
   let data: { jobId: number };
@@ -308,4 +316,31 @@ export async function handleAdminDeleteJob(
 
   const deleted = deleteJobById(data.jobId);
   json(res, 200, { ok: true, deleted });
+}
+
+export async function handleAdminSetUserRole(
+  req: IncomingMessage,
+  res: ServerResponse,
+): Promise<void> {
+  const session = requireAdminApi(req, res);
+  if (!session) return;
+  if (!checkCsrf(req, res)) return;
+
+  let data: { userId: number; role: UserRole };
+  try {
+    data = JSON.parse(await readBody(req));
+  } catch {
+    return json(res, 400, { error: 'invalid json' });
+  }
+
+  if (!Number.isInteger(data.userId) || !['user', 'admin'].includes(data.role)) {
+    return json(res, 400, { error: 'invalid request' });
+  }
+
+  if (data.userId === session.userId && data.role !== 'admin') {
+    return json(res, 403, { error: 'cannot change your own admin role' });
+  }
+
+  const saved = setUserRole(data.userId, data.role);
+  json(res, 200, { ok: true, saved });
 }

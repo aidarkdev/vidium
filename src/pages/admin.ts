@@ -1,12 +1,22 @@
 import { bakeAdminPage } from '../parts/admin-page/baker.ts';
 import { mountScript, renderPartPage } from './part-page.ts';
 
-export function renderAdminPage(lang: string): string {
-  const page = bakeAdminPage(lang);
+interface AdminRenderContext {
+  lang: string;
+  currentUserId: number;
+  isAdmin: boolean;
+}
+
+export function renderAdminPage(ctx: AdminRenderContext): string {
+  const page = bakeAdminPage({
+    lang: ctx.lang,
+    currentUserId: ctx.currentUserId,
+  });
 
   return renderPartPage({
-    lang,
+    lang: ctx.lang,
     title: page.title,
+    isAdmin: ctx.isAdmin,
     baked: { [page.id]: page.state },
     body: mountScript('/parts/admin-page/index.js', page.id),
   });

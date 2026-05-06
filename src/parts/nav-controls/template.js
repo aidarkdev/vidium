@@ -60,18 +60,22 @@ function addVideoHtml(state) {
 }
 
 export default function template(state) {
+  const adminControls = state.isAdmin
+    ? `<details class="nav-dropdown" data-ref="dropdown">
+        <summary data-ref="summary" aria-expanded="false">
+          ${htmlEscape(state.controlsLabel)}
+        </summary>
+        <div class="nav-dropdown-panel">
+          <a href="/admin" class="nav-dropdown-link">${htmlEscape(state.manageLabel)}</a>
+          ${sidebarEditHtml(state)}
+          ${addChannelHtml(state)}
+          ${addVideoHtml(state)}
+        </div>
+      </details>`
+    : '';
+
   return `<div class="nav-controls" data-ref="root">
-    <details class="nav-dropdown" data-ref="dropdown">
-      <summary data-ref="summary" aria-expanded="false">
-        ${htmlEscape(state.controlsLabel)}
-      </summary>
-      <div class="nav-dropdown-panel">
-        <a href="/admin" class="nav-dropdown-link">${htmlEscape(state.manageLabel)}</a>
-        ${sidebarEditHtml(state)}
-        ${addChannelHtml(state)}
-        ${addVideoHtml(state)}
-      </div>
-    </details>
+    ${adminControls}
     <a href="${htmlEscape(state.langHref)}" class="nav-lang">
       ${htmlEscape(state.langLabel)}
     </a>

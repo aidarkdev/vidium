@@ -20,6 +20,7 @@ export function handleFeed(
     renderFeedPage({
       lang: session.data.lang ?? config.DEFAULT_LANG,
       params,
+      isAdmin: session.role === 'admin',
     }),
   );
 }

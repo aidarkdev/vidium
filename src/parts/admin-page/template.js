@@ -39,6 +39,15 @@ export function statusHead(s) {
   </tr>`;
 }
 
+export function usersHead(s) {
+  return `<tr>
+    <th>${htmlEscape(s.id)}</th>
+    <th>${htmlEscape(s.login)}</th>
+    <th>${htmlEscape(s.admin)}</th>
+    <th>${htmlEscape(s.createdAt)}</th>
+  </tr>`;
+}
+
 export function videoHead(s, actions) {
   return `<tr>
     <th>${htmlEscape(s.youtubeId)}</th>
@@ -49,6 +58,31 @@ export function videoHead(s, actions) {
     <th>${htmlEscape(s.createdAt)}</th>
     ${actions ? `<th>${htmlEscape(s.actions)}</th>` : ''}
   </tr>`;
+}
+
+function userRow(user, state) {
+  const isSelf = user.id === state.currentUserId;
+  const isPending = user.id === state.pendingUserRoleId;
+  const disabled = isSelf || isPending;
+
+  return `<tr data-user-id="${user.id}">
+    <td>${user.id}</td>
+    <td>${htmlEscape(user.login)}</td>
+    <td>
+      <input
+        type="checkbox"
+        data-action="admin-user-role"
+        data-user-id="${user.id}"
+        ${user.role === 'admin' ? 'checked' : ''}
+        ${disabled ? 'disabled' : ''}
+      >
+    </td>
+    <td>${htmlEscape(user.createdAt)}</td>
+  </tr>`;
+}
+
+export function renderUsers(state) {
+  return rows(state.users, (user) => userRow(user, state), state.empty, 4);
 }
 
 function jobRow(job, state) {
@@ -135,6 +169,9 @@ export default function template(state) {
     </div>
     <div data-ref="jobs">
       ${table(state.sections.jobs, jobsHead(state.cols), renderJobs(state))}
+    </div>
+    <div data-ref="users">
+      ${table(state.sections.users, usersHead(state.cols), renderUsers(state))}
     </div>
     <div data-ref="statuses">
       ${table(state.sections.statuses, statusHead(state.cols), renderStatuses(state))}

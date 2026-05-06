@@ -11,6 +11,16 @@ import { config } from '../../config.ts';
 export interface User {
   id: number;
   login: string;
+  role: UserRole;
+}
+
+export type UserRole = 'user' | 'admin';
+
+export interface UserRow {
+  id: number;
+  login: string;
+  role: UserRole;
+  createdAt: string;
 }
 
 // ── Statements ────────────────────────────────────────────────────────────────
@@ -20,7 +30,15 @@ const stmtInsert = db.prepare(`
 `);
 
 const stmtGetByLogin = db.prepare(`
-  SELECT id, login, password_hash FROM users WHERE login = ?
+  SELECT id, login, password_hash, role FROM users WHERE login = ?
+`);
+
+const stmtListUsers = db.prepare(`
+  SELECT id, login, role, created_at FROM users ORDER BY created_at ASC, id ASC
+`);
+
+const stmtSetRole = db.prepare(`
+  UPDATE users SET role = ? WHERE id = ?
 `);
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -60,12 +78,12 @@ export function checkInviteCode(code: string): boolean {
 export async function register(login: string, password: string): Promise<User> {
   const hash = await hashPassword(password);
   const result = stmtInsert.run(login, hash);
-  return { id: result.lastInsertRowid as number, login };
+  return { id: result.lastInsertRowid as number, login, role: 'user' };
 }
 
 export async function authenticate(login: string, password: string): Promise<User | undefined> {
   const row = stmtGetByLogin.get(login) as
-    | { id: number; login: string; password_hash: string }
+    | { id: number; login: string; password_hash: string; role: UserRole }
     | undefined;
 
   if (!row) return undefined;
@@ -73,5 +91,26 @@ export async function authenticate(login: string, password: string): Promise<Use
   const ok = await verifyPassword(password, row.password_hash);
   if (!ok) return undefined;
 
-  return { id: row.id, login: row.login };
+  return { id: row.id, login: row.login, role: row.role };
+}
+
+export function listUsers(): UserRow[] {
+  const rows = stmtListUsers.all() as {
+    id: number;
+    login: string;
+    role: UserRole;
+    created_at: string;
+  }[];
+
+  return rows.map((row) => ({
+    id: row.id,
+    login: row.login,
+    role: row.role,
+    createdAt: row.created_at,
+  }));
+}
+
+export function setUserRole(userId: number, role: UserRole): boolean {
+  const result = stmtSetRole.run(role, userId);
+  return result.changes > 0;
 }

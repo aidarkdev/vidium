@@ -5,6 +5,7 @@ interface PlayerRenderContext {
   kind: 'video' | 'audio';
   lang: string;
   params: Record<string, string>;
+  isAdmin: boolean;
 }
 
 export function renderPlayerPage(ctx: PlayerRenderContext): string | undefined {
@@ -14,6 +15,7 @@ export function renderPlayerPage(ctx: PlayerRenderContext): string | undefined {
   return renderPartPage({
     title: page.title,
     lang: ctx.lang,
+    isAdmin: ctx.isAdmin,
     baked: { [page.id]: page.state },
     body: mountScript('/parts/player-page/index.js', page.id),
   });

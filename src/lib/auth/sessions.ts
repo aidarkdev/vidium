@@ -12,9 +12,13 @@ export interface SessionData {
   lang?: string;
 }
 
+export type UserRole = 'user' | 'admin';
+
 export interface Session {
   sid: string;
   userId: number;
+  login: string;
+  role: UserRole;
   data: SessionData;
 }
 
@@ -25,7 +29,10 @@ const stmtCreate = db.prepare(`
 `);
 
 const stmtGet = db.prepare(`
-  SELECT sid, user_id, data FROM sessions WHERE sid = ? AND expires > strftime('%Y-%m-%dT%H:%M:%SZ','now')
+  SELECT sessions.sid, sessions.user_id, sessions.data, users.login, users.role
+  FROM sessions
+  JOIN users ON users.id = sessions.user_id
+  WHERE sessions.sid = ? AND sessions.expires > strftime('%Y-%m-%dT%H:%M:%SZ','now')
 `);
 
 const stmtDestroy = db.prepare(`
@@ -50,12 +57,16 @@ export function createSession(userId: number, data: SessionData = {}): string {
 }
 
 export function getSession(sid: string): Session | undefined {
-  const row = stmtGet.get(sid) as { sid: string; user_id: number; data: string } | undefined;
+  const row = stmtGet.get(sid) as
+    | { sid: string; user_id: number; login: string; role: UserRole; data: string }
+    | undefined;
   if (!row) return undefined;
 
   return {
     sid: row.sid,
     userId: row.user_id,
+    login: row.login,
+    role: row.role,
     data: JSON.parse(row.data) as SessionData,
   };
 }

@@ -18,6 +18,7 @@ export function handleChannel(
   const page = renderChannelPage({
     lang: session.data.lang ?? config.DEFAULT_LANG,
     params,
+    isAdmin: session.role === 'admin',
   });
   if (!page) return notFound(res, 'Channel not found');
 

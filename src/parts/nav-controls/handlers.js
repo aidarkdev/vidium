@@ -64,6 +64,7 @@ export default {
   },
   state: {
     dropdownOpen: (part, value) => {
+      if (!part.refs.dropdown || !part.refs.summary) return;
       part.refs.dropdown.open = value;
       part.refs.summary.setAttribute('aria-expanded', value ? 'true' : 'false');
     },
@@ -94,11 +95,13 @@ export default {
   },
   onMount: (part) => {
     part.private.onDocClick = (event) => {
+      if (!part.refs.dropdown) return;
       if (!part.refs.dropdown.open) return;
       if (event.target instanceof Node && part.refs.dropdown.contains(event.target)) return;
       part.set('dropdownOpen', false);
     };
     part.private.onKey = (event) => {
+      if (!part.refs.dropdown) return;
       if (event.key !== 'Escape') return;
       part.set('dropdownOpen', false);
     };

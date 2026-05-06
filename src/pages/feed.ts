@@ -4,6 +4,7 @@ import { mountScript, renderPartPage } from './part-page.ts';
 interface FeedRenderContext {
   lang: string;
   params: Record<string, string>;
+  isAdmin: boolean;
 }
 
 export function renderFeedPage(ctx: FeedRenderContext): string {
@@ -12,6 +13,7 @@ export function renderFeedPage(ctx: FeedRenderContext): string {
   return renderPartPage({
     lang: ctx.lang,
     title: page.title,
+    isAdmin: ctx.isAdmin,
     baked: { [page.id]: page.state },
     /**
      * MacroState contract:

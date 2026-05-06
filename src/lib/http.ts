@@ -43,6 +43,11 @@ export function notFound(res: ServerResponse, message = 'Not found'): void {
   res.end(message);
 }
 
+export function forbidden(res: ServerResponse, message = 'Forbidden'): void {
+  res.writeHead(403, { 'Content-Type': 'text/plain' });
+  res.end(message);
+}
+
 export function readBody(req: IncomingMessage, maxBytes = 8192): Promise<string> {
   return new Promise((resolve, reject) => {
     const chunks: Buffer[] = [];
@@ -82,13 +87,33 @@ export function requireSession(req: IncomingMessage, res: ServerResponse): Sessi
   return session;
 }
 
-/** Returns true or responds with JSON 401. Use in API handlers. */
-export function requireSessionApi(req: IncomingMessage, res: ServerResponse): boolean {
+export function requireAdmin(req: IncomingMessage, res: ServerResponse): Session | undefined {
+  const session = requireSession(req, res);
+  if (!session) return undefined;
+  if (session.role !== 'admin') {
+    forbidden(res);
+    return undefined;
+  }
+  return session;
+}
+
+/** Returns session or responds with JSON 401. Use in API handlers. */
+export function requireSessionApi(req: IncomingMessage, res: ServerResponse): Session | undefined {
   const cookies = parseCookies(req);
   const session = cookies.sid ? getSession(cookies.sid) : undefined;
   if (!session) {
     json(res, 401, { error: 'unauthorized' });
-    return false;
+    return undefined;
   }
-  return true;
+  return session;
+}
+
+export function requireAdminApi(req: IncomingMessage, res: ServerResponse): Session | undefined {
+  const session = requireSessionApi(req, res);
+  if (!session) return undefined;
+  if (session.role !== 'admin') {
+    json(res, 403, { error: 'forbidden' });
+    return undefined;
+  }
+  return session;
 }

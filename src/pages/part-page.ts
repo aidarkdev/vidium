@@ -30,8 +30,9 @@ export function mountScript(
   </script>`;
 }
 
-function navState(lang: string): Record<string, unknown> {
+function navState(lang: string, isAdmin: boolean): Record<string, unknown> {
   return {
+    isAdmin,
     controlsLabel: t(lang, 'nav.controls'),
     manageLabel: t(lang, 'nav.manage'),
     editLabel: t(lang, 'sidebar.edit'),
@@ -68,6 +69,7 @@ interface PartPageOptions {
   title: string;
   baked: Record<string, unknown>;
   body: string;
+  isAdmin: boolean;
 }
 
 export function renderPartPage(opts: PartPageOptions): string {
@@ -75,7 +77,7 @@ export function renderPartPage(opts: PartPageOptions): string {
   const lang = escapeHtml(opts.lang);
   const baked = {
     ...opts.baked,
-    'nav-controls': navState(opts.lang),
+    'nav-controls': navState(opts.lang, opts.isAdmin),
     'back-top': { visible: false, eventScrollTop: 0 },
   };
   /**

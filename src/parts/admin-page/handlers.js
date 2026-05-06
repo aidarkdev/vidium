@@ -1,4 +1,12 @@
-import { jobsHead, renderDownloaded, renderJobs, table, videoHead } from './template.js';
+import {
+  jobsHead,
+  renderDownloaded,
+  renderJobs,
+  renderUsers,
+  table,
+  usersHead,
+  videoHead,
+} from './template.js';
 
 async function postJson(url, body) {
   const res = await fetch(url, {
@@ -61,8 +69,37 @@ export default {
         part.set('pendingAction', null);
       }
     },
+    'change [data-action="admin-user-role"]': async (part, event) => {
+      const input = event.target.closest('[data-action="admin-user-role"]');
+      const userId = Number(input.dataset.userId);
+      const role = input.checked ? 'admin' : 'user';
+      const previousRole = input.checked ? 'user' : 'admin';
+      part.set({
+        pendingUserRoleId: userId,
+        users: part.state.users.map((user) => (user.id === userId ? { ...user, role } : user)),
+      });
+      try {
+        await postJson('/api/admin/user/role', { userId, role });
+      } catch (err) {
+        part.set({
+          users: part.state.users.map((user) =>
+            user.id === userId ? { ...user, role: previousRole } : user,
+          ),
+          errorMessage: err.message || part.state.actions.error,
+        });
+      } finally {
+        part.set('pendingUserRoleId', 0);
+      }
+    },
   },
   state: {
+    users: (part) => {
+      part.refs.users.innerHTML = table(
+        part.state.sections.users,
+        usersHead(part.state.cols),
+        renderUsers(part.state),
+      );
+    },
     jobs: (part) => {
       part.refs.jobs.innerHTML = table(
         part.state.sections.jobs,
@@ -89,6 +126,13 @@ export default {
         btn.disabled = true;
         btn.textContent = part.state.actions.deleting;
       }
+    },
+    pendingUserRoleId: (part) => {
+      part.refs.users.innerHTML = table(
+        part.state.sections.users,
+        usersHead(part.state.cols),
+        renderUsers(part.state),
+      );
     },
     errorMessage: (_part, value) => {
       if (value) alert(value);

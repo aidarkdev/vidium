@@ -34,7 +34,14 @@ For HTTPS, point DNS to the VPS and run:
 certbot --nginx -d your-domain.com
 ```
 
-Open the site, register with `INVITE_CODE` from `.env`, and continue with `SETUP.md` for usage details.
+Open the site and register with `INVITE_CODE` from `.env`. New accounts start as `user`; grant the first admin role from the VPS:
+
+```bash
+cd /root/vidium
+node --env-file=.env -e "const { DatabaseSync } = require('node:sqlite'); const db = new DatabaseSync(process.env.DB_PATH); db.prepare('UPDATE users SET role = ? WHERE login = ?').run('admin', 'YOUR_LOGIN');"
+```
+
+After one admin exists, manage roles from `/admin`. Continue with `SETUP.md` for usage details and `docs/deploy.md` for full deployment notes.
 
 ### Subsequent deploys
 

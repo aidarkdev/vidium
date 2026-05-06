@@ -4,6 +4,7 @@ import { mountScript, renderPartPage } from './part-page.ts';
 interface ChannelRenderContext {
   lang: string;
   params: Record<string, string>;
+  isAdmin: boolean;
 }
 
 export function renderChannelPage(ctx: ChannelRenderContext): string | undefined {
@@ -13,6 +14,7 @@ export function renderChannelPage(ctx: ChannelRenderContext): string | undefined
   return renderPartPage({
     lang: ctx.lang,
     title: page.title,
+    isAdmin: ctx.isAdmin,
     baked: { [page.id]: page.state },
     /**
      * MacroState contract:

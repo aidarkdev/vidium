@@ -56,6 +56,23 @@ For HTTPS:
 certbot --nginx -d your-domain.com
 ```
 
+## First Admin
+
+New registrations receive the `user` role. After the first account is registered, grant admin role once from the VPS:
+
+```bash
+cd /root/vidium
+node --env-file=.env -e "const { DatabaseSync } = require('node:sqlite'); const db = new DatabaseSync(process.env.DB_PATH); db.prepare('UPDATE users SET role = ? WHERE login = ?').run('admin', 'YOUR_LOGIN');"
+```
+
+Replace `YOUR_LOGIN` with the login used in vidium. Check roles:
+
+```bash
+node --env-file=.env -e "const { DatabaseSync } = require('node:sqlite'); const db = new DatabaseSync(process.env.DB_PATH); console.log(db.prepare('SELECT id, login, role FROM users').all());"
+```
+
+After one admin exists, manage other admin roles from `/admin`.
+
 ## Subsequent Git Deploy
 
 On the VPS:
