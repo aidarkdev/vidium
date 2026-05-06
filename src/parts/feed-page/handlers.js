@@ -126,6 +126,7 @@ export default {
     },
     'click [data-action="move-channel"]': async (part, event) => {
       event.preventDefault();
+      event.stopPropagation();
       const btn = event.target.closest('[data-action="move-channel"]');
       const channelId = Number(btn.dataset.channelId);
       const direction = btn.dataset.direction;
