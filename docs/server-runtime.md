@@ -94,6 +94,46 @@ Expected result: HTTP 200, not proxied Node 404.
 
 Handlers should remain the HTTP boundary: request/response, session, params/forms, redirects, status codes. Page HTML handlers should call one page renderer and should not manually load page data from the DB. Server-side part bakers handle page data loading and state building.
 
+## Authorization
+
+Authentication is session-based. Authorization is role-based with two roles:
+
+- `user` — default for new registrations.
+- `admin` — can use administrative UI and mutation endpoints.
+
+Handlers own authorization decisions. Page renderers and bakers receive already-authorized context and must not decide whether the request is allowed.
+
+Use the shared helpers by route type:
+
+- HTML pages that require login: `requireSession(req, res)`.
+- HTML pages that require admin: `requireAdmin(req, res)`.
+- JSON APIs that require login: `requireSessionApi(req, res)`.
+- JSON APIs that require admin: `requireAdminApi(req, res)`.
+
+Non-admin HTML admin routes respond with `403 Forbidden`. Non-admin admin API routes respond with JSON `403 { "error": "forbidden" }`.
+
+Admin-only routes:
+
+- `GET /admin`
+- `POST /api/channel`
+- `POST /api/video`
+- `POST /api/channel/display-name`
+- `POST /api/channel/reorder`
+- `POST /api/admin/video/files/delete`
+- `POST /api/admin/video/delete`
+- `POST /api/admin/job/delete`
+- `POST /api/admin/user/role`
+
+Authenticated user routes:
+
+- Feed/channel/player pages.
+- Authorized media entrypoints: `/media/v/:id`, `/media/a/:id`, `/t/:id`.
+- `POST /api/download`
+- `GET /api/status`
+- `GET /api/since`
+
+The frontend may hide admin controls for non-admin users, but UI hiding is not authorization. Backend guards are authoritative so console/Postman calls cannot bypass role checks.
+
 ## HTML Page Request Flow
 
 For a page request such as `/feed`:

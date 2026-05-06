@@ -12,6 +12,8 @@ The application server has three separate layers:
 
 Handlers should not manually load page data from the DB for HTML pages. DB/API access for page state belongs in server-side bakers.
 
+Handlers also own authorization. They choose `requireSession` or `requireAdmin` before calling a page renderer. Page renderers and bakers receive already-authorized context and must not be used as the security boundary.
+
 ## Handler Shape
 
 A handler should call one page renderer:
