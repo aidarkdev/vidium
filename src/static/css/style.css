@@ -177,11 +177,13 @@ a:hover { text-decoration: underline; }
 
 .sidebar-channel-edit {
   display: none;
+  align-items: stretch;
   gap: 0.25rem;
   width: 100%;
 }
 
 .sidebar-channel-name-input {
+  box-sizing: border-box;
   min-width: 0;
   width: 100%;
   padding: 0.45rem 0.65rem;
@@ -195,9 +197,9 @@ a:hover { text-decoration: underline; }
 
 .sidebar-save-btn,
 .sidebar-order-btn {
-  width: 2.25rem;
-  height: 2.25rem;
-  flex: 0 0 auto;
+  box-sizing: border-box;
+  width: 2.65rem;
+  flex: 0 0 2.65rem;
   border: 1px solid #3b3b3b;
   border-radius: 0.5rem;
   cursor: pointer;
@@ -245,15 +247,15 @@ a:hover { text-decoration: underline; }
 
 @media (max-width: 700px) {
   .sidebar-panel {
-    width: 240px;
+    width: min(360px, 92vw);
   }
 }
 
 @media (pointer: coarse) {
   .sidebar-save-btn,
   .sidebar-order-btn {
-    width: 2rem;
-    height: 2rem;
+    width: 2.6rem;
+    flex-basis: 2.6rem;
   }
 }
 
