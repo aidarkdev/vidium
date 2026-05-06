@@ -409,7 +409,7 @@ In this pattern:
 
 - `items` means "replace the collection" and usually performs a region re-render.
 - `patchItemStatusUpdates` is a patch state field carrying serializable state changes for known items.
-- The `patchItemStatusUpdates` state-handler applies the patch to `part.state.items` and updates only the affected DOM nodes.
+- The `patchItemStatusUpdates` state-handler MUST apply the patch to `part.state.items` and update only the affected DOM nodes.
 
 Example:
 
@@ -434,7 +434,7 @@ state: {
 }
 ```
 
-This is allowed because DOM writes still live in `handlers.state[*]`, and event handlers still only call `part.set`. The direct assignment to `part.state.items` is a controlled silent write inside the state synchronization step. It MUST NOT be used from DOM event handlers as a shortcut.
+This is allowed because DOM writes still live in `handlers.state[*]`, and event handlers still only call `part.set`. The direct assignment to `part.state.items` is a required controlled silent write inside the state synchronization step: the backing collection must stay current before targeted DOM updates are applied. It MUST NOT be used from DOM event handlers as a shortcut.
 
 Patch-trigger fields MUST NOT turn microState or MacroState into an event bus. A patch field is valid only when it represents a real state delta that can be folded into the backing state. Prefix patch fields with `patch`, for example `patchItemStatusUpdates`. Do not introduce command-shaped patch fields such as `patchItemMove`, `channelOrderMove`, or `doRefresh` just to trigger behavior. If the durable state is a reordered collection, update the collection state; if targeted DOM movement is needed, the `items` state-handler may compare `newValue` and `oldValue` and move only affected nodes.
 
