@@ -31,3 +31,4 @@ For collection UI updates:
 - Use collection fields like `cards`/`items` for full collection replacement and region re-render.
 - Use explicit patch-trigger fields like `cardStatusUpdates` for targeted DOM updates.
 - Patch-trigger handlers may update the backing collection inside `handlers.state[*]`, then update only affected DOM nodes.
+- Do not use microState or MacroState as an event bus. Patch-trigger fields must represent real state deltas, not one-shot commands like `channelOrderMove` or `doRefresh`.

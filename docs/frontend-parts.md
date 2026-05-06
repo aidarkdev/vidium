@@ -396,7 +396,7 @@ state: {
 In this pattern:
 
 - `items` means "replace the collection" and usually performs a region re-render.
-- `itemStatusUpdates` is an event-like state field carrying a serializable patch payload.
+- `itemStatusUpdates` is a patch state field carrying serializable state changes for known items.
 - The `itemStatusUpdates` state-handler applies the patch to `part.state.items` and updates only the affected DOM nodes.
 
 Example:
@@ -423,6 +423,8 @@ state: {
 ```
 
 This is allowed because DOM writes still live in `handlers.state[*]`, and event handlers still only call `part.set`. The direct assignment to `part.state.items` is a controlled silent write inside the state synchronization step. It MUST NOT be used from DOM event handlers as a shortcut.
+
+Patch-trigger fields MUST NOT turn microState or MacroState into an event bus. A patch field is valid only when it represents a real state delta that can be folded into the backing state. Do not introduce command-shaped fields such as `itemMoveRequested`, `channelOrderMove`, or `doRefresh` just to trigger behavior. If the durable state is a reordered collection, update the collection state; if targeted DOM movement is needed, the `items` state-handler may compare `newValue` and `oldValue` and move only affected nodes.
 
 ### 8.5 Security
 
@@ -621,6 +623,7 @@ When an owner is destroyed (mount step 5 of destroy):
 - `set` from outside the owner — not possible (no API exists).
 - Cross-instance writes — not possible. Only the owner of a path can change its value, and only via its own `set`.
 - Deep paths — paths are exactly two segments: `id` and `field`. No `cart.items.0.name`. Authors who need nested coordination structure expose a top-level field whose value is an object/array.
+- Event dispatch through MacroState — forbidden. MacroState paths hold current state values, not one-shot commands. Do not expose fields whose only purpose is to make subscribers "do something".
 
 ---
 

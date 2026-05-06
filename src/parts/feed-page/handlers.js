@@ -94,6 +94,15 @@ function updateChannelDisplayName(channels, channelId, displayName) {
   );
 }
 
+function setChannelControlsDisabled(part, channelId, disabled) {
+  if (!channelId) return;
+  const row = part.refs.sidebar.querySelector(`[data-channel-id="${CSS.escape(String(channelId))}"]`);
+  if (!row) return;
+  for (const control of row.querySelectorAll('input, button')) {
+    control.disabled = disabled;
+  }
+}
+
 function channelTitle(channel, displayName) {
   return displayName || channel.name;
 }
@@ -192,7 +201,10 @@ export default {
     sidebarOpen: (part, value) => part.refs.sidebar.classList.toggle('open', value),
     editMode: (part, value) => part.refs.sidebar.classList.toggle('edit-mode', value),
     movingChannelId: rerenderSidebar,
-    savingChannelNameId: rerenderSidebar,
+    savingChannelNameId: (part, value, oldValue) => {
+      setChannelControlsDisabled(part, oldValue, false);
+      setChannelControlsDisabled(part, value, true);
+    },
     pollingIds: () => {},
     since: () => {},
   },
