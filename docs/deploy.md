@@ -14,6 +14,7 @@ The VPS app directory is usually `/root/vidium`.
 Files that should exist on the VPS for runtime:
 
 - `src/`
+- `scripts/check-proxy-status.ts`
 - `package.json`
 - `.env`
 - `data/`
@@ -47,7 +48,7 @@ git clone https://github.com/aidarkdev/vidium /root/vidium
 cd /root/vidium
 bash setup.sh
 nano .env
-systemctl enable --now vidium-server vidium-worker
+systemctl enable --now vidium-server vidium-worker vidium-proxy-check.timer
 ```
 
 For HTTPS:
@@ -108,7 +109,7 @@ ssh root@<VPS_IP>
 cd /root/vidium
 bash setup.sh
 nano .env
-systemctl enable --now vidium-server vidium-worker
+systemctl enable --now vidium-server vidium-worker vidium-proxy-check.timer
 ```
 
 `setup.sh` prepares the machine: installs system packages, creates `.env`, `data/`, `media/`, the `static` symlink, nginx config, and systemd services. Do not use it as a normal code deploy command.
@@ -122,6 +123,8 @@ From the local machine:
 ```bash
 rsync -av --delete \
   --include='/src/***' \
+  --include='/scripts/' \
+  --include='/scripts/check-proxy-status.ts' \
   --include='/package.json' \
   --exclude='*' \
   ~/<project_path>/vidium/ \
@@ -136,13 +139,14 @@ ssh root@<VPS_IP> 'systemctl restart vidium-server vidium-worker'
 
 This rsync command deletes stale files only inside the included deploy set. It does not delete excluded persistent directories such as `data/` and `media/`.
 
-## Optional rsync With Scripts
+## Optional rsync With Import Scripts
 
-If you want `scripts/import-channels.ts` and `scripts/channels.txt` available on the VPS, include `scripts/` too:
+If you want `scripts/import-channels.ts` and `scripts/channels.txt` available on the VPS, include those scripts too:
 
 ```bash
 rsync -av --delete \
   --include='/src/***' \
+  --include='/scripts/' \
   --include='/scripts/***' \
   --include='/package.json' \
   --exclude='*' \

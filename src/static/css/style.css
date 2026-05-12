@@ -508,13 +508,81 @@ button.btn-audio:hover {
 
 /* ── Admin ───────────────────────────────────────────────────────────────── */
 
+.admin-contents {
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #333;
+  scroll-margin-top: 4rem;
+}
+
+.admin-contents h2 {
+  margin-bottom: 0.45rem;
+  font-size: 1.05rem;
+}
+
+.admin-contents ol {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1rem;
+  list-style-position: inside;
+}
+
+.admin-contents li {
+  font-size: 0.9rem;
+}
+
+.admin-proxy-status {
+  margin-bottom: 1.5rem;
+  padding: 0.75rem 0;
+  border-top: 1px solid #333;
+  border-bottom: 1px solid #333;
+  scroll-margin-top: 4rem;
+}
+
+.admin-proxy-status h2 {
+  display: flex;
+  align-items: baseline;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.35rem;
+  font-size: 1.05rem;
+}
+
+.admin-proxy-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.85rem;
+  align-items: baseline;
+  font-size: 0.9rem;
+}
+
+.admin-proxy-status-ok strong {
+  color: #86efac;
+}
+
+.admin-proxy-status-failed strong,
+.admin-proxy-status-invalid strong,
+.admin-proxy-error {
+  color: #fca5a5;
+}
+
 .admin-section {
   margin-bottom: 1.5rem;
+  scroll-margin-top: 4rem;
 }
 
 .admin-section h2 {
+  display: flex;
+  align-items: baseline;
+  gap: 0.65rem;
+  flex-wrap: wrap;
   margin-bottom: 0.6rem;
   font-size: 1.05rem;
+}
+
+.admin-back-link {
+  font-size: 0.82rem;
+  font-weight: 400;
 }
 
 .admin-table-wrap {

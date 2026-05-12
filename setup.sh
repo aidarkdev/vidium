@@ -156,6 +156,32 @@ RestartSec=5
 WantedBy=multi-user.target
 EOF
 
+cat > /etc/systemd/system/vidium-proxy-check.service << EOF
+[Unit]
+Description=vidium - proxy status check
+After=network.target
+
+[Service]
+Type=oneshot
+User=${APP_USER}
+Group=${APP_GROUP}
+WorkingDirectory=${APP_DIR}
+ExecStart=/usr/bin/node --env-file=${APP_DIR}/.env scripts/check-proxy-status.ts
+EOF
+
+cat > /etc/systemd/system/vidium-proxy-check.timer << EOF
+[Unit]
+Description=vidium - proxy status check timer
+
+[Timer]
+OnBootSec=1min
+OnUnitActiveSec=1min
+Unit=vidium-proxy-check.service
+
+[Install]
+WantedBy=timers.target
+EOF
+
 systemctl daemon-reload
 
 echo "=== Creating .env template ==="
@@ -176,6 +202,7 @@ DISK_LOW_WATERMARK=0.60
 
 # yt-dlp
 YTDLP_PROXY=
+PROXY_STATUS_PATH=${DATA_DIR}/proxy-status.json
 YTDLP_COOKIES=
 YTDLP_SLEEP=5
 CRAWL_INITIAL=15
@@ -203,4 +230,5 @@ echo "  3. Edit config: nano ${APP_DIR}/.env"
 echo "  4. Start services:"
 echo "     systemctl enable --now vidium-server"
 echo "     systemctl enable --now vidium-worker"
+echo "     systemctl enable --now vidium-proxy-check.timer"
 echo ""

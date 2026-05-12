@@ -98,6 +98,8 @@ export default {
         part.state.sections.users,
         usersHead(part.state.cols),
         renderUsers(part.state),
+        'admin-users',
+        part.state.contentsLink,
       );
     },
     jobs: (part) => {
@@ -105,6 +107,8 @@ export default {
         part.state.sections.jobs,
         jobsHead(part.state.cols),
         renderJobs(part.state),
+        'admin-jobs',
+        part.state.contentsLink,
       );
     },
     downloadedVideos: (part) => {
@@ -112,10 +116,14 @@ export default {
         part.state.sections.downloaded,
         videoHead(part.state.cols, true),
         renderDownloaded(part.state),
+        'admin-downloaded',
+        part.state.contentsLink,
       );
     },
     pendingAction: (part, value) => {
-      for (const btn of part.root.querySelectorAll('[data-action^="admin-"]')) btn.disabled = false;
+      for (const btn of part.root.querySelectorAll('button[data-action^="admin-delete-"]')) {
+        btn.disabled = false;
+      }
       if (!value) return;
       const selector =
         value.action === 'job'
@@ -132,6 +140,8 @@ export default {
         part.state.sections.users,
         usersHead(part.state.cols),
         renderUsers(part.state),
+        'admin-users',
+        part.state.contentsLink,
       );
     },
     errorMessage: (_part, value) => {

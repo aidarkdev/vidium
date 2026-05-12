@@ -23,6 +23,7 @@ export interface Config {
 
   // yt-dlp
   YTDLP_PROXY: string;
+  PROXY_STATUS_PATH: string;
   YTDLP_COOKIES: string;
   YTDLP_SLEEP: number;
   CRAWL_INITIAL: number;
@@ -54,6 +55,7 @@ export const config: Config = {
   DISK_LOW_WATERMARK: low,
 
   YTDLP_PROXY: process.env.YTDLP_PROXY ?? '',
+  PROXY_STATUS_PATH: process.env.PROXY_STATUS_PATH ?? '',
   YTDLP_COOKIES: process.env.YTDLP_COOKIES ?? '',
   YTDLP_SLEEP: parseInt(process.env.YTDLP_SLEEP ?? '', 10),
   CRAWL_INITIAL: parseInt(process.env.CRAWL_INITIAL ?? '', 10),

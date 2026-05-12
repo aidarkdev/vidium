@@ -6,9 +6,83 @@ function rows(items, render, empty, colspan) {
     : `<tr><td colspan="${colspan}">${htmlEscape(empty)}</td></tr>`;
 }
 
-export function table(title, head, body) {
-  return `<section class="admin-section">
-    <h2>${htmlEscape(title)}</h2>
+const ADMIN_CONTENTS_ID = 'admin-contents';
+
+const ADMIN_SECTIONS = [
+  ['jobs', 'admin-jobs'],
+  ['users', 'admin-users'],
+  ['statuses', 'admin-statuses'],
+  ['problemRows', 'admin-problem-rows'],
+  ['downloaded', 'admin-downloaded'],
+];
+
+function contentsLinks(state) {
+  const sections = ADMIN_SECTIONS.map(([key, sectionId]) => [state.sections[key], sectionId]);
+  if (state.proxyStatus) sections.unshift([state.proxy.title, 'admin-proxy']);
+  const links = sections
+    .map(([label, sectionId]) => `<li><a href="#${sectionId}">${htmlEscape(label)}</a></li>`)
+    .join('');
+
+  return `<nav id="${ADMIN_CONTENTS_ID}" class="admin-contents" aria-label="${htmlEscape(state.contentsTitle)}">
+    <h2>${htmlEscape(state.contentsTitle)}</h2>
+    <ol>${links}</ol>
+  </nav>`;
+}
+
+function proxyStatusLabel(state) {
+  if (state.proxyStatus.state === 'ok') return state.proxy.ok;
+  if (state.proxyStatus.state === 'failed') return state.proxy.failed;
+  return state.proxy.invalid;
+}
+
+function formatCheckedAt(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+    timeZoneName: 'short',
+  }).formatToParts(date);
+  const byType = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+
+  return `${byType.hour}:${byType.minute} ${byType.timeZoneName} ${byType.day}-${byType.month}-${byType.year}`;
+}
+
+function renderProxyStatus(state) {
+  if (!state.proxyStatus) return '';
+
+  const statusClass = `admin-proxy-status-${state.proxyStatus.state}`;
+  const checkedAt = state.proxyStatus.checkedAt
+    ? `<span>${htmlEscape(state.proxy.checkedAt)}: ${htmlEscape(formatCheckedAt(state.proxyStatus.checkedAt))}</span>`
+    : '';
+  const error = state.proxyStatus.error
+    ? `<span class="admin-proxy-error">${htmlEscape(state.proxy.error)}: ${htmlEscape(state.proxyStatus.error)}</span>`
+    : '';
+
+  return `<section id="admin-proxy" class="admin-proxy-status ${statusClass}">
+    <h2>
+      <span>${htmlEscape(state.proxy.title)}</span>
+      <a class="admin-back-link" href="#${ADMIN_CONTENTS_ID}">${htmlEscape(state.contentsLink)}</a>
+    </h2>
+    <div class="admin-proxy-line">
+      <strong>${htmlEscape(proxyStatusLabel(state))}</strong>
+      ${checkedAt}
+      ${error}
+    </div>
+  </section>`;
+}
+
+export function table(title, head, body, sectionId, contentsLabel) {
+  return `<section id="${sectionId}" class="admin-section">
+    <h2>
+      <span>${htmlEscape(title)}</span>
+      <a class="admin-back-link" href="#${ADMIN_CONTENTS_ID}">${htmlEscape(contentsLabel)}</a>
+    </h2>
     <div class="admin-table-wrap">
       <table class="admin-table">
         <thead>${head}</thead>
@@ -167,20 +241,22 @@ export default function template(state) {
     <div class="topbar">
       <span class="topbar-label">${htmlEscape(state.title)}</span>
     </div>
+    ${contentsLinks(state)}
+    ${renderProxyStatus(state)}
     <div data-ref="jobs">
-      ${table(state.sections.jobs, jobsHead(state.cols), renderJobs(state))}
+      ${table(state.sections.jobs, jobsHead(state.cols), renderJobs(state), 'admin-jobs', state.contentsLink)}
     </div>
     <div data-ref="users">
-      ${table(state.sections.users, usersHead(state.cols), renderUsers(state))}
+      ${table(state.sections.users, usersHead(state.cols), renderUsers(state), 'admin-users', state.contentsLink)}
     </div>
     <div data-ref="statuses">
-      ${table(state.sections.statuses, statusHead(state.cols), renderStatuses(state))}
+      ${table(state.sections.statuses, statusHead(state.cols), renderStatuses(state), 'admin-statuses', state.contentsLink)}
     </div>
     <div data-ref="problemRows">
-      ${table(state.sections.problemRows, videoHead(state.cols, false), renderProblemRows(state))}
+      ${table(state.sections.problemRows, videoHead(state.cols, false), renderProblemRows(state), 'admin-problem-rows', state.contentsLink)}
     </div>
     <div data-ref="downloaded">
-      ${table(state.sections.downloaded, videoHead(state.cols, true), renderDownloaded(state))}
+      ${table(state.sections.downloaded, videoHead(state.cols, true), renderDownloaded(state), 'admin-downloaded', state.contentsLink)}
     </div>
   </section>`;
 }
