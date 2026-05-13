@@ -21,12 +21,18 @@ a:hover { text-decoration: underline; }
 /* ── Nav ─────────────────────────────────────────────────────────────────── */
 
 .nav {
+  background: #1a1a1a;
+  border-bottom: 1px solid #333;
+}
+
+.nav-inner {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  max-width: 1200px;
+  margin: 0 auto;
   padding: 0.75rem 1.5rem;
-  background: #1a1a1a;
-  border-bottom: 1px solid #333;
+  gap: 1rem;
 }
 
 .nav-logo {

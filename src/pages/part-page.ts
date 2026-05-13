@@ -103,9 +103,11 @@ export function renderPartPage(opts: PartPageOptions): string {
     </head>
     <body>
       <nav class="nav">
-        <a class="nav-logo" href="/">vidium</a>
-        <div class="nav-links">
-          ${navControls}
+        <div class="nav-inner">
+          <a class="nav-logo" href="/">vidium</a>
+          <div class="nav-links">
+            ${navControls}
+          </div>
         </div>
       </nav>
       <main class="main">
