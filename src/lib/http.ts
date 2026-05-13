@@ -7,8 +7,10 @@ import { parseCookies } from './auth/cookies.ts';
 import { getSession } from './auth/sessions.ts';
 import type { Session } from './auth/sessions.ts';
 
+export const NO_STORE = 'no-store';
+
 export function redirect(res: ServerResponse, location: string): void {
-  res.writeHead(302, { Location: location });
+  res.writeHead(302, { Location: location, 'Cache-Control': NO_STORE });
   res.end();
 }
 
@@ -18,6 +20,7 @@ const CSP =
 export function html(res: ServerResponse, body: string): void {
   res.writeHead(200, {
     'Content-Type': 'text/html; charset=utf-8',
+    'Cache-Control': NO_STORE,
     'Content-Security-Policy': CSP,
   });
   res.end(body);
@@ -34,17 +37,17 @@ export function checkCsrf(req: IncomingMessage, res: ServerResponse): boolean {
 }
 
 export function json(res: ServerResponse, status: number, data: unknown): void {
-  res.writeHead(status, { 'Content-Type': 'application/json' });
+  res.writeHead(status, { 'Content-Type': 'application/json', 'Cache-Control': NO_STORE });
   res.end(JSON.stringify(data));
 }
 
 export function notFound(res: ServerResponse, message = 'Not found'): void {
-  res.writeHead(404, { 'Content-Type': 'text/plain' });
+  res.writeHead(404, { 'Content-Type': 'text/plain', 'Cache-Control': NO_STORE });
   res.end(message);
 }
 
 export function forbidden(res: ServerResponse, message = 'Forbidden'): void {
-  res.writeHead(403, { 'Content-Type': 'text/plain' });
+  res.writeHead(403, { 'Content-Type': 'text/plain', 'Cache-Control': NO_STORE });
   res.end(message);
 }
 

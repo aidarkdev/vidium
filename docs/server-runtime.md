@@ -30,16 +30,19 @@ The active nginx site config must contain these locations inside the `server {}`
 ```nginx
 location /static/ {
     alias /path/to/vidium/static/;
+    add_header Cache-Control "no-cache" always;
     try_files $uri =404;
 }
 
 location /engine/ {
     alias /path/to/vidium/src/engine/;
+    add_header Cache-Control "no-cache" always;
     try_files $uri =404;
 }
 
 location /parts/ {
     alias /path/to/vidium/src/parts/;
+    add_header Cache-Control "no-cache" always;
     try_files $uri =404;
 }
 
@@ -67,6 +70,7 @@ Replace `/path/to/vidium` with the deployed app directory. In `setup.sh`, shell 
 - `/parts/<name>/template.js` and `/parts/<name>/handlers.js` are also browser modules and must be reachable.
 - `/parts/<name>/baker.ts` is server-only. Browser `index.js` must not import it.
 - `/static/` maps to static assets, currently via a symlink from `<app>/static` to `<app>/src/static` created by `setup.sh`.
+- Public browser assets use `Cache-Control: no-cache` so clients may store them but must revalidate before reuse. Do not use long-lived immutable caching here unless URLs become content-versioned.
 
 If `/engine/core.js` or `/parts/.../index.js` returns 404 in the browser, restarting Node will not fix it. The nginx site config is missing or not reloaded.
 

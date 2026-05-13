@@ -7,6 +7,7 @@
 
 import { createServer } from 'node:http';
 import { config } from './config.ts';
+import { NO_STORE } from './lib/http.ts';
 import { Router } from './lib/router.ts';
 import type { Handler } from './lib/router.ts';
 
@@ -203,7 +204,7 @@ const server = createServer((req, res) => {
   router.dispatch(req, res).catch((err) => {
     console.error(err);
     if (!res.headersSent) {
-      res.writeHead(500, { 'Content-Type': 'text/plain' });
+      res.writeHead(500, { 'Content-Type': 'text/plain', 'Cache-Control': NO_STORE });
       res.end('Internal server error');
     }
   });

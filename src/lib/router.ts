@@ -3,6 +3,7 @@
  */
 
 import type { IncomingMessage, ServerResponse } from 'node:http';
+import { NO_STORE } from './http.ts';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -62,7 +63,7 @@ export class Router {
       return;
     }
 
-    res.writeHead(404, { 'Content-Type': 'text/plain' });
+    res.writeHead(404, { 'Content-Type': 'text/plain', 'Cache-Control': NO_STORE });
     res.end('Not found');
   }
 }

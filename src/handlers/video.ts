@@ -4,11 +4,15 @@
 
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { config } from '../config.ts';
-import { requireSession, notFound, html } from '../lib/http.ts';
+import { requireSession, notFound, html, NO_STORE } from '../lib/http.ts';
 import { renderPlayerPage } from '../pages/player.ts';
 
 function accel(res: ServerResponse, path: string, contentType: string): void {
-  res.writeHead(200, { 'Content-Type': contentType, 'X-Accel-Redirect': path });
+  res.writeHead(200, {
+    'Content-Type': contentType,
+    'Cache-Control': NO_STORE,
+    'X-Accel-Redirect': path,
+  });
   res.end();
 }
 

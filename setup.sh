@@ -91,18 +91,21 @@ server {
     # Static frontend assets served directly by nginx.
     location /static/ {
         alias ${APP_DIR}/static/;
+        add_header Cache-Control "no-cache" always;
         try_files \$uri =404;
     }
 
     # Client runtime modules.
     location /engine/ {
         alias ${APP_DIR}/src/engine/;
+        add_header Cache-Control "no-cache" always;
         try_files \$uri =404;
     }
 
     # Client part modules.
     location /parts/ {
         alias ${APP_DIR}/src/parts/;
+        add_header Cache-Control "no-cache" always;
         try_files \$uri =404;
     }
 
