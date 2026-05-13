@@ -18,6 +18,7 @@ const ADMIN_SECTIONS = [
 
 function contentsLinks(state) {
   const sections = ADMIN_SECTIONS.map(([key, sectionId]) => [state.sections[key], sectionId]);
+  if (state.diskStatus) sections.unshift([state.disk.title, 'admin-disk']);
   if (state.proxyStatus) sections.unshift([state.proxy.title, 'admin-proxy']);
   const links = sections
     .map(([label, sectionId]) => `<li><a href="#${sectionId}">${htmlEscape(label)}</a></li>`)
@@ -33,6 +34,12 @@ function proxyStatusLabel(state) {
   if (state.proxyStatus.state === 'ok') return state.proxy.ok;
   if (state.proxyStatus.state === 'failed') return state.proxy.failed;
   return state.proxy.invalid;
+}
+
+function diskStatusLabel(state) {
+  if (state.diskStatus.state === 'free') return state.disk.free;
+  if (state.diskStatus.state === 'busy') return state.disk.busy;
+  return state.disk.invalid;
 }
 
 function formatCheckedAt(value) {
@@ -53,6 +60,43 @@ function formatCheckedAt(value) {
   return `${byType.hour}:${byType.minute} ${byType.timeZoneName} ${byType.day}-${byType.month}-${byType.year}`;
 }
 
+function formatBytes(value) {
+  if (!Number.isFinite(value) || value <= 0) return '0 GB';
+
+  return `${new Intl.NumberFormat(undefined, {
+    maximumFractionDigits: 1,
+    minimumFractionDigits: 1,
+  }).format(value / 1024 / 1024 / 1024)} GB`;
+}
+
+function renderDiskStatus(state) {
+  if (!state.diskStatus) return '';
+
+  const statusClass = `admin-disk-status-${state.diskStatus.state}`;
+  const details =
+    state.diskStatus.state === 'invalid'
+      ? ''
+      : `<span>${htmlEscape(state.disk.used)}: ${htmlEscape(formatBytes(state.diskStatus.usedBytes))}</span>
+      <span>${htmlEscape(state.disk.available)}: ${htmlEscape(formatBytes(state.diskStatus.freeBytes))}</span>
+      <span>${htmlEscape(state.disk.total)}: ${htmlEscape(formatBytes(state.diskStatus.totalBytes))}</span>
+      <span>${htmlEscape(state.disk.usage)}: ${htmlEscape(String(state.diskStatus.usagePercent))}%</span>`;
+  const error = state.diskStatus.error
+    ? `<span class="admin-status-error">${htmlEscape(state.disk.error)}: ${htmlEscape(state.diskStatus.error)}</span>`
+    : '';
+
+  return `<section id="admin-disk" class="admin-system-status admin-disk-status ${statusClass}">
+    <h2>
+      <span>${htmlEscape(state.disk.title)}</span>
+      <a class="admin-back-link" href="#${ADMIN_CONTENTS_ID}">${htmlEscape(state.contentsLink)}</a>
+    </h2>
+    <div class="admin-system-status-line">
+      <strong>${htmlEscape(diskStatusLabel(state))}</strong>
+      ${details}
+      ${error}
+    </div>
+  </section>`;
+}
+
 function renderProxyStatus(state) {
   if (!state.proxyStatus) return '';
 
@@ -61,15 +105,15 @@ function renderProxyStatus(state) {
     ? `<span>${htmlEscape(state.proxy.checkedAt)}: ${htmlEscape(formatCheckedAt(state.proxyStatus.checkedAt))}</span>`
     : '';
   const error = state.proxyStatus.error
-    ? `<span class="admin-proxy-error">${htmlEscape(state.proxy.error)}: ${htmlEscape(state.proxyStatus.error)}</span>`
+    ? `<span class="admin-status-error">${htmlEscape(state.proxy.error)}: ${htmlEscape(state.proxyStatus.error)}</span>`
     : '';
 
-  return `<section id="admin-proxy" class="admin-proxy-status ${statusClass}">
+  return `<section id="admin-proxy" class="admin-system-status admin-proxy-status ${statusClass}">
     <h2>
       <span>${htmlEscape(state.proxy.title)}</span>
       <a class="admin-back-link" href="#${ADMIN_CONTENTS_ID}">${htmlEscape(state.contentsLink)}</a>
     </h2>
-    <div class="admin-proxy-line">
+    <div class="admin-system-status-line">
       <strong>${htmlEscape(proxyStatusLabel(state))}</strong>
       ${checkedAt}
       ${error}
@@ -243,6 +287,7 @@ export default function template(state) {
     </div>
     ${contentsLinks(state)}
     ${renderProxyStatus(state)}
+    ${renderDiskStatus(state)}
     <div data-ref="jobs">
       ${table(state.sections.jobs, jobsHead(state.cols), renderJobs(state), 'admin-jobs', state.contentsLink)}
     </div>

@@ -531,7 +531,7 @@ button.btn-audio:hover {
   font-size: 0.9rem;
 }
 
-.admin-proxy-status {
+.admin-system-status {
   margin-bottom: 1.5rem;
   padding: 0.75rem 0;
   border-top: 1px solid #333;
@@ -539,7 +539,7 @@ button.btn-audio:hover {
   scroll-margin-top: 4rem;
 }
 
-.admin-proxy-status h2 {
+.admin-system-status h2 {
   display: flex;
   align-items: baseline;
   gap: 0.65rem;
@@ -548,7 +548,7 @@ button.btn-audio:hover {
   font-size: 1.05rem;
 }
 
-.admin-proxy-line {
+.admin-system-status-line {
   display: flex;
   flex-wrap: wrap;
   gap: 0.4rem 0.85rem;
@@ -560,9 +560,15 @@ button.btn-audio:hover {
   color: #86efac;
 }
 
+.admin-disk-status-free strong {
+  color: #86efac;
+}
+
+.admin-disk-status-busy strong,
+.admin-disk-status-invalid strong,
 .admin-proxy-status-failed strong,
 .admin-proxy-status-invalid strong,
-.admin-proxy-error {
+.admin-status-error {
   color: #fca5a5;
 }
 

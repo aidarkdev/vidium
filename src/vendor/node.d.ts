@@ -139,6 +139,7 @@ declare module 'node:fs' {
   function existsSync(path: string): boolean;
   function mkdirSync(path: string, options?: { recursive?: boolean }): void;
   function unlinkSync(path: string): void;
+  function statfsSync(path: string): { bsize: number; blocks: number; bfree: number; bavail: number };
   function statSync(path: string): { size: number; atimeMs: number; mtimeMs: number };
   function writeFileSync(path: string, data: string | Buffer): void;
   function readdirSync(path: string): string[];
@@ -151,6 +152,7 @@ declare module 'node:fs' {
     existsSync,
     mkdirSync,
     unlinkSync,
+    statfsSync,
     statSync,
     writeFileSync,
     readdirSync,
