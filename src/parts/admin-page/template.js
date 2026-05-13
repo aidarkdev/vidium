@@ -79,7 +79,8 @@ function renderDiskStatus(state) {
       : `<span>${htmlEscape(state.disk.used)}: ${htmlEscape(formatBytes(state.diskStatus.usedBytes))}</span>
       <span>${htmlEscape(state.disk.available)}: ${htmlEscape(formatBytes(state.diskStatus.freeBytes))}</span>
       <span>${htmlEscape(state.disk.total)}: ${htmlEscape(formatBytes(state.diskStatus.totalBytes))}</span>
-      <span>${htmlEscape(state.disk.usage)}: ${htmlEscape(String(state.diskStatus.usagePercent))}%</span>`;
+      <span>${htmlEscape(state.disk.usage)}: ${htmlEscape(String(state.diskStatus.usagePercent))}%</span>
+      <span>${htmlEscape(state.disk.cleanupAt)}: ${htmlEscape(String(state.diskStatus.cleanupPercent))}%</span>`;
   const error = state.diskStatus.error
     ? `<span class="admin-status-error">${htmlEscape(state.disk.error)}: ${htmlEscape(state.diskStatus.error)}</span>`
     : '';

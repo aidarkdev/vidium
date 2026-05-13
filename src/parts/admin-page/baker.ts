@@ -56,6 +56,7 @@ export function bakeAdminPage(ctx: AdminBakeContext): {
         available: t(lang, 'admin.disk.available'),
         total: t(lang, 'admin.disk.total'),
         usage: t(lang, 'admin.disk.usage'),
+        cleanupAt: t(lang, 'admin.disk.cleanup_at'),
         error: t(lang, 'admin.disk.error'),
       },
       proxy: {

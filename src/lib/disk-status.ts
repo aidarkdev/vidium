@@ -13,6 +13,7 @@ export interface DiskStatus {
   freeBytes: number;
   totalBytes: number;
   usagePercent: number;
+  cleanupPercent: number;
   error: string;
 }
 
@@ -23,6 +24,7 @@ function invalid(error: string): DiskStatus {
     freeBytes: 0,
     totalBytes: 0,
     usagePercent: 0,
+    cleanupPercent: Math.round(config.DISK_HIGH_WATERMARK * 1000) / 10,
     error,
   };
 }
@@ -46,6 +48,7 @@ export function readDiskStatus(): DiskStatus {
       freeBytes,
       totalBytes,
       usagePercent: Math.round(usage * 1000) / 10,
+      cleanupPercent: Math.round(config.DISK_HIGH_WATERMARK * 1000) / 10,
       error: '',
     };
   } catch (err) {
