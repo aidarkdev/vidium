@@ -148,6 +148,29 @@ a:hover { text-decoration: underline; }
   margin: 0.25rem 0;
 }
 
+.sidebar-mode-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.25rem;
+}
+
+.sidebar-mode-tabs button {
+  padding: 0.4rem 0.55rem;
+  border: 1px solid #333;
+  border-radius: 0.45rem;
+  background: #202020;
+  color: #ccc;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.9rem;
+}
+
+.sidebar-mode-tabs button.active {
+  background: #7cb8ff;
+  border-color: #7cb8ff;
+  color: #111;
+}
+
 .sidebar-channels {
   display: flex;
   flex-direction: column;
@@ -188,6 +211,28 @@ a:hover { text-decoration: underline; }
   width: 100%;
 }
 
+.sidebar-tag-edit {
+  display: none;
+  align-items: stretch;
+  gap: 0.25rem;
+  width: 100%;
+}
+
+.sidebar-tag-label {
+  box-sizing: border-box;
+  min-width: 0;
+  width: 100%;
+  padding: 0.45rem 0.65rem;
+  border: 1px solid #3b3b3b;
+  border-radius: 0.5rem;
+  background: #222;
+  color: #eee;
+  font-size: 0.95rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .sidebar-channel-name-input {
   box-sizing: border-box;
   min-width: 0;
@@ -202,7 +247,8 @@ a:hover { text-decoration: underline; }
 }
 
 .sidebar-save-btn,
-.sidebar-order-btn {
+.sidebar-order-btn,
+.sidebar-delete-btn {
   box-sizing: border-box;
   width: 2.65rem;
   flex: 0 0 2.65rem;
@@ -223,11 +269,21 @@ a:hover { text-decoration: underline; }
   color: #9ec7ff;
 }
 
+.sidebar-delete-btn {
+  background: #3b1313;
+  color: #fecaca;
+}
+
 .sidebar-panel.edit-mode .sidebar-channel-link {
   display: none;
 }
 
-.sidebar-panel.edit-mode .sidebar-channel-edit {
+.sidebar-panel.edit-mode .sidebar-tag-link {
+  display: none;
+}
+
+.sidebar-panel.edit-mode .sidebar-channel-edit,
+.sidebar-panel.edit-mode .sidebar-tag-edit {
   display: flex;
 }
 
@@ -253,7 +309,7 @@ a:hover { text-decoration: underline; }
 
 @media (max-width: 700px) {
   .sidebar-panel {
-    width: min(360px, 92vw);
+    width: min(330px, calc(92vw - 30px));
   }
 }
 
@@ -631,6 +687,22 @@ button.btn-audio:hover {
   flex-wrap: wrap;
 }
 
+.admin-inline-form {
+  min-width: 18rem;
+}
+
+.admin-inline-form input {
+  width: 100%;
+  min-width: 0;
+  padding: 0.3rem 0.45rem;
+  border: 1px solid #444;
+  border-radius: 0.25rem;
+  background: #222;
+  color: #eee;
+  font: inherit;
+  font-size: 0.86rem;
+}
+
 .admin-btn {
   padding: 0.25rem 0.6rem;
   background: #2a2a2a;
@@ -679,19 +751,33 @@ button.btn-audio:hover {
 
 
 .player-seek {
-  display: flex;
-  gap: clamp(0.4rem, 3vw, 2rem);
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  grid-template-areas: "back controls rate";
+  align-items: center;
+  gap: 1rem;
   margin: 1.25rem auto 0;
-  width: fit-content;
+  width: 100%;
   max-width: 100%;
 }
 
+.player-seek-main {
+  display: flex;
+  grid-area: controls;
+  justify-content: center;
+  gap: 1rem;
+}
+
 .player-seek button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
   padding: 0.4rem clamp(0.3rem, 2.5vw, 1rem);
   background: #222;
   color: #fff;
   border: 1px solid #444;
-  border-radius: 0.25rem;
+  border-radius: 0.4rem;
   cursor: pointer;
   font: inherit;
   font-size: clamp(0.75rem, 2.5vw, 0.95rem);
@@ -700,6 +786,7 @@ button.btn-audio:hover {
 }
 
 .player-seek .player-playpause {
+  flex-shrink: 0;
   font-size: clamp(0.9rem, 3vw, 1.2rem);
   padding: 0.4rem 0;
   width: clamp(3.5rem, 10vw, 5rem);
@@ -712,18 +799,42 @@ button.btn-audio:hover {
 }
 
 .player-back {
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: #ccc;
-  background: #222;
-  border: 1px solid #444;
-  border-radius: 0.25rem;
-  cursor: pointer;
-  padding: 0.4rem 1rem;
-  margin-bottom: 1rem;
-  display: inline-block;
+  grid-area: back;
+  justify-self: start;
+  min-width: clamp(4.5rem, 12vw, 6rem);
 }
-.player-back:hover { color: #fff; border-color: #888; background: #333; }
+
+.player-rate {
+  grid-area: rate;
+  justify-self: end;
+  width: 3.6rem;
+  padding-left: 0;
+  padding-right: 0;
+  text-align: center;
+}
+
+@media (max-width: 760px) {
+  .player-seek {
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas:
+      "controls controls"
+      "back rate";
+  }
+
+  .player-seek-main {
+    justify-self: center;
+    gap: 0.75rem;
+  }
+
+  .player-back {
+    justify-self: start;
+  }
+
+  .player-rate {
+    justify-self: end;
+    width: 3.4rem;
+  }
+}
 
 .player-title { margin: 1rem 0 0.75rem; }
 .player-channel {

@@ -19,6 +19,7 @@ export function handleChannel(
     lang: session.data.lang ?? config.DEFAULT_LANG,
     params,
     isAdmin: session.role === 'admin',
+    sidebarMode: session.data.sidebarMode,
   });
   if (!page) return notFound(res, 'Channel not found');
 

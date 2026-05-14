@@ -5,6 +5,7 @@
   "scripts": {
     "check": "tsc --noEmit",
     "format": "biome format --write .",
-    "lint": "biome lint ."
+    "lint": "biome lint .",
+    "normalize:tags": "node --env-file=.env --experimental-sqlite scripts/normalize-tags.ts"
   }
 }

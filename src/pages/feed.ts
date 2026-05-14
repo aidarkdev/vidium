@@ -5,6 +5,7 @@ interface FeedRenderContext {
   lang: string;
   params: Record<string, string>;
   isAdmin: boolean;
+  sidebarMode?: 'channels' | 'tags';
 }
 
 export function renderFeedPage(ctx: FeedRenderContext): string {

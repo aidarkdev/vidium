@@ -5,6 +5,7 @@ interface ChannelRenderContext {
   lang: string;
   params: Record<string, string>;
   isAdmin: boolean;
+  sidebarMode?: 'channels' | 'tags';
 }
 
 export function renderChannelPage(ctx: ChannelRenderContext): string | undefined {

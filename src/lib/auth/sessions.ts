@@ -10,6 +10,7 @@ import { config } from '../../config.ts';
 
 export interface SessionData {
   lang?: string;
+  sidebarMode?: 'channels' | 'tags';
 }
 
 export type UserRole = 'user' | 'admin';

@@ -116,6 +116,11 @@ function reorderChannels(channels, regularIds) {
   return [...manual, ...regularIds.map((id) => byId.get(id)).filter(Boolean)];
 }
 
+function reorderTags(tags, orderedTags) {
+  const byTag = new Map(tags.map((item) => [item.tag, item]));
+  return orderedTags.map((tag) => byTag.get(tag)).filter(Boolean);
+}
+
 function applyPatchChannelDisplayNameUpdates(part, updates) {
   for (const { id, displayName } of updates) {
     const channel = part.state.channels.find((item) => item.id === id);
@@ -141,11 +146,32 @@ function applyPatchChannelOrderIds(part, regularIds) {
   }
 }
 
+function applyPatchTagOrderTags(part, orderedTags) {
+  if (!orderedTags.length) return;
+  part.state.tags = reorderTags(part.state.tags, orderedTags);
+
+  for (const tag of orderedTags) {
+    const row = part.refs.sidebarChannels.querySelector(
+      `[data-tag="${CSS.escape(String(tag))}"]`,
+    );
+    if (row) part.refs.sidebarChannels.append(row);
+  }
+}
+
 function setChannelControlsDisabled(part, channelId, disabled) {
   if (!channelId) return;
   const row = part.refs.sidebar.querySelector(`[data-channel-id="${CSS.escape(String(channelId))}"]`);
   if (!row) return;
   for (const control of row.querySelectorAll('input, button')) {
+    control.disabled = disabled;
+  }
+}
+
+function setTagControlsDisabled(part, tag, disabled) {
+  if (!tag) return;
+  const row = part.refs.sidebar.querySelector(`[data-tag="${CSS.escape(String(tag))}"]`);
+  if (!row) return;
+  for (const control of row.querySelectorAll('button')) {
     control.disabled = disabled;
   }
 }
@@ -163,6 +189,18 @@ export default {
         'visibleCount',
         Math.min(part.state.cards.length, part.state.visibleCount + PAGE_SIZE),
       ),
+    'click [data-action="sidebar-mode"]': (part, event) => {
+      event.stopPropagation();
+      const btn = event.target.closest('[data-action="sidebar-mode"]');
+      const mode = btn.dataset.mode;
+      if (!['channels', 'tags'].includes(mode)) return;
+      part.set('sidebarMode', mode);
+      fetch('/api/sidebar/mode', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode }),
+      }).catch(() => {});
+    },
     'click [data-action="download"]': async (part, event) => {
       const btn = event.target.closest('[data-action="download"]');
       const id = btn.dataset.id;
@@ -206,6 +244,54 @@ export default {
         part.set('movingChannelId', 0);
       }
     },
+    'click [data-action="move-tag"]': async (part, event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      const btn = event.target.closest('[data-action="move-tag"]');
+      const tag = btn.dataset.tag;
+      const direction = btn.dataset.direction;
+      const index = part.state.tags.findIndex((item) => item.tag === tag);
+      const nextIndex = direction === 'up' ? index - 1 : index + 1;
+      if (index < 0 || nextIndex < 0 || nextIndex >= part.state.tags.length) return;
+      part.set('movingTag', tag);
+      try {
+        const res = await fetch('/api/tag/reorder', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tag, direction }),
+        });
+        const data = await res.json();
+        if (!res.ok || !data.ok || !data.moved) return;
+        const reordered = [...part.state.tags];
+        [reordered[index], reordered[nextIndex]] = [reordered[nextIndex], reordered[index]];
+        part.set('patchTagOrderTags', reordered.map((item) => item.tag));
+      } finally {
+        part.set('movingTag', '');
+      }
+    },
+    'click [data-action="delete-tag"]': async (part, event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      const btn = event.target.closest('[data-action="delete-tag"]');
+      const tag = btn.dataset.tag;
+      if (!tag) return;
+      if (!confirm(part.state.labels.confirmDeleteTag)) return;
+
+      part.set('movingTag', tag);
+      try {
+        const res = await fetch('/api/tag/delete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tag }),
+        });
+        const data = await res.json();
+        if (!res.ok || !data.ok || !data.deleted) return;
+        part.set('tags', part.state.tags.filter((item) => item.tag !== data.tag));
+        if (part.state.activeTag === data.tag) window.location.href = '/feed';
+      } finally {
+        part.set('movingTag', '');
+      }
+    },
     'submit [data-action="save-channel-name"]': async (part, event) => {
       event.preventDefault();
       const form = event.target;
@@ -237,8 +323,11 @@ export default {
       document.title = value;
     },
     channels: rerenderSidebar,
+    tags: rerenderSidebar,
+    sidebarMode: rerenderSidebar,
     patchChannelDisplayNameUpdates: applyPatchChannelDisplayNameUpdates,
     patchChannelOrderIds: applyPatchChannelOrderIds,
+    patchTagOrderTags: applyPatchTagOrderTags,
     sidebarOpen: (part, value) => part.refs.sidebar.classList.toggle('open', value),
     editMode: (part, value) => part.refs.sidebar.classList.toggle('edit-mode', value),
     movingChannelId: (part, value, oldValue) => {
@@ -248,6 +337,10 @@ export default {
     savingChannelNameId: (part, value, oldValue) => {
       setChannelControlsDisabled(part, oldValue, false);
       setChannelControlsDisabled(part, value, true);
+    },
+    movingTag: (part, value, oldValue) => {
+      setTagControlsDisabled(part, oldValue, false);
+      setTagControlsDisabled(part, value, true);
     },
     pollingIds: () => {},
     since: () => {},

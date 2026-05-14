@@ -60,14 +60,16 @@ const stmtGetByChannel = db.prepare(
 const stmtGetByTag = db.prepare(`
   SELECT v.youtube_id, v.title, v.date, v.duration, v.video_status, v.audio_status,
          COALESCE(NULLIF(c.display_name,''), c.name, '') AS channel_name
-  FROM videos v JOIN channels c ON v.channel_id = c.id
-  WHERE (',' || c.tags || ',') LIKE ('%,' || ? || ',%')
+  FROM videos v
+  JOIN channel_tags ct ON ct.channel_id = v.channel_id
+  JOIN channels c ON v.channel_id = c.id
+  WHERE ct.tag = ?
   ORDER BY v.date DESC, v.created_at DESC LIMIT 200`);
 const stmtGetByTagManual = db.prepare(`
   SELECT v.youtube_id, v.title, v.date, v.duration, v.video_status, v.audio_status,
          COALESCE(NULLIF(c.display_name,''), c.name, '') AS channel_name
   FROM videos v JOIN channels c ON v.channel_id = c.id
-  WHERE (',' || c.tags || ',') LIKE ('%,' || ? || ',%')
+  WHERE v.source_type = 'manual'
   ORDER BY v.created_at DESC, v.date DESC LIMIT 200`);
 const stmtGetSince = db.prepare(
   `${SEL} WHERE v.created_at > ? ORDER BY v.date DESC, v.created_at DESC LIMIT 50`,
@@ -78,14 +80,16 @@ const stmtGetSinceByChannel = db.prepare(
 const stmtGetSinceByTag = db.prepare(`
   SELECT v.youtube_id, v.title, v.date, v.duration, v.video_status, v.audio_status,
          COALESCE(NULLIF(c.display_name,''), c.name, '') AS channel_name
-  FROM videos v JOIN channels c ON v.channel_id = c.id
-  WHERE v.created_at > ? AND (',' || c.tags || ',') LIKE ('%,' || ? || ',%')
+  FROM videos v
+  JOIN channel_tags ct ON ct.channel_id = v.channel_id
+  JOIN channels c ON v.channel_id = c.id
+  WHERE v.created_at > ? AND ct.tag = ?
   ORDER BY v.date DESC, v.created_at DESC LIMIT 50`);
 const stmtGetSinceByTagManual = db.prepare(`
   SELECT v.youtube_id, v.title, v.date, v.duration, v.video_status, v.audio_status,
          COALESCE(NULLIF(c.display_name,''), c.name, '') AS channel_name
   FROM videos v JOIN channels c ON v.channel_id = c.id
-  WHERE v.created_at > ? AND (',' || c.tags || ',') LIKE ('%,' || ? || ',%')
+  WHERE v.created_at > ? AND v.source_type = 'manual'
   ORDER BY v.created_at DESC, v.date DESC LIMIT 50`);
 const stmtGetSinceReady = db.prepare(
   `${SEL} WHERE (v.video_status = 'ready' OR v.audio_status = 'ready') AND v.ready_at > ? ORDER BY v.ready_at DESC LIMIT 50`,
@@ -201,8 +205,9 @@ export function getVideosByChannel(channelId: number): VideoRow[] {
 }
 
 export function getVideosByTag(tag: string): VideoRow[] {
-  const stmt = tag === 'manual' ? stmtGetByTagManual : stmtGetByTag;
-  return (stmt.all(tag) as RawRow[]).map(toRow);
+  const rows =
+    tag === 'manual' ? (stmtGetByTagManual.all() as RawRow[]) : (stmtGetByTag.all(tag) as RawRow[]);
+  return rows.map(toRow);
 }
 
 export function getNewVideosSince(isoTimestamp: string): VideoRow[] {
@@ -214,8 +219,11 @@ export function getNewVideosSinceByChannel(isoTimestamp: string, channelId: numb
 }
 
 export function getNewVideosSinceByTag(isoTimestamp: string, tag: string): VideoRow[] {
-  const stmt = tag === 'manual' ? stmtGetSinceByTagManual : stmtGetSinceByTag;
-  return (stmt.all(isoTimestamp, tag) as RawRow[]).map(toRow);
+  const rows =
+    tag === 'manual'
+      ? (stmtGetSinceByTagManual.all(isoTimestamp) as RawRow[])
+      : (stmtGetSinceByTag.all(isoTimestamp, tag) as RawRow[]);
+  return rows.map(toRow);
 }
 
 export function getNewReadyVideosSince(isoTimestamp: string): VideoRow[] {

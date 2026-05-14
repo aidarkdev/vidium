@@ -1,6 +1,8 @@
 import {
   jobsHead,
+  channelsHead,
   renderDownloaded,
+  renderChannels,
   renderJobs,
   renderUsers,
   table,
@@ -91,8 +93,40 @@ export default {
         part.set('pendingUserRoleId', 0);
       }
     },
+    'submit [data-action="admin-channel-tags"]': async (part, event) => {
+      event.preventDefault();
+      const form = event.target;
+      const channelId = Number(form.dataset.channelId);
+      const tags = String(new FormData(form).get('tags') || '').trim();
+      if (!Number.isInteger(channelId) || channelId <= 1) return;
+
+      part.set('pendingChannelTagsId', channelId);
+      try {
+        const data = await postJson('/api/channel/tags', {
+          channelId,
+          tags,
+        });
+        const channels = part.state.channels.map((channel) =>
+          channel.id === channelId ? { ...channel, tags: data.tags } : channel,
+        );
+        part.set('channels', channels);
+      } catch (err) {
+        part.set('errorMessage', err.message || part.state.actions.error);
+      } finally {
+        part.set('pendingChannelTagsId', 0);
+      }
+    },
   },
   state: {
+    channels: (part) => {
+      part.refs.channels.innerHTML = table(
+        part.state.sections.channels,
+        channelsHead(part.state.cols),
+        renderChannels(part.state),
+        'admin-channels',
+        part.state.contentsLink,
+      );
+    },
     users: (part) => {
       part.refs.users.innerHTML = table(
         part.state.sections.users,
@@ -141,6 +175,15 @@ export default {
         usersHead(part.state.cols),
         renderUsers(part.state),
         'admin-users',
+        part.state.contentsLink,
+      );
+    },
+    pendingChannelTagsId: (part) => {
+      part.refs.channels.innerHTML = table(
+        part.state.sections.channels,
+        channelsHead(part.state.cols),
+        renderChannels(part.state),
+        'admin-channels',
         part.state.contentsLink,
       );
     },

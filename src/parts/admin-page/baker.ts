@@ -2,6 +2,7 @@ import { getRecentJobs } from '../../lib/queue.ts';
 import { readDiskStatus } from '../../lib/disk-status.ts';
 import { readProxyStatus } from '../../lib/proxy-status.ts';
 import { listUsers } from '../../lib/auth/auth.ts';
+import { getAllChannels } from '../../lib/channel.ts';
 import { getDownloadedVideos, getProblemStatusRows, getVideoStatusSummary } from '../../lib/video.ts';
 import { t } from '../../pages/lang.ts';
 
@@ -25,6 +26,7 @@ export function bakeAdminPage(ctx: AdminBakeContext): {
       title,
       jobs: getRecentJobs(200),
       users: listUsers(),
+      channels: getAllChannels(),
       currentUserId: ctx.currentUserId,
       statusSummary: getVideoStatusSummary(),
       problemRows: getProblemStatusRows(200),
@@ -33,6 +35,7 @@ export function bakeAdminPage(ctx: AdminBakeContext): {
       proxyStatus: readProxyStatus(),
       pendingAction: null,
       pendingUserRoleId: 0,
+      pendingChannelTagsId: 0,
       errorMessage: '',
       eventReload: 0,
       empty: t(lang, 'admin.empty'),
@@ -43,6 +46,7 @@ export function bakeAdminPage(ctx: AdminBakeContext): {
         proxy: t(lang, 'admin.proxy'),
         jobs: t(lang, 'admin.jobs'),
         users: t(lang, 'admin.users'),
+        channels: t(lang, 'admin.channels'),
         statuses: t(lang, 'admin.statuses'),
         problemRows: t(lang, 'admin.problem_rows'),
         downloaded: t(lang, 'admin.downloaded'),
@@ -77,6 +81,9 @@ export function bakeAdminPage(ctx: AdminBakeContext): {
         createdAt: t(lang, 'admin.col.created_at'),
         readyAt: t(lang, 'admin.col.ready_at'),
         title: t(lang, 'admin.col.title'),
+        channel: t(lang, 'admin.col.channel'),
+        url: t(lang, 'admin.col.url'),
+        tags: t(lang, 'admin.col.tags'),
         login: t(lang, 'admin.col.login'),
         admin: t(lang, 'admin.col.admin'),
         video: t(lang, 'admin.col.video'),
@@ -87,6 +94,7 @@ export function bakeAdminPage(ctx: AdminBakeContext): {
         deleteFiles: t(lang, 'admin.action.delete_files'),
         deleteVideo: t(lang, 'admin.action.delete_video'),
         deleteJob: t(lang, 'admin.action.delete_job'),
+        save: t(lang, 'admin.action.save'),
         saving: t(lang, 'admin.action.saving'),
         deleting: t(lang, 'admin.action.deleting'),
         error: t(lang, 'admin.error.action_failed'),

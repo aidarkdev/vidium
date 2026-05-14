@@ -14,14 +14,25 @@ export interface Channel {
   sortOrder: number;
 }
 
+export interface TagLabel {
+  tag: string;
+  label: string;
+  sortOrder: number;
+}
+
 // ── Statements ────────────────────────────────────────────────────────────────
 
 const stmtGetById = db.prepare(
-  `SELECT id, name, display_name, url, youtube_channel_id, tags, sort_order FROM channels WHERE id = ?`,
+  `SELECT c.id, c.name, c.display_name, c.url, c.youtube_channel_id, c.sort_order,
+          COALESCE(GROUP_CONCAT(ct.tag, ','), '') AS tags
+   FROM channels c
+   LEFT JOIN channel_tags ct ON ct.channel_id = c.id
+   WHERE c.id = ?
+   GROUP BY c.id`,
 );
 const stmtGetByUrl = db.prepare(`SELECT id FROM channels WHERE url = ?`);
 const stmtInsert = db.prepare(
-  `INSERT INTO channels (name, url, tags, display_name) VALUES (?, ?, ?, ?) ON CONFLICT (url) DO NOTHING`,
+  `INSERT INTO channels (name, url, display_name) VALUES (?, ?, ?) ON CONFLICT (url) DO NOTHING`,
 );
 const stmtUpdateYtId = db.prepare(`UPDATE channels SET youtube_channel_id = ? WHERE id = ?`);
 const stmtUpdateCrawled = db.prepare(
@@ -29,12 +40,15 @@ const stmtUpdateCrawled = db.prepare(
 );
 const stmtSetDisplayName = db.prepare(`UPDATE channels SET display_name = ? WHERE id = ?`);
 const stmtGetAll = db.prepare(
-  `SELECT id, name, display_name, url, youtube_channel_id, tags, sort_order
-   FROM channels
-   ORDER BY CASE WHEN sort_order = 0 THEN 1 ELSE 0 END,
-            sort_order ASC,
-            COALESCE(NULLIF(display_name,''), name),
-            id ASC`,
+  `SELECT c.id, c.name, c.display_name, c.url, c.youtube_channel_id, c.sort_order,
+          COALESCE(GROUP_CONCAT(ct.tag, ','), '') AS tags
+   FROM channels c
+   LEFT JOIN channel_tags ct ON ct.channel_id = c.id
+   GROUP BY c.id
+   ORDER BY CASE WHEN c.sort_order = 0 THEN 1 ELSE 0 END,
+            c.sort_order ASC,
+            COALESCE(NULLIF(c.display_name,''), c.name),
+            c.id ASC`,
 );
 const stmtGetOrderedIds = db.prepare(
   `SELECT id
@@ -49,6 +63,36 @@ const stmtGetRss = db.prepare(
   `SELECT id, youtube_channel_id FROM channels WHERE youtube_channel_id != ''`,
 );
 const stmtSetSortOrder = db.prepare(`UPDATE channels SET sort_order = ? WHERE id = ?`);
+const stmtGetOrderedTags = db.prepare(`
+  SELECT tl.tag
+  FROM tags tl
+  WHERE EXISTS (SELECT 1 FROM channel_tags ct WHERE ct.tag = tl.tag)
+  ORDER BY CASE WHEN tl.sort_order = 0 THEN 1 ELSE 0 END,
+           tl.sort_order ASC,
+           COALESCE(NULLIF(tl.label, ''), tl.tag) COLLATE NOCASE,
+           tl.tag COLLATE NOCASE
+`);
+const stmtSetTagSortOrder = db.prepare(`UPDATE tags SET sort_order = ? WHERE tag = ?`);
+const stmtDeleteTag = db.prepare(`DELETE FROM tags WHERE tag = ?`);
+const stmtDeleteChannelTags = db.prepare(`DELETE FROM channel_tags WHERE channel_id = ?`);
+const stmtInsertTagLabel = db.prepare(
+  `INSERT INTO tags (tag, label) VALUES (?, ?) ON CONFLICT(tag) DO NOTHING`,
+);
+const stmtInsertChannelTag = db.prepare(
+  `INSERT OR IGNORE INTO channel_tags (channel_id, tag) VALUES (?, ?)`,
+);
+const stmtGetTags = db.prepare(`
+  SELECT tl.tag, COALESCE(NULLIF(tl.label, ''), tl.tag) AS label, tl.sort_order AS sortOrder
+  FROM tags tl
+  WHERE EXISTS (SELECT 1 FROM channel_tags ct WHERE ct.tag = tl.tag)
+  ORDER BY CASE WHEN tl.sort_order = 0 THEN 1 ELSE 0 END,
+           tl.sort_order ASC,
+           label COLLATE NOCASE,
+           tl.tag COLLATE NOCASE
+`);
+const stmtGetTag = db.prepare(
+  `SELECT tag, COALESCE(NULLIF(label, ''), tag) AS label, sort_order AS sortOrder FROM tags WHERE tag = ?`,
+);
 
 // ── Internal ──────────────────────────────────────────────────────────────────
 
@@ -88,8 +132,9 @@ export function addChannel(
   tags: string,
   displayName: string,
 ): { id: number; created: boolean } {
-  const result = stmtInsert.run(name, url, tags, displayName);
+  const result = stmtInsert.run(name, url, displayName);
   const row = stmtGetByUrl.get(url) as { id: number };
+  if (result.changes > 0) setChannelTags(row.id, tags);
   return { id: row.id, created: result.changes > 0 };
 }
 
@@ -103,6 +148,7 @@ export function updateLastCrawled(channelId: number): void {
 
 export const MANUAL_CHANNEL_ID = 1;
 export type ChannelMoveDirection = 'up' | 'down';
+export type TagMoveDirection = 'up' | 'down';
 
 export function setChannelDisplayName(channelId: number, displayName: string): boolean {
   return stmtSetDisplayName.run(displayName, channelId).changes > 0;
@@ -110,6 +156,81 @@ export function setChannelDisplayName(channelId: number, displayName: string): b
 
 export function getAllChannels(): Channel[] {
   return (stmtGetAll.all() as RawChannel[]).map(toChannel);
+}
+
+export function normalizeChannelTags(rawTags: string): string[] {
+  const seen = new Set<string>();
+  return rawTags
+    .replace(/[^\p{L}\p{N},_-]/gu, '')
+    .split(',')
+    .map((tag) => tag.trim().toLowerCase())
+    .filter(Boolean)
+    .filter((tag) => {
+      if (seen.has(tag)) return false;
+      seen.add(tag);
+      return true;
+    });
+}
+
+export function setChannelTags(channelId: number, rawTags: string): boolean {
+  const channel = getChannelById(channelId);
+  if (!channel || channelId === MANUAL_CHANNEL_ID) return false;
+
+  const tags = normalizeChannelTags(rawTags);
+  db.exec('BEGIN');
+  try {
+    stmtDeleteChannelTags.run(channelId);
+    for (const tag of tags) {
+      stmtInsertTagLabel.run(tag, tag);
+      stmtInsertChannelTag.run(channelId, tag);
+    }
+    db.exec('COMMIT');
+    return true;
+  } catch (err) {
+    db.exec('ROLLBACK');
+    throw err;
+  }
+}
+
+export function getAllTags(): TagLabel[] {
+  return stmtGetTags.all() as unknown as TagLabel[];
+}
+
+export function getTagLabel(tag: string): TagLabel | undefined {
+  return stmtGetTag.get(tag) as TagLabel | undefined;
+}
+
+export function moveTag(tag: string, direction: TagMoveDirection): boolean {
+  const normalized = normalizeChannelTags(tag)[0];
+  if (!normalized || normalized !== tag) return false;
+
+  const orderedTags = (stmtGetOrderedTags.all() as { tag: string }[]).map((row) => row.tag);
+  const index = orderedTags.indexOf(tag);
+  if (index === -1) return false;
+
+  const nextIndex = direction === 'up' ? index - 1 : index + 1;
+  if (nextIndex < 0 || nextIndex >= orderedTags.length) return false;
+
+  [orderedTags[index], orderedTags[nextIndex]] = [orderedTags[nextIndex], orderedTags[index]];
+
+  db.exec('BEGIN');
+  try {
+    orderedTags.forEach((item, idx) => {
+      stmtSetTagSortOrder.run((idx + 1) * 10, item);
+    });
+    db.exec('COMMIT');
+    return true;
+  } catch (err) {
+    db.exec('ROLLBACK');
+    throw err;
+  }
+}
+
+export function deleteTag(tag: string): boolean {
+  const normalized = normalizeChannelTags(tag)[0];
+  if (!normalized || normalized !== tag) return false;
+
+  return stmtDeleteTag.run(tag).changes > 0;
 }
 
 export function moveChannel(channelId: number, direction: ChannelMoveDirection): boolean {

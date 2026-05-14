@@ -9,6 +9,7 @@ function rows(items, render, empty, colspan) {
 const ADMIN_CONTENTS_ID = 'admin-contents';
 
 const ADMIN_SECTIONS = [
+  ['channels', 'admin-channels'],
   ['jobs', 'admin-jobs'],
   ['users', 'admin-users'],
   ['statuses', 'admin-statuses'],
@@ -158,6 +159,16 @@ export function statusHead(s) {
   </tr>`;
 }
 
+export function channelsHead(s) {
+  return `<tr>
+    <th>${htmlEscape(s.id)}</th>
+    <th>${htmlEscape(s.channel)}</th>
+    <th>${htmlEscape(s.url)}</th>
+    <th>${htmlEscape(s.tags)}</th>
+    <th>${htmlEscape(s.actions)}</th>
+  </tr>`;
+}
+
 export function usersHead(s) {
   return `<tr>
     <th>${htmlEscape(s.id)}</th>
@@ -202,6 +213,46 @@ function userRow(user, state) {
 
 export function renderUsers(state) {
   return rows(state.users, (user) => userRow(user, state), state.empty, 4);
+}
+
+function channelRow(channel, state) {
+  const disabled = channel.id === 1 || channel.id === state.pendingChannelTagsId;
+  const label = channel.displayName || channel.name;
+  const formId = `admin-channel-tags-${channel.id}`;
+
+  return `<tr data-channel-id="${channel.id}">
+    <td>${channel.id}</td>
+    <td>${htmlEscape(label)}</td>
+    <td>${htmlEscape(channel.url)}</td>
+    <td>
+      <form
+        id="${formId}"
+        class="admin-inline-form"
+        data-action="admin-channel-tags"
+        data-channel-id="${channel.id}"
+      >
+        <input
+          name="tags"
+          value="${htmlEscape(channel.tags || '')}"
+          autocomplete="off"
+          ${disabled ? 'disabled' : ''}
+        >
+      </form>
+    </td>
+    <td>
+      <button
+        class="btn admin-btn"
+        type="submit"
+        form="${formId}"
+        data-channel-id="${channel.id}"
+        ${disabled ? 'disabled' : ''}
+      >${htmlEscape(state.actions.save)}</button>
+    </td>
+  </tr>`;
+}
+
+export function renderChannels(state) {
+  return rows(state.channels, (channel) => channelRow(channel, state), state.empty, 5);
 }
 
 function jobRow(job, state) {
@@ -289,6 +340,9 @@ export default function template(state) {
     ${contentsLinks(state)}
     ${renderProxyStatus(state)}
     ${renderDiskStatus(state)}
+    <div data-ref="channels">
+      ${table(state.sections.channels, channelsHead(state.cols), renderChannels(state), 'admin-channels', state.contentsLink)}
+    </div>
     <div data-ref="jobs">
       ${table(state.sections.jobs, jobsHead(state.cols), renderJobs(state), 'admin-jobs', state.contentsLink)}
     </div>

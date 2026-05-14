@@ -24,11 +24,15 @@ import {
 } from './handlers/video.ts';
 import {
   handleDownload,
+  handleSidebarMode,
   handleStatus,
   handleSince,
   handleAddChannel,
   handleAddVideo,
   handleSetChannelDisplayName,
+  handleSetChannelTags,
+  handleDeleteTag,
+  handleReorderTag,
   handleReorderChannel,
   handleAdminDeleteVideoFiles,
   handleAdminDeleteVideo,
@@ -143,6 +147,11 @@ const routes: RouteConfig[] = [
   },
   {
     method: 'post',
+    path: '/api/sidebar/mode',
+    handler: handleSidebarMode,
+  },
+  {
+    method: 'post',
     path: '/api/channel',
     handler: handleAddChannel,
   },
@@ -158,8 +167,23 @@ const routes: RouteConfig[] = [
   },
   {
     method: 'post',
+    path: '/api/channel/tags',
+    handler: handleSetChannelTags,
+  },
+  {
+    method: 'post',
     path: '/api/channel/reorder',
     handler: handleReorderChannel,
+  },
+  {
+    method: 'post',
+    path: '/api/tag/reorder',
+    handler: handleReorderTag,
+  },
+  {
+    method: 'post',
+    path: '/api/tag/delete',
+    handler: handleDeleteTag,
   },
   {
     method: 'post',

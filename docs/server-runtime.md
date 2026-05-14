@@ -94,7 +94,7 @@ Expected result: HTTP 200, not proxied Node 404.
 - Channel/admin: `/channel/:id`, `/admin`
 - Player pages: `/v/:id`, `/a/:id`
 - Authorized media entrypoints: `/media/v/:id`, `/media/a/:id`, `/t/:id`
-- API: `/api/download`, `/api/channel`, `/api/video`, `/api/channel/display-name`, `/api/channel/reorder`, `/api/admin/...`, `/api/status`, `/api/since`
+- API: `/api/download`, `/api/sidebar/mode`, `/api/channel`, `/api/video`, `/api/channel/display-name`, `/api/channel/tags`, `/api/channel/reorder`, `/api/tag/reorder`, `/api/tag/delete`, `/api/admin/...`, `/api/status`, `/api/since`
 
 Handlers should remain the HTTP boundary: request/response, session, params/forms, redirects, status codes. Page HTML handlers should call one page renderer and should not manually load page data from the DB. Server-side part bakers handle page data loading and state building.
 
@@ -122,7 +122,10 @@ Admin-only routes:
 - `POST /api/channel`
 - `POST /api/video`
 - `POST /api/channel/display-name`
+- `POST /api/channel/tags`
 - `POST /api/channel/reorder`
+- `POST /api/tag/reorder`
+- `POST /api/tag/delete`
 - `POST /api/admin/video/files/delete`
 - `POST /api/admin/video/delete`
 - `POST /api/admin/job/delete`
@@ -133,6 +136,7 @@ Authenticated user routes:
 - Feed/channel/player pages.
 - Authorized media entrypoints: `/media/v/:id`, `/media/a/:id`, `/t/:id`.
 - `POST /api/download`
+- `POST /api/sidebar/mode`
 - `GET /api/status`
 - `GET /api/since`
 
@@ -160,6 +164,7 @@ API requests are proxied to Node. API handlers may read JSON bodies, perform CSR
 Examples:
 
 - `POST /api/download` sets video/audio status to `queued` and enqueues a download job.
+- `POST /api/sidebar/mode` stores the feed sidebar mode in session data.
 - `GET /api/status?ids=...` returns current DB media statuses for polling.
 - `GET /api/since?...` returns new videos since a timestamp for feed updates.
 

@@ -24,9 +24,10 @@ db.exec(`
 // ── Schema ────────────────────────────────────────────────────────────────────
 
 db.exec(`
-  CREATE TABLE IF NOT EXISTS tag_labels (
+  CREATE TABLE IF NOT EXISTS tags (
     tag   TEXT PRIMARY KEY,
-    label TEXT NOT NULL
+    label TEXT NOT NULL,
+    sort_order INTEGER NOT NULL DEFAULT 0
   );
 
   CREATE TABLE IF NOT EXISTS channels (
@@ -34,9 +35,15 @@ db.exec(`
     name               TEXT    NOT NULL,
     url                TEXT    NOT NULL UNIQUE,
     youtube_channel_id TEXT    NOT NULL DEFAULT '',
-    tags               TEXT    NOT NULL DEFAULT '',
     last_crawled       TEXT,
-    display_name       TEXT    NOT NULL DEFAULT ''
+    display_name       TEXT    NOT NULL DEFAULT '',
+    sort_order         INTEGER NOT NULL DEFAULT 0
+  );
+
+  CREATE TABLE IF NOT EXISTS channel_tags (
+    channel_id INTEGER NOT NULL REFERENCES channels(id) ON DELETE CASCADE,
+    tag        TEXT    NOT NULL REFERENCES tags(tag) ON DELETE CASCADE,
+    PRIMARY KEY (channel_id, tag)
   );
 
   CREATE TABLE IF NOT EXISTS videos (
@@ -92,15 +99,26 @@ db.exec(`
 db.exec(`
   CREATE INDEX IF NOT EXISTS idx_videos_channel   ON videos(channel_id);
   CREATE INDEX IF NOT EXISTS idx_videos_date      ON videos(date DESC);
+  CREATE INDEX IF NOT EXISTS idx_channel_tags_tag ON channel_tags(tag);
   CREATE INDEX IF NOT EXISTS idx_jobs_status      ON jobs(status, created_at);
   CREATE INDEX IF NOT EXISTS idx_sessions_user    ON sessions(user_id);
   CREATE INDEX IF NOT EXISTS idx_sessions_expires ON sessions(expires);
 `);
 
+function hasColumn(table: string, column: string): boolean {
+  return (db.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[]).some(
+    (row) => row.name === column,
+  );
+}
+
+if (!hasColumn('tags', 'sort_order')) {
+  db.exec('ALTER TABLE tags ADD COLUMN sort_order INTEGER NOT NULL DEFAULT 0');
+}
+
 // ── System channels ───────────────────────────────────────────────────────────
 
 db.prepare(
-  `INSERT OR IGNORE INTO channels (id, name, url, tags) VALUES (1, 'manual', '', 'manual')`,
+  `INSERT OR IGNORE INTO channels (id, name, url) VALUES (1, 'manual', '')`,
 ).run();
 db.prepare(
   `UPDATE channels SET display_name = 'Загрузки' WHERE id = 1 AND display_name = ''`,

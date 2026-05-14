@@ -7,6 +7,7 @@
  * POST /api/channel   — add channel + enqueue crawl
  * POST /api/video     — add single video by URL
  * POST /api/channel/display-name — rename channel in sidebar
+ * POST /api/tag/reorder — change tag order in sidebar
  */
 
 import type { IncomingMessage, ServerResponse } from 'node:http';
@@ -21,6 +22,7 @@ import {
   json,
 } from '../lib/http.ts';
 import { setUserRole, type UserRole } from '../lib/auth/auth.ts';
+import { updateSessionData } from '../lib/auth/sessions.ts';
 import { deleteJobById, deleteJobsByYoutubeId, enqueue } from '../lib/queue.ts';
 import { isValidVideoId, CHANNEL_URL_RE, VIDEO_URL_RE } from '../lib/validation.ts';
 import {
@@ -38,9 +40,13 @@ import {
 } from '../lib/video.ts';
 import {
   addChannel,
+  deleteTag,
   MANUAL_CHANNEL_ID,
   setChannelDisplayName,
+  setChannelTags,
+  moveTag as moveTagOrder,
   moveChannel as moveChannelOrder,
+  normalizeChannelTags,
 } from '../lib/channel.ts';
 import { fetchMeta } from '../lib/ytdlp.ts';
 
@@ -79,6 +85,29 @@ export async function handleDownload(req: IncomingMessage, res: ServerResponse):
   enqueue(jobType, { youtubeId: data.youtubeId });
 
   json(res, 200, { ok: true, status: 'queued' });
+}
+
+export async function handleSidebarMode(req: IncomingMessage, res: ServerResponse): Promise<void> {
+  const session = requireSessionApi(req, res);
+  if (!session) return;
+  if (!checkCsrf(req, res)) return;
+
+  let data: { mode: string };
+  try {
+    data = JSON.parse(await readBody(req));
+  } catch {
+    return json(res, 400, { error: 'invalid json' });
+  }
+
+  if (!['channels', 'tags'].includes(data.mode)) {
+    return json(res, 400, { error: 'invalid request' });
+  }
+
+  updateSessionData(session.sid, {
+    ...session.data,
+    sidebarMode: data.mode as 'channels' | 'tags',
+  });
+  json(res, 200, { ok: true, mode: data.mode });
 }
 
 export function handleStatus(req: IncomingMessage, res: ServerResponse): void {
@@ -146,13 +175,9 @@ export async function handleAddChannel(req: IncomingMessage, res: ServerResponse
 
   const name = decodeURIComponent(data.url.match(/youtube\.com\/@([^/?#]+)/)?.[1] ?? '');
   const canonicalUrl = `https://www.youtube.com/@${name}`;
-  const userTags = (data.tags ?? '')
-    .replace(/[^a-zA-Z0-9,_-]/g, '')
-    .split(',')
-    .filter(Boolean);
+  const userTags = normalizeChannelTags(data.tags ?? '');
   const displayName = (data.displayName ?? '').trim();
-  const nameTag = name.toLowerCase().replace(/[^a-z0-9_-]/g, '');
-  const tags = [...new Set([nameTag, ...userTags])].filter(Boolean).join(',');
+  const tags = userTags.join(',');
 
   const { id, created } = addChannel(name, canonicalUrl, tags, displayName);
   if (!created) return json(res, 200, { ok: true, status: 'exists' });
@@ -225,6 +250,33 @@ export async function handleSetChannelDisplayName(
   json(res, 200, { ok: true, saved });
 }
 
+export async function handleSetChannelTags(
+  req: IncomingMessage,
+  res: ServerResponse,
+): Promise<void> {
+  if (!requireAdminApi(req, res)) return;
+  if (!checkCsrf(req, res)) return;
+
+  let data: { channelId: number; tags: string };
+  try {
+    data = JSON.parse(await readBody(req));
+  } catch {
+    return json(res, 400, { error: 'invalid json' });
+  }
+
+  if (
+    !Number.isInteger(data.channelId) ||
+    data.channelId <= MANUAL_CHANNEL_ID ||
+    typeof data.tags !== 'string'
+  ) {
+    return json(res, 400, { error: 'invalid request' });
+  }
+
+  const tags = normalizeChannelTags(data.tags).join(',');
+  const saved = setChannelTags(data.channelId, tags);
+  json(res, 200, { ok: true, saved, tags });
+}
+
 export async function handleReorderChannel(
   req: IncomingMessage,
   res: ServerResponse,
@@ -249,6 +301,46 @@ export async function handleReorderChannel(
 
   const moved = moveChannelOrder(data.channelId, data.direction);
   json(res, 200, { ok: true, moved });
+}
+
+export async function handleReorderTag(req: IncomingMessage, res: ServerResponse): Promise<void> {
+  if (!requireAdminApi(req, res)) return;
+  if (!checkCsrf(req, res)) return;
+
+  let data: { tag: string; direction: 'up' | 'down' };
+  try {
+    data = JSON.parse(await readBody(req));
+  } catch {
+    return json(res, 400, { error: 'invalid json' });
+  }
+
+  const tag = typeof data.tag === 'string' ? normalizeChannelTags(data.tag)[0] : '';
+  if (!tag || tag !== data.tag || !['up', 'down'].includes(data.direction)) {
+    return json(res, 400, { error: 'invalid request' });
+  }
+
+  const moved = moveTagOrder(data.tag, data.direction);
+  json(res, 200, { ok: true, moved });
+}
+
+export async function handleDeleteTag(req: IncomingMessage, res: ServerResponse): Promise<void> {
+  if (!requireAdminApi(req, res)) return;
+  if (!checkCsrf(req, res)) return;
+
+  let data: { tag: string };
+  try {
+    data = JSON.parse(await readBody(req));
+  } catch {
+    return json(res, 400, { error: 'invalid json' });
+  }
+
+  const tag = typeof data.tag === 'string' ? normalizeChannelTags(data.tag)[0] : '';
+  if (!tag || tag !== data.tag) {
+    return json(res, 400, { error: 'invalid request' });
+  }
+
+  const deleted = deleteTag(data.tag);
+  json(res, 200, { ok: true, deleted, tag: data.tag });
 }
 
 export async function handleAdminDeleteVideoFiles(

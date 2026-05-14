@@ -33,6 +33,7 @@ export function bakePlayerPage(
       seekDelta: 0,
       eventSeek: 0,
       eventPlay: 0,
+      playbackRate: 1,
       paused: true,
     },
   };

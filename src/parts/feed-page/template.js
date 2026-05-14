@@ -113,6 +113,36 @@ function sidebarEditForm(ch, labels, disabled) {
   </form>`;
 }
 
+function tagOrderButton(item, direction, label, disabled) {
+  return `<button
+    class="sidebar-order-btn"
+    type="button"
+    data-action="move-tag"
+    data-direction="${direction}"
+    data-tag="${htmlEscape(item.tag)}"
+    aria-label="${htmlEscape(label)}"
+    title="${htmlEscape(label)}"
+    ${disabled ? 'disabled' : ''}
+  >${direction === 'up' ? '&#8593;' : '&#8595;'}</button>`;
+}
+
+function sidebarTagEdit(item, labels, disabled) {
+  return `<div class="sidebar-tag-edit">
+    <span class="sidebar-tag-label">${htmlEscape(item.label || item.tag)}</span>
+    ${tagOrderButton(item, 'up', labels.moveUp, disabled)}
+    ${tagOrderButton(item, 'down', labels.moveDown, disabled)}
+    <button
+      class="sidebar-delete-btn"
+      type="button"
+      data-action="delete-tag"
+      data-tag="${htmlEscape(item.tag)}"
+      aria-label="${htmlEscape(labels.deleteTag)}"
+      title="${htmlEscape(labels.deleteTag)}"
+      ${disabled ? 'disabled' : ''}
+    >×</button>
+  </div>`;
+}
+
 export function sidebarItem(ch, activeChannelId, labels, movingId, savingId) {
   const disabled = movingId === ch.id || savingId === ch.id;
 
@@ -122,6 +152,35 @@ export function sidebarItem(ch, activeChannelId, labels, movingId, savingId) {
       href="/channel/${ch.id}"
     >${htmlEscape(ch.displayName || ch.name)}</a>
     ${sidebarEditForm(ch, labels, disabled)}
+  </div>`;
+}
+
+function sidebarTagItem(item, state) {
+  const disabled = state.movingTag === item.tag;
+
+  return `<div class="sidebar-tag-row" data-tag="${htmlEscape(item.tag)}">
+    <a
+      class="sidebar-tag-link${item.tag === state.activeTag ? ' active' : ''}"
+      href="/feed/${encodeURIComponent(item.tag)}"
+    >${htmlEscape(item.label || item.tag)}</a>
+    ${sidebarTagEdit(item, state.labels, disabled)}
+  </div>`;
+}
+
+function sidebarModeTabs(state) {
+  return `<div class="sidebar-mode-tabs">
+    <button
+      type="button"
+      data-action="sidebar-mode"
+      data-mode="channels"
+      class="${state.sidebarMode === 'channels' ? 'active' : ''}"
+    >${htmlEscape(state.labels.channels)}</button>
+    <button
+      type="button"
+      data-action="sidebar-mode"
+      data-mode="tags"
+      class="${state.sidebarMode === 'tags' ? 'active' : ''}"
+    >${htmlEscape(state.labels.tags)}</button>
   </div>`;
 }
 
@@ -144,8 +203,13 @@ export function sidebarHtml(state) {
       ${systemLink('/feed/manual', state.activeTag === 'manual', manualLabel)}
     </div>
     <div class="sidebar-divider"></div>
+    ${sidebarModeTabs(state)}
     <div class="sidebar-channels" data-ref="sidebarChannels">
-      ${regular.map((ch) => sidebarItem(ch, state.activeChannelId, state.labels, state.movingChannelId, state.savingChannelNameId)).join('')}
+      ${
+        state.sidebarMode === 'tags'
+          ? state.tags.map((tag) => sidebarTagItem(tag, state)).join('')
+          : regular.map((ch) => sidebarItem(ch, state.activeChannelId, state.labels, state.movingChannelId, state.savingChannelNameId)).join('')
+      }
     </div>
   </div>`;
 }

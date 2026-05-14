@@ -37,23 +37,31 @@ export default function template(state) {
   return `<div class="player">
     ${mediaHtml(state)}
     <div class="player-seek">
-      <button type="button" data-action="seek" data-seek="-30">-30s</button>
-      <button type="button" data-action="seek" data-seek="-15">-15s</button>
+      <button class="player-back" data-action="back" type="button">
+        &larr; ${htmlEscape(state.backLabel)}
+      </button>
+      <div class="player-seek-main">
+        <button type="button" data-action="seek" data-seek="-30">-30s</button>
+        <button type="button" data-action="seek" data-seek="-15">-15s</button>
+        <button
+          class="player-playpause"
+          data-action="toggle-play"
+          data-ref="playButton"
+          type="button"
+        >&#9654;</button>
+        <button type="button" data-action="seek" data-seek="15">+15s</button>
+        <button type="button" data-action="seek" data-seek="30">+30s</button>
+      </div>
       <button
-        class="player-playpause"
-        data-action="toggle-play"
-        data-ref="playButton"
+        class="player-rate"
+        data-action="toggle-rate"
+        data-ref="rateButton"
         type="button"
-      >&#9654;</button>
-      <button type="button" data-action="seek" data-seek="15">+15s</button>
-      <button type="button" data-action="seek" data-seek="30">+30s</button>
+      >1.25x</button>
     </div>
     <div class="player-title">
       ${channelHtml(state)}
       <div class="player-title-text">${htmlEscape(state.title)}</div>
     </div>
-    <button class="player-back" data-action="back" type="button">
-      &larr; ${htmlEscape(state.backLabel)}
-    </button>
   </div>`;
 }
