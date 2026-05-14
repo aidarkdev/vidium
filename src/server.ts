@@ -15,6 +15,7 @@ import { handleLogin, handleRegister, handleLogout, handleLang } from './handler
 import { handleFeed } from './handlers/feed.ts';
 import { handleChannel } from './handlers/channel.ts';
 import { handleAdmin } from './handlers/admin.ts';
+import { handleManifest, handleServiceWorker } from './handlers/pwa.ts';
 import {
   handleVideo,
   handleAudio,
@@ -49,6 +50,10 @@ interface RouteConfig {
 }
 
 const routes: RouteConfig[] = [
+  // PWA
+  { method: 'get', path: '/manifest.webmanifest', handler: handleManifest },
+  { method: 'get', path: '/sw.js', handler: handleServiceWorker },
+
   // Auth
   {
     method: 'get',

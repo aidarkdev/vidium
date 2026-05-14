@@ -102,7 +102,18 @@ export function renderPartPage(opts: PartPageOptions): string {
       <title>${title}</title>
       <link rel="stylesheet" href="/static/css/style.css">
       <link rel="icon" type="image/png" href="/static/favicon.png">
+      <link rel="manifest" href="/manifest.webmanifest">
+      <meta name="theme-color" content="#111111">
+      <meta name="apple-mobile-web-app-capable" content="yes">
+      <meta name="apple-mobile-web-app-title" content="vidium">
+      <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+      <link rel="apple-touch-icon" href="/static/icon-192.png">
       <script type="module" src="/engine/core.js"></script>
+      <script>
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.register('/sw.js');
+        }
+      </script>
       <script type="application/json" id="__BAKED__">${safeJson(baked)}</script>
     </head>
     <body${bodyClass}>
