@@ -17,6 +17,8 @@ export function renderChannelPage(ctx: ChannelRenderContext): string | undefined
     title: page.title,
     isAdmin: ctx.isAdmin,
     baked: { [page.id]: page.state },
+    mainClass: 'feed-main',
+    bodyClass: 'feed-layout',
     /**
      * MacroState contract:
      * - owns: {page.id}.title

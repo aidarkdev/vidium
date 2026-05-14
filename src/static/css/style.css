@@ -1,5 +1,11 @@
 /* vidium — minimal styles */
 
+:root {
+  --sidebar-width: 320px;
+  --content-max-width: 1200px;
+  --wide-layout-gap: 1.5rem;
+}
+
 *,
 *::before,
 *::after {
@@ -21,6 +27,8 @@ a:hover { text-decoration: underline; }
 /* ── Nav ─────────────────────────────────────────────────────────────────── */
 
 .nav {
+  position: relative;
+  z-index: 200;
   background: #1a1a1a;
   border-bottom: 1px solid #333;
 }
@@ -29,7 +37,7 @@ a:hover { text-decoration: underline; }
   display: flex;
   align-items: center;
   justify-content: space-between;
-  max-width: 1200px;
+  max-width: var(--content-max-width);
   margin: 0 auto;
   padding: 0.75rem 1.5rem;
   gap: 1rem;
@@ -58,7 +66,7 @@ a:hover { text-decoration: underline; }
 /* ── Main ────────────────────────────────────────────────────────────────── */
 
 .main {
-  max-width: 1200px;
+  max-width: var(--content-max-width);
   margin: 0 auto;
   padding: 1.5rem;
 }
@@ -118,7 +126,7 @@ a:hover { text-decoration: underline; }
   top: 0;
   left: 0;
   bottom: 0;
-  width: 320px;
+  width: var(--sidebar-width);
   background: #1a1a1a;
   border-right: 1px solid #333;
   z-index: 150;
@@ -310,6 +318,27 @@ a:hover { text-decoration: underline; }
 @media (max-width: 700px) {
   .sidebar-panel {
     width: min(330px, calc(92vw - 30px));
+  }
+}
+
+/* 1520px = 320px sidebar + 1200px content */
+@media (min-width: 1520px) {
+  .sidebar-toggle {
+    display: none;
+  }
+
+  .sidebar-panel {
+    transform: none;
+  }
+
+  .main:has(.feed-part) {
+    margin-left: calc(var(--sidebar-width) + var(--wide-layout-gap));
+    margin-right: auto;
+  }
+
+  body:has(.feed-part) .nav-inner {
+    margin-left: calc(var(--sidebar-width) + var(--wide-layout-gap));
+    margin-right: auto;
   }
 }
 
@@ -791,6 +820,18 @@ button.btn-audio:hover {
   padding: 0.4rem 0;
   width: clamp(3.5rem, 10vw, 5rem);
   text-align: center;
+}
+
+.player-play-icon {
+  display: none;
+  width: 1.45rem;
+  height: 1.45rem;
+  color: #d8e3f8;
+}
+
+.player-playpause.is-paused .player-play-icon-play,
+.player-playpause:not(.is-paused) .player-play-icon-pause {
+  display: block;
 }
 
 .player-seek button:hover {

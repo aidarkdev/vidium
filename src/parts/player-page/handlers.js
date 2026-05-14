@@ -29,7 +29,7 @@ export default {
       else part.refs.media.pause();
     },
     paused: (part, value) => {
-      part.refs.playButton.innerHTML = value ? '&#9654;' : '&#9646;&#9646;';
+      part.refs.playButton.classList.toggle('is-paused', value);
     },
     playbackRate: (part, value) => {
       part.refs.media.playbackRate = value;

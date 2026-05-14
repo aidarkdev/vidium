@@ -70,11 +70,15 @@ interface PartPageOptions {
   baked: Record<string, unknown>;
   body: string;
   isAdmin: boolean;
+  mainClass?: string;
+  bodyClass?: string;
 }
 
 export function renderPartPage(opts: PartPageOptions): string {
   const title = escapeHtml(opts.title);
   const lang = escapeHtml(opts.lang);
+  const mainClass = opts.mainClass ? `main ${escapeHtml(opts.mainClass)}` : 'main';
+  const bodyClass = opts.bodyClass ? ` class="${escapeHtml(opts.bodyClass)}"` : '';
   const baked = {
     ...opts.baked,
     'nav-controls': navState(opts.lang, opts.isAdmin),
@@ -101,7 +105,7 @@ export function renderPartPage(opts: PartPageOptions): string {
       <script type="module" src="/engine/core.js"></script>
       <script type="application/json" id="__BAKED__">${safeJson(baked)}</script>
     </head>
-    <body>
+    <body${bodyClass}>
       <nav class="nav">
         <div class="nav-inner">
           <a class="nav-logo" href="/">vidium</a>
@@ -110,7 +114,7 @@ export function renderPartPage(opts: PartPageOptions): string {
           </div>
         </div>
       </nav>
-      <main class="main">
+      <main class="${mainClass}">
         ${opts.body}
       </main>
       ${backTop}
