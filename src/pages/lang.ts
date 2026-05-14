@@ -44,7 +44,7 @@ const strings: Record<Lang, Record<string, string>> = {
     'sidebar.move_down': 'Move down',
     'sidebar.save': 'Save',
     'sidebar.channels': 'Channels',
-    'sidebar.tags': 'Tags',
+    'sidebar.tags': 'Topics',
     'sidebar.delete_tag': 'Delete tag',
     'sidebar.confirm_delete_tag': 'Delete this tag from all channels?',
 
@@ -161,7 +161,7 @@ const strings: Record<Lang, Record<string, string>> = {
     'sidebar.move_down': 'Ниже',
     'sidebar.save': 'Сохранить',
     'sidebar.channels': 'Каналы',
-    'sidebar.tags': 'Теги',
+    'sidebar.tags': 'Темы',
     'sidebar.delete_tag': 'Удалить тег',
     'sidebar.confirm_delete_tag': 'Удалить этот тег у всех каналов?',
 
