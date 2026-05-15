@@ -23,7 +23,13 @@ import {
 } from '../lib/http.ts';
 import { setUserRole, type UserRole } from '../lib/auth/auth.ts';
 import { updateSessionData } from '../lib/auth/sessions.ts';
-import { deleteJobById, deleteJobsByYoutubeId, enqueue } from '../lib/queue.ts';
+import {
+  deleteDownloadJobsByYoutubeId,
+  deleteJobById,
+  deleteJobsByYoutubeId,
+  enqueue,
+  getJobAdminById,
+} from '../lib/queue.ts';
 import { isValidVideoId, CHANNEL_URL_RE, VIDEO_URL_RE } from '../lib/validation.ts';
 import {
   deleteVideoByYoutubeId,
@@ -388,6 +394,31 @@ export async function handleAdminDeleteVideo(
   json(res, 200, { ok: true, videoDeleted, audioDeleted, videoRemoved, jobsRemoved });
 }
 
+type ResetStatusResult = { youtubeId: string; statusType: 'video' | 'audio' };
+const RESETTABLE_MEDIA_STATUSES = new Set(['queued', 'downloading', 'expired']);
+
+function resetDownloadJobStatus(jobId: number): ResetStatusResult | null {
+  const job = getJobAdminById(jobId);
+  if (!job || job.status === 'done' || !job.youtubeId) return null;
+
+  const video = getVideoById(job.youtubeId);
+  if (!video) return null;
+
+  if (job.type === 'download_video') {
+    if (!RESETTABLE_MEDIA_STATUSES.has(video.videoStatus)) return null;
+    setVideoStatus(job.youtubeId, 'none');
+    return { youtubeId: job.youtubeId, statusType: 'video' };
+  }
+
+  if (job.type === 'download_audio') {
+    if (!RESETTABLE_MEDIA_STATUSES.has(video.audioStatus)) return null;
+    setAudioStatus(job.youtubeId, 'none');
+    return { youtubeId: job.youtubeId, statusType: 'audio' };
+  }
+
+  return null;
+}
+
 export async function handleAdminDeleteJob(
   req: IncomingMessage,
   res: ServerResponse,
@@ -406,8 +437,40 @@ export async function handleAdminDeleteJob(
     return json(res, 400, { error: 'invalid request' });
   }
 
+  const resetStatus = resetDownloadJobStatus(data.jobId);
   const deleted = deleteJobById(data.jobId);
-  json(res, 200, { ok: true, deleted });
+  json(res, 200, { ok: true, deleted, resetStatus });
+}
+
+export async function handleAdminResetVideoStatus(
+  req: IncomingMessage,
+  res: ServerResponse,
+): Promise<void> {
+  if (!requireAdminApi(req, res)) return;
+  if (!checkCsrf(req, res)) return;
+
+  let data: { youtubeId: string };
+  try {
+    data = JSON.parse(await readBody(req));
+  } catch {
+    return json(res, 400, { error: 'invalid json' });
+  }
+
+  if (!isValidVideoId(data.youtubeId)) return json(res, 400, { error: 'invalid request' });
+
+  const video = getVideoById(data.youtubeId);
+  if (!video) return json(res, 404, { error: 'not found' });
+
+  const resetVideo = RESETTABLE_MEDIA_STATUSES.has(video.videoStatus);
+  const resetAudio = RESETTABLE_MEDIA_STATUSES.has(video.audioStatus);
+  setMediaStatusesNone(data.youtubeId, { video: resetVideo, audio: resetAudio });
+  const jobsRemoved = deleteDownloadJobsByYoutubeId(data.youtubeId);
+
+  json(res, 200, {
+    ok: true,
+    resetStatus: { youtubeId: data.youtubeId, resetVideo, resetAudio },
+    jobsRemoved,
+  });
 }
 
 export async function handleAdminSetUserRole(

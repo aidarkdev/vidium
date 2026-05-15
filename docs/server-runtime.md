@@ -129,6 +129,7 @@ Admin-only routes:
 - `POST /api/admin/video/files/delete`
 - `POST /api/admin/video/delete`
 - `POST /api/admin/job/delete`
+- `POST /api/admin/video/status/reset`
 - `POST /api/admin/user/role`
 
 Authenticated user routes:

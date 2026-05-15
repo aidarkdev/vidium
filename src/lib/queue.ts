@@ -74,10 +74,20 @@ const stmtGetRecentJobs = db.prepare(`
   ORDER BY id DESC
   LIMIT ?
 `);
+const stmtGetJobById = db.prepare(`
+  SELECT id, type, status, attempts, payload, COALESCE(error, '') AS error, created_at
+  FROM jobs
+  WHERE id = ?
+`);
 const stmtDeleteJobById = db.prepare(`DELETE FROM jobs WHERE id = ?`);
 const stmtDeleteJobsByYoutubeId = db.prepare(`
   DELETE FROM jobs
   WHERE json_extract(payload, '$.youtubeId') = ?
+`);
+const stmtDeleteDownloadJobsByYoutubeId = db.prepare(`
+  DELETE FROM jobs
+  WHERE type IN ('download_video', 'download_audio')
+    AND json_extract(payload, '$.youtubeId') = ?
 `);
 
 // ── Public API ────────────────────────────────────────────────────────────────
@@ -110,35 +120,42 @@ export function resetStale(): void {
   stmtResetStale.run();
 }
 
-export function getRecentJobs(limit = 200): JobAdminRow[] {
-  const rows = stmtGetRecentJobs.all(limit) as {
-    id: number;
-    type: JobType;
-    status: 'pending' | 'processing' | 'done' | 'failed';
-    attempts: number;
-    payload: string;
-    error: string;
-    created_at: string;
-  }[];
+type RawJobAdminRow = {
+  id: number;
+  type: JobType;
+  status: 'pending' | 'processing' | 'done' | 'failed';
+  attempts: number;
+  payload: string;
+  error: string;
+  created_at: string;
+};
 
-  return rows.map((r) => {
-    let youtubeId = '';
-    try {
-      const payload = JSON.parse(r.payload) as { youtubeId?: unknown };
-      if (typeof payload.youtubeId === 'string') youtubeId = payload.youtubeId;
-    } catch {
-      youtubeId = '';
-    }
-    return {
-      id: r.id,
-      type: r.type,
-      status: r.status,
-      attempts: r.attempts,
-      youtubeId,
-      error: r.error,
-      createdAt: r.created_at,
-    };
-  });
+function toJobAdminRow(r: RawJobAdminRow): JobAdminRow {
+  let youtubeId = '';
+  try {
+    const payload = JSON.parse(r.payload) as { youtubeId?: unknown };
+    if (typeof payload.youtubeId === 'string') youtubeId = payload.youtubeId;
+  } catch {
+    youtubeId = '';
+  }
+  return {
+    id: r.id,
+    type: r.type,
+    status: r.status,
+    attempts: r.attempts,
+    youtubeId,
+    error: r.error,
+    createdAt: r.created_at,
+  };
+}
+
+export function getRecentJobs(limit = 200): JobAdminRow[] {
+  return (stmtGetRecentJobs.all(limit) as RawJobAdminRow[]).map(toJobAdminRow);
+}
+
+export function getJobAdminById(jobId: number): JobAdminRow | undefined {
+  const row = stmtGetJobById.get(jobId) as RawJobAdminRow | undefined;
+  return row ? toJobAdminRow(row) : undefined;
 }
 
 export function deleteJobById(jobId: number): boolean {
@@ -148,5 +165,10 @@ export function deleteJobById(jobId: number): boolean {
 
 export function deleteJobsByYoutubeId(youtubeId: string): number {
   const r = stmtDeleteJobsByYoutubeId.run(youtubeId);
+  return r.changes;
+}
+
+export function deleteDownloadJobsByYoutubeId(youtubeId: string): number {
+  const r = stmtDeleteDownloadJobsByYoutubeId.run(youtubeId);
   return r.changes;
 }

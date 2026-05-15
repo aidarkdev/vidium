@@ -5,6 +5,8 @@
   --content-max-width: 1200px;
   --wide-layout-gap: 1.5rem;
   --nav-height: calc(3.375rem + 1px);
+  --sidebar-active-bg: #355579;
+  --sidebar-active-color: #eef5ff;
 }
 
 *,
@@ -176,9 +178,9 @@ a:hover { text-decoration: underline; }
 }
 
 .sidebar-mode-tabs button.active {
-  background: #7cb8ff;
-  border-color: #7cb8ff;
-  color: #111;
+  background: var(--sidebar-active-bg);
+  border-color: var(--sidebar-active-bg);
+  color: var(--sidebar-active-color);
 }
 
 .sidebar-channels {
@@ -206,7 +208,10 @@ a:hover { text-decoration: underline; }
 }
 
 .sidebar-panel a:hover { background: #2a2a2a; color: #eee; }
-.sidebar-panel a.active { background: #7cb8ff; color: #111; }
+.sidebar-panel a.active {
+  background: var(--sidebar-active-bg);
+  color: var(--sidebar-active-color);
+}
 
 .sidebar-channel-link {
   display: block;

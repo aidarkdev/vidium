@@ -38,6 +38,7 @@ import {
   handleAdminDeleteVideoFiles,
   handleAdminDeleteVideo,
   handleAdminDeleteJob,
+  handleAdminResetVideoStatus,
   handleAdminSetUserRole,
 } from './handlers/api.ts';
 
@@ -204,6 +205,11 @@ const routes: RouteConfig[] = [
     method: 'post',
     path: '/api/admin/job/delete',
     handler: handleAdminDeleteJob,
+  },
+  {
+    method: 'post',
+    path: '/api/admin/video/status/reset',
+    handler: handleAdminResetVideoStatus,
   },
   {
     method: 'post',

@@ -94,9 +94,11 @@ export function bakeAdminPage(ctx: AdminBakeContext): {
         deleteFiles: t(lang, 'admin.action.delete_files'),
         deleteVideo: t(lang, 'admin.action.delete_video'),
         deleteJob: t(lang, 'admin.action.delete_job'),
+        resetStatus: t(lang, 'admin.action.reset_status'),
         save: t(lang, 'admin.action.save'),
         saving: t(lang, 'admin.action.saving'),
         deleting: t(lang, 'admin.action.deleting'),
+        resetting: t(lang, 'admin.action.resetting'),
         error: t(lang, 'admin.error.action_failed'),
       },
       confirm: {

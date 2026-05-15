@@ -4,7 +4,10 @@ import {
   renderDownloaded,
   renderChannels,
   renderJobs,
+  renderProblemRows,
+  renderStatuses,
   renderUsers,
+  statusHead,
   table,
   usersHead,
   videoHead,
@@ -19,6 +22,53 @@ async function postJson(url, body) {
   const data = await res.json().catch(() => ({}));
   if (!res.ok || !data.ok) throw new Error(data.error || 'error');
   return data;
+}
+
+const PROBLEM_STATUSES = new Set(['queued', 'downloading', 'expired']);
+
+function isProblemRow(row) {
+  return PROBLEM_STATUSES.has(row.videoStatus) || PROBLEM_STATUSES.has(row.audioStatus);
+}
+
+function applyProblemReset(rows, resetStatus) {
+  if (!resetStatus) return rows;
+
+  return rows
+    .map((row) => {
+      if (row.youtubeId !== resetStatus.youtubeId) return row;
+
+      return {
+        ...row,
+        videoStatus:
+          resetStatus.statusType === 'video' || resetStatus.resetVideo ? 'none' : row.videoStatus,
+        audioStatus:
+          resetStatus.statusType === 'audio' || resetStatus.resetAudio ? 'none' : row.audioStatus,
+      };
+    })
+    .filter(isProblemRow);
+}
+
+function bumpSummary(summary, mediaType, status, delta) {
+  return summary.map((row) => {
+    if (row.status !== status) return row;
+    const key = mediaType === 'video' ? 'videoCount' : 'audioCount';
+    return { ...row, [key]: Math.max(0, row[key] + delta) };
+  });
+}
+
+function applySummaryReset(summary, beforeRow, resetStatus) {
+  if (!beforeRow || !resetStatus) return summary;
+
+  let next = summary;
+  if (resetStatus.statusType === 'video' || resetStatus.resetVideo) {
+    next = bumpSummary(next, 'video', beforeRow.videoStatus, -1);
+    next = bumpSummary(next, 'video', 'none', 1);
+  }
+  if (resetStatus.statusType === 'audio' || resetStatus.resetAudio) {
+    next = bumpSummary(next, 'audio', beforeRow.audioStatus, -1);
+    next = bumpSummary(next, 'audio', 'none', 1);
+  }
+  return next;
 }
 
 export default {
@@ -60,11 +110,42 @@ export default {
       if (!confirm(part.state.confirm.deleteJob)) return;
       part.set('pendingAction', { action: 'job', id: String(jobId) });
       try {
-        await postJson('/api/admin/job/delete', { jobId });
+        const data = await postJson('/api/admin/job/delete', { jobId });
+        const beforeRow = part.state.problemRows.find(
+          (row) => row.youtubeId === data.resetStatus?.youtubeId,
+        );
         part.set(
           'jobs',
           part.state.jobs.filter((row) => row.id !== jobId),
         );
+        if (data.resetStatus) {
+          part.set({
+            problemRows: applyProblemReset(part.state.problemRows, data.resetStatus),
+            statusSummary: applySummaryReset(part.state.statusSummary, beforeRow, data.resetStatus),
+          });
+        }
+      } catch (err) {
+        part.set('errorMessage', err.message || part.state.actions.error);
+      } finally {
+        part.set('pendingAction', null);
+      }
+    },
+    'click [data-action="admin-reset-video-status"]': async (part, event) => {
+      const btn = event.target.closest('[data-action]');
+      const youtubeId = btn.dataset.youtubeId;
+      part.set('pendingAction', { action: 'status', id: youtubeId });
+      try {
+        const beforeRow = part.state.problemRows.find((row) => row.youtubeId === youtubeId);
+        const data = await postJson('/api/admin/video/status/reset', { youtubeId });
+        part.set({
+          jobs: part.state.jobs.filter(
+            (row) =>
+              row.youtubeId !== youtubeId ||
+              (row.type !== 'download_video' && row.type !== 'download_audio'),
+          ),
+          problemRows: applyProblemReset(part.state.problemRows, data.resetStatus),
+          statusSummary: applySummaryReset(part.state.statusSummary, beforeRow, data.resetStatus),
+        });
       } catch (err) {
         part.set('errorMessage', err.message || part.state.actions.error);
       } finally {
@@ -145,6 +226,24 @@ export default {
         part.state.contentsLink,
       );
     },
+    statusSummary: (part) => {
+      part.refs.statuses.innerHTML = table(
+        part.state.sections.statuses,
+        statusHead(part.state.cols),
+        renderStatuses(part.state),
+        'admin-statuses',
+        part.state.contentsLink,
+      );
+    },
+    problemRows: (part) => {
+      part.refs.problemRows.innerHTML = table(
+        part.state.sections.problemRows,
+        videoHead(part.state.cols, true),
+        renderProblemRows(part.state),
+        'admin-problem-rows',
+        part.state.contentsLink,
+      );
+    },
     downloadedVideos: (part) => {
       part.refs.downloaded.innerHTML = table(
         part.state.sections.downloaded,
@@ -155,18 +254,24 @@ export default {
       );
     },
     pendingAction: (part, value) => {
-      for (const btn of part.root.querySelectorAll('button[data-action^="admin-delete-"]')) {
+      for (const btn of part.root.querySelectorAll(
+        'button[data-action^="admin-delete-"], button[data-action="admin-reset-video-status"]',
+      )) {
         btn.disabled = false;
       }
       if (!value) return;
-      const selector =
-        value.action === 'job'
-          ? `[data-job-id="${value.id}"]`
-          : `[data-youtube-id="${CSS.escape(value.id)}"]`;
+      const selectorByAction = {
+        files: `[data-action="admin-delete-files"][data-youtube-id="${CSS.escape(value.id)}"]`,
+        job: `[data-action="admin-delete-job"][data-job-id="${value.id}"]`,
+        status: `[data-action="admin-reset-video-status"][data-youtube-id="${CSS.escape(value.id)}"]`,
+        video: `[data-action="admin-delete-video"][data-youtube-id="${CSS.escape(value.id)}"]`,
+      };
+      const selector = selectorByAction[value.action];
       const btn = part.root.querySelector(selector);
       if (btn) {
         btn.disabled = true;
-        btn.textContent = part.state.actions.deleting;
+        btn.textContent =
+          value.action === 'status' ? part.state.actions.resetting : part.state.actions.deleting;
       }
     },
     pendingUserRoleId: (part) => {

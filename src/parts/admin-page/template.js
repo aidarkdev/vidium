@@ -290,7 +290,7 @@ export function renderStatuses(state) {
     .join('');
 }
 
-function statusRow(row) {
+function statusRow(row, state) {
   return `<tr>
     <td>${htmlEscape(row.youtubeId)}</td>
     <td>${htmlEscape(row.title)}</td>
@@ -298,11 +298,18 @@ function statusRow(row) {
     <td>${htmlEscape(row.audioStatus)}</td>
     <td>${htmlEscape(row.readyAt)}</td>
     <td>${htmlEscape(row.createdAt)}</td>
+    <td class="admin-actions-cell">
+      <button
+        class="btn admin-btn"
+        data-action="admin-reset-video-status"
+        data-youtube-id="${htmlEscape(row.youtubeId)}"
+      >${htmlEscape(state.actions.resetStatus)}</button>
+    </td>
   </tr>`;
 }
 
 export function renderProblemRows(state) {
-  return rows(state.problemRows, statusRow, state.empty, 6);
+  return rows(state.problemRows, (row) => statusRow(row, state), state.empty, 7);
 }
 
 function downloadedRow(row, state) {
@@ -353,7 +360,7 @@ export default function template(state) {
       ${table(state.sections.statuses, statusHead(state.cols), renderStatuses(state), 'admin-statuses', state.contentsLink)}
     </div>
     <div data-ref="problemRows">
-      ${table(state.sections.problemRows, videoHead(state.cols, false), renderProblemRows(state), 'admin-problem-rows', state.contentsLink)}
+      ${table(state.sections.problemRows, videoHead(state.cols, true), renderProblemRows(state), 'admin-problem-rows', state.contentsLink)}
     </div>
     <div data-ref="downloaded">
       ${table(state.sections.downloaded, videoHead(state.cols, true), renderDownloaded(state), 'admin-downloaded', state.contentsLink)}
