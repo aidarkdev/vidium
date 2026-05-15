@@ -26,7 +26,7 @@ export function setCookie(res: ServerResponse, name: string, value: string, maxA
     [
       `${name}=${encodeURIComponent(value)}`,
       'HttpOnly',
-      'SameSite=Strict',
+      'SameSite=Lax',
       'Secure',
       `Max-Age=${Math.floor(maxAge / 1000)}`,
       'Path=/',
@@ -39,6 +39,6 @@ export function setCookie(res: ServerResponse, name: string, value: string, maxA
 export function clearCookie(res: ServerResponse, name: string): void {
   res.setHeader(
     'Set-Cookie',
-    [`${name}=`, 'HttpOnly', 'SameSite=Strict', 'Secure', 'Max-Age=0', 'Path=/'].join('; '),
+    [`${name}=`, 'HttpOnly', 'SameSite=Lax', 'Secure', 'Max-Age=0', 'Path=/'].join('; '),
   );
 }
