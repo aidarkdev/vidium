@@ -155,6 +155,7 @@ export function handleSince(req: IncomingMessage, res: ServerResponse): void {
     rows.map((r) => ({
       youtubeId: r.youtubeId,
       title: r.title,
+      channelId: r.channelId,
       channelName: r.channelName,
       date: r.date,
       duration: r.duration,

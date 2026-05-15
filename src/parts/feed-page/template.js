@@ -45,7 +45,9 @@ function actionButton(id, type, status, strings) {
 
 function channelHtml(card) {
   if (!card.channelName) return '';
-  return `<div class="card-channel">${htmlEscape(card.channelName)}</div>`;
+  if (!card.channelId) return `<div class="card-channel">${htmlEscape(card.channelName)}</div>`;
+
+  return `<a class="card-channel" href="/channel/${htmlEscape(String(card.channelId))}">${htmlEscape(card.channelName)}</a>`;
 }
 
 function durationHtml(card) {

@@ -394,7 +394,10 @@ a:hover { text-decoration: underline; }
   margin-bottom: 0.5rem;
 }
 
-.card-channel { font-weight: 600; }
+.card-channel {
+  display: block;
+  font-weight: 600;
+}
 
 .card-title-text { font-weight: 400; }
 

@@ -7,6 +7,7 @@ import { db } from './db.ts';
 export interface VideoRow {
   youtubeId: string;
   title: string;
+  channelId: number;
   channelName: string;
   date: string;
   duration: number;
@@ -48,7 +49,7 @@ export interface DownloadedVideoRow {
 // ── Statements ────────────────────────────────────────────────────────────────
 
 const SEL = `
-  SELECT v.youtube_id, v.title, v.date, v.duration, v.video_status, v.audio_status,
+  SELECT v.youtube_id, v.title, v.channel_id, v.date, v.duration, v.video_status, v.audio_status,
          COALESCE(NULLIF(c.display_name,''), c.name, '') AS channel_name
   FROM videos v LEFT JOIN channels c ON v.channel_id = c.id`;
 
@@ -58,7 +59,7 @@ const stmtGetByChannel = db.prepare(
   `${SEL} WHERE v.channel_id = ? ORDER BY v.date DESC, v.created_at DESC LIMIT 100`,
 );
 const stmtGetByTag = db.prepare(`
-  SELECT v.youtube_id, v.title, v.date, v.duration, v.video_status, v.audio_status,
+  SELECT v.youtube_id, v.title, v.channel_id, v.date, v.duration, v.video_status, v.audio_status,
          COALESCE(NULLIF(c.display_name,''), c.name, '') AS channel_name
   FROM videos v
   JOIN channel_tags ct ON ct.channel_id = v.channel_id
@@ -66,7 +67,7 @@ const stmtGetByTag = db.prepare(`
   WHERE ct.tag = ?
   ORDER BY v.date DESC, v.created_at DESC LIMIT 200`);
 const stmtGetByTagManual = db.prepare(`
-  SELECT v.youtube_id, v.title, v.date, v.duration, v.video_status, v.audio_status,
+  SELECT v.youtube_id, v.title, v.channel_id, v.date, v.duration, v.video_status, v.audio_status,
          COALESCE(NULLIF(c.display_name,''), c.name, '') AS channel_name
   FROM videos v JOIN channels c ON v.channel_id = c.id
   WHERE v.source_type = 'manual'
@@ -78,7 +79,7 @@ const stmtGetSinceByChannel = db.prepare(
   `${SEL} WHERE v.created_at > ? AND v.channel_id = ? ORDER BY v.date DESC, v.created_at DESC LIMIT 50`,
 );
 const stmtGetSinceByTag = db.prepare(`
-  SELECT v.youtube_id, v.title, v.date, v.duration, v.video_status, v.audio_status,
+  SELECT v.youtube_id, v.title, v.channel_id, v.date, v.duration, v.video_status, v.audio_status,
          COALESCE(NULLIF(c.display_name,''), c.name, '') AS channel_name
   FROM videos v
   JOIN channel_tags ct ON ct.channel_id = v.channel_id
@@ -86,7 +87,7 @@ const stmtGetSinceByTag = db.prepare(`
   WHERE v.created_at > ? AND ct.tag = ?
   ORDER BY v.date DESC, v.created_at DESC LIMIT 50`);
 const stmtGetSinceByTagManual = db.prepare(`
-  SELECT v.youtube_id, v.title, v.date, v.duration, v.video_status, v.audio_status,
+  SELECT v.youtube_id, v.title, v.channel_id, v.date, v.duration, v.video_status, v.audio_status,
          COALESCE(NULLIF(c.display_name,''), c.name, '') AS channel_name
   FROM videos v JOIN channels c ON v.channel_id = c.id
   WHERE v.created_at > ? AND v.source_type = 'manual'
@@ -146,6 +147,7 @@ const stmtSetAudioNone = db.prepare(`UPDATE videos SET audio_status = 'none' WHE
 type RawRow = {
   youtube_id: string;
   title: string;
+  channel_id: number;
   channel_name: string;
   date: string;
   duration: number;
@@ -181,6 +183,7 @@ function toRow(r: RawRow): VideoRow {
   return {
     youtubeId: r.youtube_id,
     title: r.title,
+    channelId: r.channel_id,
     channelName: r.channel_name,
     date: r.date,
     duration: r.duration,
