@@ -1,6 +1,8 @@
 /* vidium — minimal styles */
 
 :root {
+  --page-bg: rgb(23, 23, 23);
+  --card-bg: #2a2a2a;
   --sidebar-width: 320px;
   --content-max-width: 1200px;
   --wide-layout-gap: 1.5rem;
@@ -19,7 +21,7 @@
 
 body {
   font-family: system-ui, -apple-system, sans-serif;
-  background: #111;
+  background: var(--page-bg);
   color: #eee;
   line-height: 1.5;
 }
@@ -81,7 +83,7 @@ a:hover { text-decoration: underline; }
   position: sticky;
   top: var(--nav-height);
   z-index: 90;
-  background: #111;
+  background: var(--page-bg);
   border-bottom: 1px solid #333;
   display: flex;
   align-items: center;
@@ -366,7 +368,7 @@ a:hover { text-decoration: underline; }
 }
 
 .card {
-  background: #1a1a1a;
+  background: var(--card-bg);
   border-radius: 0.5rem;
   overflow: hidden;
   display: flex;
