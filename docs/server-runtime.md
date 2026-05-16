@@ -94,7 +94,7 @@ Expected result: HTTP 200, not proxied Node 404.
 - Channel/admin: `/channel/:id`, `/admin`
 - Player pages: `/v/:id`, `/a/:id`
 - Authorized media entrypoints: `/media/v/:id`, `/media/a/:id`, `/t/:id`
-- API: `/api/download`, `/api/sidebar/mode`, `/api/channel`, `/api/video`, `/api/channel/display-name`, `/api/channel/tags`, `/api/channel/reorder`, `/api/tag/reorder`, `/api/tag/delete`, `/api/admin/...`, `/api/status`, `/api/since`
+- API: `/api/download`, `/api/sidebar/mode`, `/api/channel`, `/api/video`, `/api/channel/display-name`, `/api/channel/tags`, `/api/channel/auto-download`, `/api/channel/reorder`, `/api/tag/reorder`, `/api/tag/delete`, `/api/admin/...`, `/api/status`, `/api/since`
 
 Handlers should remain the HTTP boundary: request/response, session, params/forms, redirects, status codes. Page HTML handlers should call one page renderer and should not manually load page data from the DB. Server-side part bakers handle page data loading and state building.
 
@@ -123,6 +123,7 @@ Admin-only routes:
 - `POST /api/video`
 - `POST /api/channel/display-name`
 - `POST /api/channel/tags`
+- `POST /api/channel/auto-download`
 - `POST /api/channel/reorder`
 - `POST /api/tag/reorder`
 - `POST /api/tag/delete`

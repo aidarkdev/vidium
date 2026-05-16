@@ -253,13 +253,27 @@ export function setDurationIfZero(youtubeId: string, duration: number): void {
   stmtSetDuration.run(duration, youtubeId);
 }
 
-export function insertVideos(entries: VideoEntry[], channelId: number, sourceType: string): void {
+export function insertVideos(
+  entries: VideoEntry[],
+  channelId: number,
+  sourceType: string,
+): string[] {
+  const insertedYoutubeIds: string[] = [];
   db.exec('BEGIN');
   try {
     for (const e of entries) {
-      stmtInsert.run(channelId, e.youtubeId, e.title, e.date, e.duration ?? 0, sourceType);
+      const result = stmtInsert.run(
+        channelId,
+        e.youtubeId,
+        e.title,
+        e.date,
+        e.duration ?? 0,
+        sourceType,
+      );
+      if (result.changes > 0) insertedYoutubeIds.push(e.youtubeId);
     }
     db.exec('COMMIT');
+    return insertedYoutubeIds;
   } catch (err) {
     db.exec('ROLLBACK');
     throw err;

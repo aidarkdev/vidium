@@ -165,6 +165,8 @@ export function channelsHead(s) {
     <th>${htmlEscape(s.channel)}</th>
     <th>${htmlEscape(s.url)}</th>
     <th>${htmlEscape(s.tags)}</th>
+    <th>${htmlEscape(s.autoVideo)}</th>
+    <th>${htmlEscape(s.autoAudio)}</th>
     <th>${htmlEscape(s.actions)}</th>
   </tr>`;
 }
@@ -219,6 +221,12 @@ function channelRow(channel, state) {
   const disabled = channel.id === 1 || channel.id === state.pendingChannelTagsId;
   const label = channel.displayName || channel.name;
   const formId = `admin-channel-tags-${channel.id}`;
+  const videoAutoKey = `${channel.id}:video`;
+  const audioAutoKey = `${channel.id}:audio`;
+  const videoAutoDisabled =
+    channel.id === 1 || state.pendingChannelAutoDownloadKey === videoAutoKey;
+  const audioAutoDisabled =
+    channel.id === 1 || state.pendingChannelAutoDownloadKey === audioAutoKey;
 
   return `<tr data-channel-id="${channel.id}">
     <td>${channel.id}</td>
@@ -240,6 +248,34 @@ function channelRow(channel, state) {
       </form>
     </td>
     <td>
+      ${
+        channel.id === 1
+          ? ''
+          : `<input
+            type="checkbox"
+            data-action="admin-channel-auto-download"
+            data-channel-id="${channel.id}"
+            data-media-type="video"
+            ${channel.autoDownloadVideo ? 'checked' : ''}
+            ${videoAutoDisabled ? 'disabled' : ''}
+          >`
+      }
+    </td>
+    <td>
+      ${
+        channel.id === 1
+          ? ''
+          : `<input
+            type="checkbox"
+            data-action="admin-channel-auto-download"
+            data-channel-id="${channel.id}"
+            data-media-type="audio"
+            ${channel.autoDownloadAudio ? 'checked' : ''}
+            ${audioAutoDisabled ? 'disabled' : ''}
+          >`
+      }
+    </td>
+    <td>
       <button
         class="btn admin-btn"
         type="submit"
@@ -252,7 +288,7 @@ function channelRow(channel, state) {
 }
 
 export function renderChannels(state) {
-  return rows(state.channels, (channel) => channelRow(channel, state), state.empty, 5);
+  return rows(state.channels, (channel) => channelRow(channel, state), state.empty, 7);
 }
 
 function jobRow(job, state) {

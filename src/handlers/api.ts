@@ -49,6 +49,7 @@ import {
   deleteTag,
   MANUAL_CHANNEL_ID,
   setChannelDisplayName,
+  setChannelAutoDownload,
   setChannelTags,
   moveTag as moveTagOrder,
   moveChannel as moveChannelOrder,
@@ -282,6 +283,33 @@ export async function handleSetChannelTags(
   const tags = normalizeChannelTags(data.tags).join(',');
   const saved = setChannelTags(data.channelId, tags);
   json(res, 200, { ok: true, saved, tags });
+}
+
+export async function handleSetChannelAutoDownload(
+  req: IncomingMessage,
+  res: ServerResponse,
+): Promise<void> {
+  if (!requireAdminApi(req, res)) return;
+  if (!checkCsrf(req, res)) return;
+
+  let data: { channelId: number; type: 'video' | 'audio'; enabled: boolean };
+  try {
+    data = JSON.parse(await readBody(req));
+  } catch {
+    return json(res, 400, { error: 'invalid json' });
+  }
+
+  if (
+    !Number.isInteger(data.channelId) ||
+    data.channelId <= MANUAL_CHANNEL_ID ||
+    !['video', 'audio'].includes(data.type) ||
+    typeof data.enabled !== 'boolean'
+  ) {
+    return json(res, 400, { error: 'invalid request' });
+  }
+
+  const saved = setChannelAutoDownload(data.channelId, data.type, data.enabled);
+  json(res, 200, { ok: true, saved, type: data.type, enabled: data.enabled });
 }
 
 export async function handleReorderChannel(

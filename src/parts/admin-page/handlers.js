@@ -197,6 +197,40 @@ export default {
         part.set('pendingChannelTagsId', 0);
       }
     },
+    'change [data-action="admin-channel-auto-download"]': async (part, event) => {
+      const input = event.target.closest('[data-action="admin-channel-auto-download"]');
+      const channelId = Number(input.dataset.channelId);
+      const type = input.dataset.mediaType;
+      if (!Number.isInteger(channelId) || channelId <= 1 || !['video', 'audio'].includes(type)) {
+        return;
+      }
+
+      const enabled = input.checked;
+      const key = type === 'video' ? 'autoDownloadVideo' : 'autoDownloadAudio';
+      const pendingKey = `${channelId}:${type}`;
+      part.set({
+        pendingChannelAutoDownloadKey: pendingKey,
+        channels: part.state.channels.map((channel) =>
+          channel.id === channelId ? { ...channel, [key]: enabled } : channel,
+        ),
+      });
+      try {
+        await postJson('/api/channel/auto-download', {
+          channelId,
+          type,
+          enabled,
+        });
+      } catch (err) {
+        part.set({
+          channels: part.state.channels.map((channel) =>
+            channel.id === channelId ? { ...channel, [key]: !enabled } : channel,
+          ),
+          errorMessage: err.message || part.state.actions.error,
+        });
+      } finally {
+        part.set('pendingChannelAutoDownloadKey', '');
+      }
+    },
   },
   state: {
     channels: (part) => {
@@ -284,6 +318,15 @@ export default {
       );
     },
     pendingChannelTagsId: (part) => {
+      part.refs.channels.innerHTML = table(
+        part.state.sections.channels,
+        channelsHead(part.state.cols),
+        renderChannels(part.state),
+        'admin-channels',
+        part.state.contentsLink,
+      );
+    },
+    pendingChannelAutoDownloadKey: (part) => {
       part.refs.channels.innerHTML = table(
         part.state.sections.channels,
         channelsHead(part.state.cols),

@@ -31,6 +31,7 @@ import {
   handleAddChannel,
   handleAddVideo,
   handleSetChannelDisplayName,
+  handleSetChannelAutoDownload,
   handleSetChannelTags,
   handleDeleteTag,
   handleReorderTag,
@@ -175,6 +176,11 @@ const routes: RouteConfig[] = [
     method: 'post',
     path: '/api/channel/tags',
     handler: handleSetChannelTags,
+  },
+  {
+    method: 'post',
+    path: '/api/channel/auto-download',
+    handler: handleSetChannelAutoDownload,
   },
   {
     method: 'post',

@@ -12,6 +12,8 @@ export interface Channel {
   youtubeChannelId: string;
   tags: string;
   sortOrder: number;
+  autoDownloadVideo: boolean;
+  autoDownloadAudio: boolean;
 }
 
 export interface TagLabel {
@@ -24,6 +26,7 @@ export interface TagLabel {
 
 const stmtGetById = db.prepare(
   `SELECT c.id, c.name, c.display_name, c.url, c.youtube_channel_id, c.sort_order,
+          c.auto_download_video, c.auto_download_audio,
           COALESCE(GROUP_CONCAT(ct.tag, ','), '') AS tags
    FROM channels c
    LEFT JOIN channel_tags ct ON ct.channel_id = c.id
@@ -41,6 +44,7 @@ const stmtUpdateCrawled = db.prepare(
 const stmtSetDisplayName = db.prepare(`UPDATE channels SET display_name = ? WHERE id = ?`);
 const stmtGetAll = db.prepare(
   `SELECT c.id, c.name, c.display_name, c.url, c.youtube_channel_id, c.sort_order,
+          c.auto_download_video, c.auto_download_audio,
           COALESCE(GROUP_CONCAT(ct.tag, ','), '') AS tags
    FROM channels c
    LEFT JOIN channel_tags ct ON ct.channel_id = c.id
@@ -60,9 +64,17 @@ const stmtGetOrderedIds = db.prepare(
             id ASC`,
 );
 const stmtGetRss = db.prepare(
-  `SELECT id, youtube_channel_id FROM channels WHERE youtube_channel_id != ''`,
+  `SELECT id, youtube_channel_id, auto_download_video, auto_download_audio
+   FROM channels
+   WHERE youtube_channel_id != ''`,
 );
 const stmtSetSortOrder = db.prepare(`UPDATE channels SET sort_order = ? WHERE id = ?`);
+const stmtSetAutoDownloadVideo = db.prepare(
+  `UPDATE channels SET auto_download_video = ? WHERE id = ? AND id != ?`,
+);
+const stmtSetAutoDownloadAudio = db.prepare(
+  `UPDATE channels SET auto_download_audio = ? WHERE id = ? AND id != ?`,
+);
 const stmtGetOrderedTags = db.prepare(`
   SELECT tl.tag
   FROM tags tl
@@ -104,6 +116,8 @@ type RawChannel = {
   youtube_channel_id: string;
   tags: string;
   sort_order: number;
+  auto_download_video: number;
+  auto_download_audio: number;
 };
 
 function toChannel(r: RawChannel): Channel {
@@ -115,6 +129,8 @@ function toChannel(r: RawChannel): Channel {
     youtubeChannelId: r.youtube_channel_id,
     tags: r.tags,
     sortOrder: r.sort_order,
+    autoDownloadVideo: r.auto_download_video === 1,
+    autoDownloadAudio: r.auto_download_audio === 1,
   };
 }
 
@@ -152,6 +168,15 @@ export type TagMoveDirection = 'up' | 'down';
 
 export function setChannelDisplayName(channelId: number, displayName: string): boolean {
   return stmtSetDisplayName.run(displayName, channelId).changes > 0;
+}
+
+export function setChannelAutoDownload(
+  channelId: number,
+  type: 'video' | 'audio',
+  enabled: boolean,
+): boolean {
+  const stmt = type === 'video' ? stmtSetAutoDownloadVideo : stmtSetAutoDownloadAudio;
+  return stmt.run(enabled ? 1 : 0, channelId, MANUAL_CHANNEL_ID).changes > 0;
 }
 
 export function getAllChannels(): Channel[] {
@@ -258,9 +283,23 @@ export function moveChannel(channelId: number, direction: ChannelMoveDirection):
   }
 }
 
-export function getRssChannels(): { id: number; youtubeChannelId: string }[] {
-  return (stmtGetRss.all() as { id: number; youtube_channel_id: string }[]).map((r) => ({
+export function getRssChannels(): {
+  id: number;
+  youtubeChannelId: string;
+  autoDownloadVideo: boolean;
+  autoDownloadAudio: boolean;
+}[] {
+  return (
+    stmtGetRss.all() as {
+      id: number;
+      youtube_channel_id: string;
+      auto_download_video: number;
+      auto_download_audio: number;
+    }[]
+  ).map((r) => ({
     id: r.id,
     youtubeChannelId: r.youtube_channel_id,
+    autoDownloadVideo: r.auto_download_video === 1,
+    autoDownloadAudio: r.auto_download_audio === 1,
   }));
 }

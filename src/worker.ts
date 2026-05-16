@@ -13,7 +13,12 @@ import { fetchFeed } from './lib/rss.ts';
 import { checkDisk, type DeletedFile } from './lib/disk.ts';
 import { purgeExpired } from './lib/auth/sessions.ts';
 import { setVideoStatus, setAudioStatus, setDurationIfZero, insertVideos } from './lib/video.ts';
-import { getRssChannels, updateChannelYoutubeId, updateLastCrawled } from './lib/channel.ts';
+import {
+  getChannelById,
+  getRssChannels,
+  updateChannelYoutubeId,
+  updateLastCrawled,
+} from './lib/channel.ts';
 
 const POLL_INTERVAL_MS = 2000;
 const RSS_INTERVAL_MS = 30 * 60 * 1000;
@@ -21,9 +26,25 @@ const DISK_CHECK_INTERVAL_MS = 5 * 60 * 1000;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function enqueueThumbsFor(entries: { youtubeId: string }[]): void {
-  for (const e of entries) {
-    enqueue('download_thumbnail', { youtubeId: e.youtubeId });
+function enqueueThumbsFor(youtubeIds: string[]): void {
+  for (const youtubeId of youtubeIds) {
+    enqueue('download_thumbnail', { youtubeId });
+  }
+}
+
+function enqueueAutoDownloadsFor(
+  youtubeIds: string[],
+  settings: { autoDownloadVideo: boolean; autoDownloadAudio: boolean },
+): void {
+  for (const youtubeId of youtubeIds) {
+    if (settings.autoDownloadVideo) {
+      setVideoStatus(youtubeId, 'queued');
+      enqueue('download_video', { youtubeId });
+    }
+    if (settings.autoDownloadAudio) {
+      setAudioStatus(youtubeId, 'queued');
+      enqueue('download_audio', { youtubeId });
+    }
   }
 }
 
@@ -61,8 +82,10 @@ async function processJob(_id: number, type: string, payload: string): Promise<v
 
     case 'crawl_channel': {
       const result = await crawlChannel(data.url, 1, config.CRAWL_INITIAL);
-      insertVideos(result.entries, data.channelId, 'channel');
-      enqueueThumbsFor(result.entries);
+      const insertedYoutubeIds = insertVideos(result.entries, data.channelId, 'channel');
+      enqueueThumbsFor(insertedYoutubeIds);
+      const channel = getChannelById(data.channelId);
+      if (channel) enqueueAutoDownloadsFor(insertedYoutubeIds, channel);
       if (result.channelYoutubeId) {
         updateChannelYoutubeId(data.channelId, result.channelYoutubeId);
       }
@@ -85,8 +108,9 @@ async function pollRss(): Promise<void> {
   for (const channel of getRssChannels()) {
     try {
       const entries = await fetchFeed(channel.youtubeChannelId);
-      insertVideos(entries, channel.id, 'channel');
-      enqueueThumbsFor(entries);
+      const insertedYoutubeIds = insertVideos(entries, channel.id, 'channel');
+      enqueueThumbsFor(insertedYoutubeIds);
+      enqueueAutoDownloadsFor(insertedYoutubeIds, channel);
       updateLastCrawled(channel.id);
     } catch (err) {
       console.error(`RSS poll failed for channel ${channel.id}:`, err);

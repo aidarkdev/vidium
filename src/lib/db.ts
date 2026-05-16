@@ -37,7 +37,9 @@ db.exec(`
     youtube_channel_id TEXT    NOT NULL DEFAULT '',
     last_crawled       TEXT,
     display_name       TEXT    NOT NULL DEFAULT '',
-    sort_order         INTEGER NOT NULL DEFAULT 0
+    sort_order         INTEGER NOT NULL DEFAULT 0,
+    auto_download_video INTEGER NOT NULL DEFAULT 0,
+    auto_download_audio INTEGER NOT NULL DEFAULT 0
   );
 
   CREATE TABLE IF NOT EXISTS channel_tags (
@@ -113,6 +115,14 @@ function hasColumn(table: string, column: string): boolean {
 
 if (!hasColumn('tags', 'sort_order')) {
   db.exec('ALTER TABLE tags ADD COLUMN sort_order INTEGER NOT NULL DEFAULT 0');
+}
+
+if (!hasColumn('channels', 'auto_download_video')) {
+  db.exec('ALTER TABLE channels ADD COLUMN auto_download_video INTEGER NOT NULL DEFAULT 0');
+}
+
+if (!hasColumn('channels', 'auto_download_audio')) {
+  db.exec('ALTER TABLE channels ADD COLUMN auto_download_audio INTEGER NOT NULL DEFAULT 0');
 }
 
 // ── System channels ───────────────────────────────────────────────────────────
