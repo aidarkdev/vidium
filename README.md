@@ -70,6 +70,11 @@ ssh root@<VPS_IP> 'journalctl -u vidium-worker -n 50 --no-pager'
 
 Runtime code should stay free of application-level npm dependencies. See `docs/dependencies.md`.
 
+AI coding agents must read and follow `AGENTS.md` plus the relevant docs in `docs/`
+before making changes. Important entry points are `docs/frontend-parts.md`,
+`docs/server-bakers.md`, `docs/server-runtime.md`, `docs/dependencies.md`, and
+`docs/deploy.md`.
+
 ### Type checking
 
 ```bash
