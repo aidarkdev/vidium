@@ -12,7 +12,7 @@ So maybe you will need make some movements to not be banned by this popular host
 
 The project is built as zero-dependency runtime software: no application-level
 npm dependencies by default. Runtime code should rely on Node.js built-ins,
-browser APIs, SQLite through Node, nginx/systemd/OS tools, and `yt-dlp`. See
+browser APIs, SQLite through Node, and nginx/systemd/OS tools. See
 `docs/dependencies.md`.
 
 AI coding agents must read and follow `AGENTS.md` plus the relevant docs in `docs/`
