@@ -6,6 +6,41 @@ So maybe you will need make some movements to not be banned by this popular host
 
 ---
 
+## Development
+
+**Prerequisites:** Node.js 24 and development tools for type checking/linting.
+
+The project is built as zero-dependency runtime software: no application-level
+npm dependencies by default. Runtime code should rely on Node.js built-ins,
+browser APIs, SQLite through Node, nginx/systemd/OS tools, and `yt-dlp`. See
+`docs/dependencies.md`.
+
+AI coding agents must read and follow `AGENTS.md` plus the relevant docs in `docs/`
+before making changes. Important entry points are `docs/frontend-parts.md`,
+`docs/server-bakers.md`, `docs/server-runtime.md`, `docs/dependencies.md`, and
+`docs/deploy.md`.
+
+### Type checking
+
+```bash
+node --run check
+```
+
+### Linting
+
+```bash
+node --run lint       # check only
+biome lint --write .  # check + autofix
+```
+
+### Formatting
+
+```bash
+node --run format
+```
+
+---
+
 ## Deploying to a VPS
 
 Tested on Ubuntu 24.04. Full deployment documentation lives in `docs/deploy.md`.
@@ -63,33 +98,3 @@ ssh root@<VPS_IP> 'journalctl -u vidium-worker -n 50 --no-pager'
 ```
 
 ---
-
-## Development
-
-**Prerequisites:** Node.js 24 and development tools for type checking/linting.
-
-Runtime code should stay free of application-level npm dependencies. See `docs/dependencies.md`.
-
-AI coding agents must read and follow `AGENTS.md` plus the relevant docs in `docs/`
-before making changes. Important entry points are `docs/frontend-parts.md`,
-`docs/server-bakers.md`, `docs/server-runtime.md`, `docs/dependencies.md`, and
-`docs/deploy.md`.
-
-### Type checking
-
-```bash
-node --run check
-```
-
-### Linting
-
-```bash
-node --run lint       # check only
-biome lint --write .  # check + autofix
-```
-
-### Formatting
-
-```bash
-node --run format
-```
