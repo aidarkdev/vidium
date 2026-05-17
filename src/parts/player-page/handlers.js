@@ -49,9 +49,11 @@ export default {
         0,
         part.refs.media.currentTime + part.state.seekDelta,
       );
+      syncActiveChapter(part);
     },
     eventChapterSeek: (part) => {
       part.refs.media.currentTime = Math.max(0, part.state.chapterSeekTime);
+      syncActiveChapter(part);
       part.refs.media.play().catch(() => {});
     },
     eventPlay: (part) => {
