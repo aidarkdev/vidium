@@ -13,6 +13,13 @@ export interface VideoRow {
   duration: number;
   videoStatus: string;
   audioStatus: string;
+  chapters: VideoChapter[];
+}
+
+export interface VideoChapter {
+  title: string;
+  start: number;
+  end: number;
 }
 
 export interface VideoEntry {
@@ -50,16 +57,23 @@ export interface DownloadedVideoRow {
 
 const SEL = `
   SELECT v.youtube_id, v.title, v.channel_id, v.date, v.duration, v.video_status, v.audio_status,
+         '[]' AS chapters_json,
+         COALESCE(NULLIF(c.display_name,''), c.name, '') AS channel_name
+  FROM videos v LEFT JOIN channels c ON v.channel_id = c.id`;
+const SEL_WITH_CHAPTERS = `
+  SELECT v.youtube_id, v.title, v.channel_id, v.date, v.duration, v.video_status, v.audio_status,
+         v.chapters_json,
          COALESCE(NULLIF(c.display_name,''), c.name, '') AS channel_name
   FROM videos v LEFT JOIN channels c ON v.channel_id = c.id`;
 
-const stmtGetById = db.prepare(`${SEL} WHERE v.youtube_id = ?`);
+const stmtGetById = db.prepare(`${SEL_WITH_CHAPTERS} WHERE v.youtube_id = ?`);
 const stmtGetAll = db.prepare(`${SEL} ORDER BY v.date DESC, v.created_at DESC LIMIT 200`);
 const stmtGetByChannel = db.prepare(
   `${SEL} WHERE v.channel_id = ? ORDER BY v.date DESC, v.created_at DESC LIMIT 100`,
 );
 const stmtGetByTag = db.prepare(`
   SELECT v.youtube_id, v.title, v.channel_id, v.date, v.duration, v.video_status, v.audio_status,
+         '[]' AS chapters_json,
          COALESCE(NULLIF(c.display_name,''), c.name, '') AS channel_name
   FROM videos v
   JOIN channel_tags ct ON ct.channel_id = v.channel_id
@@ -68,6 +82,7 @@ const stmtGetByTag = db.prepare(`
   ORDER BY v.date DESC, v.created_at DESC LIMIT 200`);
 const stmtGetByTagManual = db.prepare(`
   SELECT v.youtube_id, v.title, v.channel_id, v.date, v.duration, v.video_status, v.audio_status,
+         '[]' AS chapters_json,
          COALESCE(NULLIF(c.display_name,''), c.name, '') AS channel_name
   FROM videos v JOIN channels c ON v.channel_id = c.id
   WHERE v.source_type = 'manual'
@@ -80,6 +95,7 @@ const stmtGetSinceByChannel = db.prepare(
 );
 const stmtGetSinceByTag = db.prepare(`
   SELECT v.youtube_id, v.title, v.channel_id, v.date, v.duration, v.video_status, v.audio_status,
+         '[]' AS chapters_json,
          COALESCE(NULLIF(c.display_name,''), c.name, '') AS channel_name
   FROM videos v
   JOIN channel_tags ct ON ct.channel_id = v.channel_id
@@ -88,6 +104,7 @@ const stmtGetSinceByTag = db.prepare(`
   ORDER BY v.date DESC, v.created_at DESC LIMIT 50`);
 const stmtGetSinceByTagManual = db.prepare(`
   SELECT v.youtube_id, v.title, v.channel_id, v.date, v.duration, v.video_status, v.audio_status,
+         '[]' AS chapters_json,
          COALESCE(NULLIF(c.display_name,''), c.name, '') AS channel_name
   FROM videos v JOIN channels c ON v.channel_id = c.id
   WHERE v.created_at > ? AND v.source_type = 'manual'
@@ -108,6 +125,7 @@ const stmtSetAudioStatus = db.prepare(
 const stmtSetDuration = db.prepare(
   `UPDATE videos SET duration = ? WHERE youtube_id = ? AND duration = 0`,
 );
+const stmtSetChapters = db.prepare(`UPDATE videos SET chapters_json = ? WHERE youtube_id = ?`);
 const stmtInsert = db.prepare(`
   INSERT INTO videos (channel_id, youtube_id, title, date, duration, source_type)
   VALUES (?, ?, ?, ?, ?, ?)
@@ -153,6 +171,7 @@ type RawRow = {
   duration: number;
   video_status: string;
   audio_status: string;
+  chapters_json: string;
 };
 
 type RawVideoStatusSummary = {
@@ -189,7 +208,39 @@ function toRow(r: RawRow): VideoRow {
     duration: r.duration,
     videoStatus: r.video_status,
     audioStatus: r.audio_status,
+    chapters: parseChaptersJson(r.chapters_json),
   };
+}
+
+function normalizeChapters(chapters: unknown): VideoChapter[] {
+  if (!Array.isArray(chapters)) return [];
+
+  return chapters
+    .map((chapter) => {
+      if (!chapter || typeof chapter !== 'object') return null;
+      const row = chapter as { title?: unknown; start?: unknown; end?: unknown };
+      const title = typeof row.title === 'string' ? row.title.trim() : '';
+      const start = typeof row.start === 'number' ? row.start : Number(row.start);
+      const end = typeof row.end === 'number' ? row.end : Number(row.end);
+      if (!title || !Number.isFinite(start) || !Number.isFinite(end) || end <= start || start < 0) {
+        return null;
+      }
+      return {
+        title,
+        start: Math.floor(start),
+        end: Math.floor(end),
+      };
+    })
+    .filter((chapter): chapter is VideoChapter => chapter !== null);
+}
+
+function parseChaptersJson(value: string): VideoChapter[] {
+  if (!value) return [];
+  try {
+    return normalizeChapters(JSON.parse(value));
+  } catch {
+    return [];
+  }
 }
 
 // ── Public API ────────────────────────────────────────────────────────────────
@@ -251,6 +302,10 @@ export function setAudioStatus(youtubeId: string, status: string): void {
 
 export function setDurationIfZero(youtubeId: string, duration: number): void {
   stmtSetDuration.run(duration, youtubeId);
+}
+
+export function setVideoChapters(youtubeId: string, chapters: VideoChapter[]): void {
+  stmtSetChapters.run(JSON.stringify(normalizeChapters(chapters)), youtubeId);
 }
 
 export function insertVideos(

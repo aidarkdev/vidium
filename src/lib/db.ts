@@ -62,7 +62,8 @@ db.exec(`
     source_type  TEXT    NOT NULL DEFAULT 'channel'
                    CHECK(source_type IN ('channel','manual')),
     created_at   TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now')),
-    ready_at     TEXT
+    ready_at     TEXT,
+    chapters_json TEXT   NOT NULL DEFAULT '[]'
   );
 
   CREATE TABLE IF NOT EXISTS jobs (
@@ -123,6 +124,10 @@ if (!hasColumn('channels', 'auto_download_video')) {
 
 if (!hasColumn('channels', 'auto_download_audio')) {
   db.exec('ALTER TABLE channels ADD COLUMN auto_download_audio INTEGER NOT NULL DEFAULT 0');
+}
+
+if (!hasColumn('videos', 'chapters_json')) {
+  db.exec(`ALTER TABLE videos ADD COLUMN chapters_json TEXT NOT NULL DEFAULT '[]'`);
 }
 
 // ── System channels ───────────────────────────────────────────────────────────

@@ -8,11 +8,23 @@
 import { existsSync } from 'node:fs';
 import { config } from './config.ts';
 import { enqueue, take, complete, fail, resetStale } from './lib/queue.ts';
-import { downloadVideo, downloadAudio, downloadThumb, crawlChannel } from './lib/ytdlp.ts';
+import {
+  downloadVideo,
+  downloadAudio,
+  downloadThumb,
+  crawlChannel,
+  fetchChapters,
+} from './lib/ytdlp.ts';
 import { fetchFeed } from './lib/rss.ts';
 import { checkDisk, type DeletedFile } from './lib/disk.ts';
 import { purgeExpired } from './lib/auth/sessions.ts';
-import { setVideoStatus, setAudioStatus, setDurationIfZero, insertVideos } from './lib/video.ts';
+import {
+  setVideoStatus,
+  setAudioStatus,
+  setDurationIfZero,
+  insertVideos,
+  setVideoChapters,
+} from './lib/video.ts';
 import {
   getChannelById,
   getRssChannels,
@@ -48,6 +60,15 @@ function enqueueAutoDownloadsFor(
   }
 }
 
+async function refreshChaptersFor(youtubeId: string): Promise<void> {
+  try {
+    setVideoChapters(youtubeId, await fetchChapters(youtubeId));
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error(`chapter fetch failed for ${youtubeId}:`, msg);
+  }
+}
+
 // ── Job handlers ──────────────────────────────────────────────────────────────
 
 async function processJob(_id: number, type: string, payload: string): Promise<void> {
@@ -60,6 +81,7 @@ async function processJob(_id: number, type: string, payload: string): Promise<v
         const duration = await downloadVideo(data.youtubeId, `${config.MEDIA_DIR}/videos`);
         setVideoStatus(data.youtubeId, 'ready');
         if (duration > 0) setDurationIfZero(data.youtubeId, duration);
+        await refreshChaptersFor(data.youtubeId);
       } catch (err) {
         setVideoStatus(data.youtubeId, 'none');
         throw err;
@@ -73,6 +95,7 @@ async function processJob(_id: number, type: string, payload: string): Promise<v
         const duration = await downloadAudio(data.youtubeId, `${config.MEDIA_DIR}/audio`);
         setAudioStatus(data.youtubeId, 'ready');
         if (duration > 0) setDurationIfZero(data.youtubeId, duration);
+        await refreshChaptersFor(data.youtubeId);
       } catch (err) {
         setAudioStatus(data.youtubeId, 'none');
         throw err;

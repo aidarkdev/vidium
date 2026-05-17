@@ -15,6 +15,7 @@ Files that should exist on the VPS for runtime:
 
 - `src/`
 - `scripts/check-proxy-status.ts`
+- one-time migration scripts from `scripts/` when a release note tells you to run them
 - `package.json`
 - `.env`
 - `data/`
@@ -135,6 +136,17 @@ Then restart Node services on the VPS:
 
 ```bash
 ssh root@<VPS_IP> 'systemctl restart vidium-server vidium-worker'
+```
+
+### One-time video chapters migration
+
+For the release that adds player chapters to existing VPS installs, deploy
+`scripts/migrate-video-chapters.ts` and run:
+
+```bash
+cd /root/vidium
+node --env-file=.env --experimental-sqlite scripts/migrate-video-chapters.ts
+systemctl restart vidium-server vidium-worker
 ```
 
 This rsync command deletes stale files only inside the included deploy set. It does not delete excluded persistent directories such as `data/` and `media/`.

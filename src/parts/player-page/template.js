@@ -33,6 +33,36 @@ function channelHtml(state) {
   return `<div class="player-channel">${htmlEscape(state.channelName)}</div>`;
 }
 
+function formatChapterTime(seconds) {
+  const n = Math.max(0, Math.floor(Number(seconds) || 0));
+  const h = Math.floor(n / 3600);
+  const m = Math.floor((n % 3600) / 60);
+  const s = n % 60;
+  return h > 0
+    ? `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+    : `${m}:${String(s).padStart(2, '0')}`;
+}
+
+function chaptersHtml(state) {
+  if (!Array.isArray(state.chapters) || state.chapters.length === 0) return '';
+
+  const chapters = state.chapters
+    .map(
+      (chapter) => `<button
+        class="player-chapter"
+        type="button"
+        data-action="chapter-seek"
+        data-chapter-start="${htmlEscape(String(chapter.start))}"
+      >
+        <span class="player-chapter-time">${htmlEscape(formatChapterTime(chapter.start))}</span>
+        <span class="player-chapter-title">${htmlEscape(chapter.title)}</span>
+      </button>`,
+    )
+    .join('');
+
+  return `<div class="player-chapters">${chapters}</div>`;
+}
+
 function playIcon() {
   return `<svg class="player-play-icon player-play-icon-play" viewBox="0 0 13 24" fill="none" aria-hidden="true">
     <path
@@ -90,5 +120,6 @@ export default function template(state) {
       ${channelHtml(state)}
       <div class="player-title-text">${htmlEscape(state.title)}</div>
     </div>
+    ${chaptersHtml(state)}
   </div>`;
 }

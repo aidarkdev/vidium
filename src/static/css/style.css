@@ -902,6 +902,53 @@ button.btn-audio:hover {
   color: #eee;
 }
 
+.player-chapters {
+  display: grid;
+  gap: 0.5rem;
+  margin: 1rem 0 0;
+}
+
+.player-chapter {
+  display: grid;
+  grid-template-columns: 4.5rem minmax(0, 1fr);
+  align-items: start;
+  gap: 0.75rem;
+  width: 100%;
+  min-height: 2.5rem;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid #383838;
+  border-radius: 0.4rem;
+  background: #191919;
+  color: #eee;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+
+.player-chapter.is-active {
+  border-color: #7fa7ea;
+  background: #202a3a;
+}
+
+.player-chapter-time {
+  color: #9fb3d9;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.player-chapter-title {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 520px) {
+  .player-chapter {
+    grid-template-columns: 3.75rem minmax(0, 1fr);
+    gap: 0.55rem;
+    padding: 0.5rem 0.6rem;
+  }
+}
+
 /* ── Auth forms ──────────────────────────────────────────────────────────── */
 
 .auth-form {

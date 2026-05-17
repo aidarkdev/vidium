@@ -104,6 +104,7 @@ export function renderPartPage(opts: PartPageOptions): string {
       <link rel="icon" type="image/png" href="/static/favicon.png">
       <link rel="manifest" href="/manifest.webmanifest">
       <meta name="theme-color" content="#111111">
+      <meta name="mobile-web-app-capable" content="yes">
       <meta name="apple-mobile-web-app-capable" content="yes">
       <meta name="apple-mobile-web-app-title" content="vidium">
       <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">

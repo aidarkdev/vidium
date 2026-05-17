@@ -27,6 +27,12 @@ export interface VideoMeta {
   duration: number;
 }
 
+export interface Chapter {
+  title: string;
+  start: number;
+  end: number;
+}
+
 export interface CrawlEntry {
   youtubeId: string;
   title: string;
@@ -46,6 +52,10 @@ function baseArgs(): string[] {
   if (config.YTDLP_PROXY) args.push('--proxy', config.YTDLP_PROXY);
   if (config.YTDLP_COOKIES) args.push('--cookies', config.YTDLP_COOKIES);
   return args;
+}
+
+function youtubeLangArgs(): string[] {
+  return config.DEFAULT_LANG ? ['--extractor-args', `youtube:lang=${config.DEFAULT_LANG}`] : [];
 }
 
 function run(args: string[], opts: { tolerant?: boolean } = {}): Promise<string> {
@@ -69,6 +79,32 @@ function run(args: string[], opts: { tolerant?: boolean } = {}): Promise<string>
 
     proc.on('error', reject);
   });
+}
+
+function parseChapters(data: { chapters?: unknown }): Chapter[] {
+  if (!Array.isArray(data.chapters)) return [];
+
+  return data.chapters
+    .map((chapter) => {
+      if (!chapter || typeof chapter !== 'object') return null;
+      const row = chapter as {
+        title?: unknown;
+        start_time?: unknown;
+        end_time?: unknown;
+      };
+      const title = typeof row.title === 'string' ? row.title.trim() : '';
+      const start = typeof row.start_time === 'number' ? row.start_time : Number(row.start_time);
+      const end = typeof row.end_time === 'number' ? row.end_time : Number(row.end_time);
+      if (!title || !Number.isFinite(start) || !Number.isFinite(end) || end <= start || start < 0) {
+        return null;
+      }
+      return {
+        title,
+        start: Math.floor(start),
+        end: Math.floor(end),
+      };
+    })
+    .filter((chapter): chapter is Chapter => chapter !== null);
 }
 
 // ── Public API ────────────────────────────────────────────────────────────────
@@ -141,6 +177,22 @@ export async function fetchMeta(youtubeId: string): Promise<VideoMeta> {
     date: parseDate(data.upload_date ?? ''),
     duration: typeof data.duration === 'number' ? data.duration : 0,
   };
+}
+
+/** Fetch YouTube chapters for a single video without downloading media. */
+export async function fetchChapters(youtubeId: string): Promise<Chapter[]> {
+  if (!isValidVideoId(youtubeId)) throw new Error(`invalid video ID: ${youtubeId}`);
+  const raw = await run([
+    ...baseArgs(),
+    ...youtubeLangArgs(),
+    '--dump-single-json',
+    '--skip-download',
+    '--no-playlist',
+    '-q',
+    '--no-warnings',
+    `https://www.youtube.com/watch?v=${youtubeId}`,
+  ]);
+  return parseChapters(JSON.parse(raw));
 }
 
 /** Crawl a channel playlist (metadata only, no download). */
