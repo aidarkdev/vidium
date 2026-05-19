@@ -86,8 +86,8 @@ function renderDiskStatus(state) {
     ? `<span class="admin-status-error">${htmlEscape(state.disk.error)}: ${htmlEscape(state.diskStatus.error)}</span>`
     : '';
 
-  return `<section id="admin-disk" class="admin-system-status admin-disk-status ${statusClass}">
-    <h2>
+  return `<section class="admin-system-status admin-disk-status ${statusClass}">
+    <h2 id="admin-disk">
       <span>${htmlEscape(state.disk.title)}</span>
       <a class="admin-back-link" href="#${ADMIN_CONTENTS_ID}">${htmlEscape(state.contentsLink)}</a>
     </h2>
@@ -110,8 +110,8 @@ function renderProxyStatus(state) {
     ? `<span class="admin-status-error">${htmlEscape(state.proxy.error)}: ${htmlEscape(state.proxyStatus.error)}</span>`
     : '';
 
-  return `<section id="admin-proxy" class="admin-system-status admin-proxy-status ${statusClass}">
-    <h2>
+  return `<section class="admin-system-status admin-proxy-status ${statusClass}">
+    <h2 id="admin-proxy">
       <span>${htmlEscape(state.proxy.title)}</span>
       <a class="admin-back-link" href="#${ADMIN_CONTENTS_ID}">${htmlEscape(state.contentsLink)}</a>
     </h2>
@@ -124,8 +124,8 @@ function renderProxyStatus(state) {
 }
 
 export function table(title, head, body, sectionId, contentsLabel) {
-  return `<section id="${sectionId}" class="admin-section">
-    <h2>
+  return `<section class="admin-section">
+    <h2 id="${sectionId}">
       <span>${htmlEscape(title)}</span>
       <a class="admin-back-link" href="#${ADMIN_CONTENTS_ID}">${htmlEscape(contentsLabel)}</a>
     </h2>
