@@ -340,12 +340,12 @@ a:hover { text-decoration: underline; }
     transform: none;
   }
 
-  .main:has(.feed-part) {
+  .feed-main {
     margin-left: calc(var(--sidebar-width) + var(--wide-layout-gap));
     margin-right: auto;
   }
 
-  body:has(.feed-part) .nav-inner {
+  body.feed-layout .nav-inner {
     margin-left: calc(var(--sidebar-width) + var(--wide-layout-gap));
     margin-right: auto;
   }
