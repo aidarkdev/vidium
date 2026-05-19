@@ -80,7 +80,7 @@ export default function template(state) {
       ${htmlEscape(state.langLabel)}
     </a>
     <form method="post" action="/logout">
-      <button type="submit">${htmlEscape(state.logoutLabel)}</button>
+      <button class="nav-logout" type="submit">${htmlEscape(state.logoutLabel)}</button>
     </form>
   </div>`;
 }

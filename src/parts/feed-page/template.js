@@ -187,7 +187,7 @@ function sidebarModeTabs(state) {
 }
 
 function systemLink(href, active, label) {
-  return `<a href="${href}"${active ? ' class="active"' : ''}>${htmlEscape(label)}</a>`;
+  return `<a class="sidebar-system-link${active ? ' active' : ''}" href="${href}">${htmlEscape(label)}</a>`;
 }
 
 export function sidebarHtml(state) {

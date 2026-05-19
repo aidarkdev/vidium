@@ -61,7 +61,7 @@ a:hover { text-decoration: underline; }
   gap: 1rem;
 }
 
-.nav-links button {
+.nav-logout {
   background: none;
   border: none;
   color: #7cb8ff;
@@ -140,7 +140,7 @@ a:hover { text-decoration: underline; }
   flex-direction: column;
   gap: 0.4rem;
   padding: 1rem 0.75rem;
-  padding-top: 4rem;
+  padding-top: calc(var(--nav-height) + 0.6rem);
   overflow-y: auto;
   scrollbar-width: none;
   transform: translateX(-100%);
@@ -196,7 +196,9 @@ a:hover { text-decoration: underline; }
   width: 100%;
 }
 
-.sidebar-panel a {
+.sidebar-system-link,
+.sidebar-channel-link,
+.sidebar-tag-link {
   display: block;
   padding: 0.45rem 0.85rem;
   border-radius: 0.5rem;
@@ -209,8 +211,16 @@ a:hover { text-decoration: underline; }
   white-space: nowrap;
 }
 
-.sidebar-panel a:hover { background: #2a2a2a; color: #eee; }
-.sidebar-panel a.active {
+.sidebar-system-link:hover,
+.sidebar-channel-link:hover,
+.sidebar-tag-link:hover {
+  background: #2a2a2a;
+  color: #eee;
+}
+
+.sidebar-system-link.active,
+.sidebar-channel-link.active,
+.sidebar-tag-link.active {
   background: var(--sidebar-active-bg);
   color: var(--sidebar-active-color);
 }
@@ -332,7 +342,7 @@ a:hover { text-decoration: underline; }
 
 /* 1520px = 320px sidebar + 1200px content */
 @media (min-width: 1520px) {
-  .sidebar-toggle {
+  .feed-main .sidebar-toggle {
     display: none;
   }
 
@@ -345,10 +355,6 @@ a:hover { text-decoration: underline; }
     margin-right: auto;
   }
 
-  body.feed-layout .nav-inner {
-    margin-left: calc(var(--sidebar-width) + var(--wide-layout-gap));
-    margin-right: auto;
-  }
 }
 
 @media (pointer: coarse) {
@@ -611,11 +617,15 @@ button.btn-audio:hover {
 
 /* ── Admin ───────────────────────────────────────────────────────────────── */
 
+.admin-page {
+  --admin-anchor-offset: calc(var(--nav-height) + 3.25rem + 1rem);
+}
+
 .admin-contents {
   margin-bottom: 1.5rem;
   padding-bottom: 1rem;
   border-bottom: 1px solid #333;
-  scroll-margin-top: 4rem;
+  scroll-margin-top: var(--admin-anchor-offset);
 }
 
 .admin-contents h2 {
@@ -639,7 +649,7 @@ button.btn-audio:hover {
   padding: 0.75rem 0;
   border-top: 1px solid #333;
   border-bottom: 1px solid #333;
-  scroll-margin-top: 4rem;
+  scroll-margin-top: var(--admin-anchor-offset);
 }
 
 .admin-system-status h2 {
@@ -649,6 +659,7 @@ button.btn-audio:hover {
   flex-wrap: wrap;
   margin-bottom: 0.35rem;
   font-size: 1.05rem;
+  scroll-margin-top: var(--admin-anchor-offset);
 }
 
 .admin-system-status-line {
@@ -677,7 +688,7 @@ button.btn-audio:hover {
 
 .admin-section {
   margin-bottom: 1.5rem;
-  scroll-margin-top: 4rem;
+  scroll-margin-top: var(--admin-anchor-offset);
 }
 
 .admin-section h2 {
@@ -687,6 +698,7 @@ button.btn-audio:hover {
   flex-wrap: wrap;
   margin-bottom: 0.6rem;
   font-size: 1.05rem;
+  scroll-margin-top: var(--admin-anchor-offset);
 }
 
 .admin-back-link {
