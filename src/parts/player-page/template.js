@@ -6,7 +6,6 @@ function mediaHtml(state) {
       data-ref="media"
       id="video-player"
       controls
-      autoplay
       preload="metadata"
       src="${htmlEscape(state.mediaSrc)}"
     ></video>`;
@@ -21,7 +20,6 @@ function mediaHtml(state) {
     data-ref="media"
     id="audio-player"
     controls
-    autoplay
     preload="metadata"
     src="${htmlEscape(state.mediaSrc)}"
   ></audio>`;
