@@ -19,6 +19,10 @@
   padding: 0;
 }
 
+html {
+  scrollbar-gutter: stable;
+}
+
 body {
   font-family: system-ui, -apple-system, sans-serif;
   background: var(--page-bg);
