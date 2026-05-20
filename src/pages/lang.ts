@@ -36,7 +36,12 @@ const strings: Record<Lang, Record<string, string>> = {
     'card.downloading': 'Downloading',
 
     // Feed
-    'feed.load_more': 'Load more',
+    'feed.page.previous': 'Previous',
+    'feed.page.next': 'Next',
+    'feed.page.pagination': 'Pagination',
+    'feed.page.loading': 'Loading...',
+    'feed.page.error': 'Failed to load page',
+    'feed.page.status': '{first}-{last} of {total}',
     'tag.ready': 'Ready',
     'tag.all': 'All',
     'sidebar.edit': 'Edit',
@@ -157,7 +162,12 @@ const strings: Record<Lang, Record<string, string>> = {
     'card.downloading': 'Загружается',
 
     // Feed
-    'feed.load_more': 'Загрузить ещё',
+    'feed.page.previous': 'Назад',
+    'feed.page.next': 'Вперед',
+    'feed.page.pagination': 'Пагинация',
+    'feed.page.loading': 'Загрузка...',
+    'feed.page.error': 'Не удалось загрузить страницу',
+    'feed.page.status': '{first}-{last} из {total}',
     'tag.ready': 'Готовое',
     'tag.all': 'Все',
     'sidebar.edit': 'Редакт.',

@@ -6,7 +6,7 @@ export const VIDEO_ID_RE = /^[a-zA-Z0-9_-]{11}$/;
 export const CHANNEL_URL_RE =
   /^https?:\/\/(www\.)?youtube\.com\/@[^/?#]+(\/(videos|streams|shorts|playlists|featured))?\/?$/;
 export const VIDEO_URL_RE =
-  /(?:youtube\.com\/(?:watch\?v=|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
+  /^https?:\/\/(?:www\.)?(?:youtube\.com\/(?:watch\?v=|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})(?:[/?#&].*)?$/;
 
 export function isValidVideoId(id: unknown): id is string {
   return typeof id === 'string' && VIDEO_ID_RE.test(id);

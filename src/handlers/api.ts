@@ -4,6 +4,7 @@
  * POST /api/download  — enqueue video or audio download
  * GET  /api/status    — poll job status for given youtube IDs
  * GET  /api/since     — new videos since a timestamp
+ * GET  /api/feed/cards — paginated feed card data
  * POST /api/channel   — add channel + enqueue crawl
  * POST /api/video     — add single video by URL
  * POST /api/channel/display-name — rename channel in sidebar
@@ -39,6 +40,8 @@ import {
   setAudioStatus,
   setMediaStatusesNone,
   insertVideos,
+  DEFAULT_VIDEO_PAGE_SIZE,
+  getVideoPage,
   getNewVideosSince,
   getNewVideosSinceByChannel,
   getNewVideosSinceByTag,
@@ -164,6 +167,29 @@ export function handleSince(req: IncomingMessage, res: ServerResponse): void {
       audioStatus: r.audioStatus,
     })),
   );
+}
+
+export function handleFeedCards(req: IncomingMessage, res: ServerResponse): void {
+  if (!requireSessionApi(req, res)) return;
+
+  const q = getQuery(req);
+  const page = Number.parseInt(q.page ?? '1', 10);
+  const channelId = Number.parseInt(q.channelId ?? '', 10);
+  const result = getVideoPage({
+    page: Number.isInteger(page) && page > 0 ? page : 1,
+    pageSize: DEFAULT_VIDEO_PAGE_SIZE,
+    tag: (q.tag ?? 'all').trim() || 'all',
+    channelId: Number.isInteger(channelId) && channelId > 0 ? channelId : 0,
+  });
+
+  json(res, 200, {
+    ok: true,
+    cards: result.items,
+    page: result.page,
+    pageSize: result.pageSize,
+    pageCount: result.pageCount,
+    total: result.total,
+  });
 }
 
 export async function handleAddChannel(req: IncomingMessage, res: ServerResponse): Promise<void> {

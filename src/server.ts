@@ -41,6 +41,7 @@ import {
   handleAdminDeleteJob,
   handleAdminResetVideoStatus,
   handleAdminSetUserRole,
+  handleFeedCards,
 } from './handlers/api.ts';
 
 type RouteMethod = 'get' | 'post';
@@ -231,6 +232,11 @@ const routes: RouteConfig[] = [
     method: 'get',
     path: '/api/since',
     handler: handleSince,
+  },
+  {
+    method: 'get',
+    path: '/api/feed/cards',
+    handler: handleFeedCards,
   },
 ];
 

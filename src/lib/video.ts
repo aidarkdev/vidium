@@ -4,6 +4,8 @@
 
 import { db } from './db.ts';
 
+export const DEFAULT_VIDEO_PAGE_SIZE = 42;
+
 export interface VideoRow {
   youtubeId: string;
   title: string;
@@ -53,6 +55,21 @@ export interface DownloadedVideoRow {
   createdAt: string;
 }
 
+export interface VideoPageQuery {
+  page: number;
+  pageSize: number;
+  tag?: string;
+  channelId?: number;
+}
+
+export interface VideoPage {
+  items: VideoRow[];
+  page: number;
+  pageSize: number;
+  pageCount: number;
+  total: number;
+}
+
 // ── Statements ────────────────────────────────────────────────────────────────
 
 const SEL = `
@@ -68,8 +85,14 @@ const SEL_WITH_CHAPTERS = `
 
 const stmtGetById = db.prepare(`${SEL_WITH_CHAPTERS} WHERE v.youtube_id = ?`);
 const stmtGetAll = db.prepare(`${SEL} ORDER BY v.date DESC, v.created_at DESC LIMIT 200`);
+const stmtCountAll = db.prepare(`SELECT COUNT(*) AS count FROM videos`);
+const stmtGetAllPage = db.prepare(`${SEL} ORDER BY v.date DESC, v.created_at DESC LIMIT ? OFFSET ?`);
 const stmtGetByChannel = db.prepare(
   `${SEL} WHERE v.channel_id = ? ORDER BY v.date DESC, v.created_at DESC LIMIT 100`,
+);
+const stmtCountByChannel = db.prepare(`SELECT COUNT(*) AS count FROM videos WHERE channel_id = ?`);
+const stmtGetByChannelPage = db.prepare(
+  `${SEL} WHERE v.channel_id = ? ORDER BY v.date DESC, v.created_at DESC LIMIT ? OFFSET ?`,
 );
 const stmtGetByTag = db.prepare(`
   SELECT v.youtube_id, v.title, v.channel_id, v.date, v.duration, v.video_status, v.audio_status,
@@ -80,6 +103,20 @@ const stmtGetByTag = db.prepare(`
   JOIN channels c ON v.channel_id = c.id
   WHERE ct.tag = ?
   ORDER BY v.date DESC, v.created_at DESC LIMIT 200`);
+const stmtCountByTag = db.prepare(`
+  SELECT COUNT(*) AS count
+  FROM videos v
+  JOIN channel_tags ct ON ct.channel_id = v.channel_id
+  WHERE ct.tag = ?`);
+const stmtGetByTagPage = db.prepare(`
+  SELECT v.youtube_id, v.title, v.channel_id, v.date, v.duration, v.video_status, v.audio_status,
+         '[]' AS chapters_json,
+         COALESCE(NULLIF(c.display_name,''), c.name, '') AS channel_name
+  FROM videos v
+  JOIN channel_tags ct ON ct.channel_id = v.channel_id
+  JOIN channels c ON v.channel_id = c.id
+  WHERE ct.tag = ?
+  ORDER BY v.date DESC, v.created_at DESC LIMIT ? OFFSET ?`);
 const stmtGetByTagManual = db.prepare(`
   SELECT v.youtube_id, v.title, v.channel_id, v.date, v.duration, v.video_status, v.audio_status,
          '[]' AS chapters_json,
@@ -87,6 +124,16 @@ const stmtGetByTagManual = db.prepare(`
   FROM videos v JOIN channels c ON v.channel_id = c.id
   WHERE v.source_type = 'manual'
   ORDER BY v.created_at DESC, v.date DESC LIMIT 200`);
+const stmtCountByTagManual = db.prepare(
+  `SELECT COUNT(*) AS count FROM videos WHERE source_type = 'manual'`,
+);
+const stmtGetByTagManualPage = db.prepare(`
+  SELECT v.youtube_id, v.title, v.channel_id, v.date, v.duration, v.video_status, v.audio_status,
+         '[]' AS chapters_json,
+         COALESCE(NULLIF(c.display_name,''), c.name, '') AS channel_name
+  FROM videos v JOIN channels c ON v.channel_id = c.id
+  WHERE v.source_type = 'manual'
+  ORDER BY v.created_at DESC, v.date DESC LIMIT ? OFFSET ?`);
 const stmtGetSince = db.prepare(
   `${SEL} WHERE v.created_at > ? ORDER BY v.date DESC, v.created_at DESC LIMIT 50`,
 );
@@ -114,6 +161,12 @@ const stmtGetSinceReady = db.prepare(
 );
 const stmtGetReady = db.prepare(
   `${SEL} WHERE v.video_status = 'ready' OR v.audio_status = 'ready' ORDER BY v.ready_at DESC LIMIT 200`,
+);
+const stmtCountReady = db.prepare(
+  `SELECT COUNT(*) AS count FROM videos WHERE video_status = 'ready' OR audio_status = 'ready'`,
+);
+const stmtGetReadyPage = db.prepare(
+  `${SEL} WHERE v.video_status = 'ready' OR v.audio_status = 'ready' ORDER BY v.ready_at DESC LIMIT ? OFFSET ?`,
 );
 const stmtExists = db.prepare(`SELECT id FROM videos WHERE youtube_id = ?`);
 const stmtSetVideoStatus = db.prepare(
@@ -198,6 +251,10 @@ type RawDownloadedVideoRow = {
   created_at: string;
 };
 
+type RawCountRow = {
+  count: number;
+};
+
 function toRow(r: RawRow): VideoRow {
   return {
     youtubeId: r.youtube_id,
@@ -209,6 +266,24 @@ function toRow(r: RawRow): VideoRow {
     videoStatus: r.video_status,
     audioStatus: r.audio_status,
     chapters: parseChaptersJson(r.chapters_json),
+  };
+}
+
+function clampPage(page: number, pageSize: number, total: number): number {
+  return Math.min(page, Math.max(1, Math.ceil(total / pageSize)));
+}
+
+function offsetFor(page: number, pageSize: number): number {
+  return (page - 1) * pageSize;
+}
+
+function pageResult(rows: RawRow[], page: number, pageSize: number, total: number): VideoPage {
+  return {
+    items: rows.map(toRow),
+    page,
+    pageSize,
+    pageCount: Math.max(1, Math.ceil(total / pageSize)),
+    total,
   };
 }
 
@@ -286,6 +361,54 @@ export function getNewReadyVideosSince(isoTimestamp: string): VideoRow[] {
 
 export function getReadyVideos(): VideoRow[] {
   return (stmtGetReady.all() as RawRow[]).map(toRow);
+}
+
+export function getVideoPage(query: VideoPageQuery): VideoPage {
+  const rawPageSize = Math.floor(query.pageSize);
+  const rawPage = Math.floor(query.page);
+  const pageSize = Number.isFinite(rawPageSize) && rawPageSize > 0 ? rawPageSize : 1;
+  const requestedPage = Number.isFinite(rawPage) && rawPage > 0 ? rawPage : 1;
+  const channelId =
+    typeof query.channelId === 'number' && Number.isInteger(query.channelId)
+      ? query.channelId
+      : 0;
+  const tag = (query.tag ?? 'all').trim() || 'all';
+
+  let total = 0;
+  let rows: RawRow[] = [];
+
+  if (channelId > 0) {
+    total = (stmtCountByChannel.get(channelId) as RawCountRow).count;
+    const page = clampPage(requestedPage, pageSize, total);
+    rows = stmtGetByChannelPage.all(channelId, pageSize, offsetFor(page, pageSize)) as RawRow[];
+    return pageResult(rows, page, pageSize, total);
+  }
+
+  if (tag === 'ready') {
+    total = (stmtCountReady.get() as RawCountRow).count;
+    const page = clampPage(requestedPage, pageSize, total);
+    rows = stmtGetReadyPage.all(pageSize, offsetFor(page, pageSize)) as RawRow[];
+    return pageResult(rows, page, pageSize, total);
+  }
+
+  if (tag === 'manual') {
+    total = (stmtCountByTagManual.get() as RawCountRow).count;
+    const page = clampPage(requestedPage, pageSize, total);
+    rows = stmtGetByTagManualPage.all(pageSize, offsetFor(page, pageSize)) as RawRow[];
+    return pageResult(rows, page, pageSize, total);
+  }
+
+  if (tag !== 'all') {
+    total = (stmtCountByTag.get(tag) as RawCountRow).count;
+    const page = clampPage(requestedPage, pageSize, total);
+    rows = stmtGetByTagPage.all(tag, pageSize, offsetFor(page, pageSize)) as RawRow[];
+    return pageResult(rows, page, pageSize, total);
+  }
+
+  total = (stmtCountAll.get() as RawCountRow).count;
+  const page = clampPage(requestedPage, pageSize, total);
+  rows = stmtGetAllPage.all(pageSize, offsetFor(page, pageSize)) as RawRow[];
+  return pageResult(rows, page, pageSize, total);
 }
 
 export function videoExists(youtubeId: string): boolean {

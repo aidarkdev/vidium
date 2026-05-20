@@ -216,17 +216,6 @@ export function sidebarHtml(state) {
   </div>`;
 }
 
-export function cardsHtml(state) {
-  return state.cards
-    .slice(0, state.visibleCount)
-    .map((card) => cardHtml(card, state.strings))
-    .join('');
-}
-
-function moreDisplay(state) {
-  return state.visibleCount < state.cards.length ? 'block' : 'none';
-}
-
 export default function template(state) {
   return `<section class="feed-part">
     <div class="topbar">
@@ -234,12 +223,5 @@ export default function template(state) {
       <span class="topbar-label" data-ref="title">${htmlEscape(state.title)}</span>
     </div>
     ${sidebarHtml(state)}
-    <div class="cards" data-ref="cards">${cardsHtml(state)}</div>
-    <button
-      class="btn-more"
-      data-ref="more"
-      data-action="more"
-      style="display:${moreDisplay(state)}"
-    >${htmlEscape(state.strings.loadMore)}</button>
   </section>`;
 }

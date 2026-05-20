@@ -1,10 +1,4 @@
 import { getAllChannels, getAllTags, getChannelById, getTagLabel } from '../../lib/channel.ts';
-import {
-  getAllVideos,
-  getReadyVideos,
-  getVideosByChannel,
-  getVideosByTag,
-} from '../../lib/video.ts';
 import { t } from '../../pages/lang.ts';
 
 interface FeedBakeContext {
@@ -27,7 +21,6 @@ function cardStrings(lang: string): Record<string, string> {
     downloadAudio: t(lang, 'card.download.audio'),
     queued: t(lang, 'card.queued'),
     downloading: t(lang, 'card.downloading'),
-    loadMore: t(lang, 'feed.load_more'),
   };
 }
 
@@ -47,12 +40,6 @@ function labels(lang: string): Record<string, string> {
 
 export function bakeFeedPage(ctx: FeedBakeContext): SuccessfulPageBake {
   const activeTag = ctx.params.tag ?? 'all';
-  const cards =
-    activeTag === 'all'
-      ? getAllVideos()
-      : activeTag === 'ready'
-        ? getReadyVideos()
-        : getVideosByTag(activeTag);
   const channels = getAllChannels();
   const tags = getAllTags();
   const manualCh = channels.find((ch) => ch.id === 1);
@@ -69,9 +56,6 @@ export function bakeFeedPage(ctx: FeedBakeContext): SuccessfulPageBake {
     title: 'vidium',
     state: {
       title,
-      cards,
-      visibleCount: Math.min(21, cards.length),
-      since: Date.now(),
       strings: cardStrings(ctx.lang),
       channels,
       tags,
@@ -83,8 +67,6 @@ export function bakeFeedPage(ctx: FeedBakeContext): SuccessfulPageBake {
       movingChannelId: 0,
       movingTag: '',
       savingChannelNameId: 0,
-      pollingIds: [],
-      patchCardStatusUpdates: [],
       patchChannelDisplayNameUpdates: [],
       patchChannelOrderIds: [],
       patchTagOrderTags: [],
@@ -98,7 +80,6 @@ export function bakeChannelPage(ctx: FeedBakeContext): PageBakeResult {
   const channel = getChannelById(channelId);
   if (!channel) return { ok: false, message: 'Channel not found' };
 
-  const cards = getVideosByChannel(channelId);
   const channels = getAllChannels();
   const tags = getAllTags();
   const title = channel.displayName || channel.name;
@@ -109,9 +90,6 @@ export function bakeChannelPage(ctx: FeedBakeContext): PageBakeResult {
     title,
     state: {
       title,
-      cards,
-      visibleCount: Math.min(21, cards.length),
-      since: Date.now(),
       strings: cardStrings(ctx.lang),
       channels,
       tags,
@@ -123,8 +101,6 @@ export function bakeChannelPage(ctx: FeedBakeContext): PageBakeResult {
       movingChannelId: 0,
       movingTag: '',
       savingChannelNameId: 0,
-      pollingIds: [],
-      patchCardStatusUpdates: [],
       patchChannelDisplayNameUpdates: [],
       patchChannelOrderIds: [],
       patchTagOrderTags: [],

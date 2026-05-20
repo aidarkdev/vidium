@@ -1,13 +1,4 @@
-import { cardHtml, cardsHtml, sidebarHtml } from './template.js';
-
-const PAGE_SIZE = 21;
-const pendingStatuses = new Set(['queued', 'downloading']);
-
-function rerenderCards(part) {
-  part.refs.cards.innerHTML = cardsHtml(part.state);
-  part.refs.more.style.display =
-    part.state.visibleCount < part.state.cards.length ? 'block' : 'none';
-}
+import { sidebarHtml } from './template.js';
 
 function rerenderSidebar(part) {
   const fresh = document.createElement('template');
@@ -32,76 +23,6 @@ function replaceSidebarRow(part, channelId) {
     part.state.savingChannelNameId,
   );
   row.replaceWith(fresh.content.firstElementChild);
-}
-
-function rerenderUpdatedCards(part, updates) {
-  for (const { id } of updates) {
-    const card = part.state.cards.find((item) => item.youtubeId === id);
-    const node = part.refs.cards.querySelector(`[data-id="${CSS.escape(id)}"]`);
-    if (!card || !node) continue;
-
-    const fresh = document.createElement('template');
-    fresh.innerHTML = cardHtml(card, part.state.strings);
-    node.replaceWith(fresh.content.firstElementChild);
-  }
-}
-
-function applyCardStatusUpdates(part, updates) {
-  part.state.cards = part.state.cards.map((card) => {
-    const update = updates.find((item) => item.id === card.youtubeId);
-    if (!update) return card;
-
-    return {
-      ...card,
-      videoStatus: update.videoStatus ?? card.videoStatus,
-      audioStatus: update.audioStatus ?? card.audioStatus,
-    };
-  });
-  rerenderUpdatedCards(part, updates);
-}
-
-async function poll(part) {
-  if (!part.state.pollingIds.length) return;
-  const res = await fetch(`/api/status?ids=${part.state.pollingIds.join(',')}`);
-  const data = await res.json();
-  let pollingIds = part.state.pollingIds;
-  const patchCardStatusUpdates = [];
-  for (const [id, status] of Object.entries(data)) {
-    const current = part.state.cards.find((card) => card.youtubeId === id);
-    if (
-      current &&
-      (current.videoStatus !== status.video || current.audioStatus !== status.audio)
-    ) {
-      patchCardStatusUpdates.push({
-        id,
-        videoStatus: status.video,
-        audioStatus: status.audio,
-      });
-    }
-    if (!pendingStatuses.has(status.video) && !pendingStatuses.has(status.audio)) {
-      pollingIds = pollingIds.filter((item) => item !== id);
-    }
-  }
-  part.set({ pollingIds, patchCardStatusUpdates });
-  if (pollingIds.length)
-    part.private.pollTimer = setTimeout(() => poll(part).catch(() => {}), 5000);
-}
-
-async function checkSince(part) {
-  const params = new URLSearchParams({ t: String(part.state.since) });
-  if (part.state.activeChannelId) params.set('channelId', String(part.state.activeChannelId));
-  else params.set('tag', part.state.activeTag || 'all');
-  const res = await fetch(`/api/since?${params.toString()}`);
-  const items = await res.json();
-  if (!items.length) return;
-  const known = new Set(part.state.cards.map((card) => card.youtubeId));
-  const fresh = items.filter((item) => !known.has(item.youtubeId));
-  if (!fresh.length) return;
-  part.set({
-    cards: [...fresh, ...part.state.cards],
-    visibleCount: part.state.visibleCount + fresh.length,
-    since: Date.now(),
-  });
 }
 
 function updateChannelDisplayName(channels, channelId, displayName) {
@@ -184,11 +105,6 @@ export default {
   events: {
     'click [data-action="toggle-sidebar"]': (part) =>
       part.set('sidebarOpen', !part.state.sidebarOpen),
-    'click [data-action="more"]': (part) =>
-      part.set(
-        'visibleCount',
-        Math.min(part.state.cards.length, part.state.visibleCount + PAGE_SIZE),
-      ),
     'click [data-action="sidebar-mode"]': (part, event) => {
       event.stopPropagation();
       const btn = event.target.closest('[data-action="sidebar-mode"]');
@@ -200,23 +116,6 @@ export default {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ mode }),
       }).catch(() => {});
-    },
-    'click [data-action="download"]': async (part, event) => {
-      const btn = event.target.closest('[data-action="download"]');
-      const id = btn.dataset.id;
-      const type = btn.dataset.type;
-      const statusUpdate =
-        type === 'video' ? { id, videoStatus: 'queued' } : { id, audioStatus: 'queued' };
-      const pollingIds = part.state.pollingIds.includes(id)
-        ? part.state.pollingIds
-        : [...part.state.pollingIds, id];
-      part.set({ pollingIds, patchCardStatusUpdates: [statusUpdate] });
-      await fetch('/api/download', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ youtubeId: id, type }),
-      });
-      if (!part.private.pollTimer) poll(part).catch(() => {});
     },
     'click [data-action="move-channel"]': async (part, event) => {
       event.preventDefault();
@@ -315,9 +214,6 @@ export default {
     },
   },
   state: {
-    cards: rerenderCards,
-    visibleCount: rerenderCards,
-    patchCardStatusUpdates: applyCardStatusUpdates,
     title: (part, value) => {
       part.refs.title.textContent = value;
       document.title = value;
@@ -342,8 +238,6 @@ export default {
       setTagControlsDisabled(part, oldValue, false);
       setTagControlsDisabled(part, value, true);
     },
-    pollingIds: () => {},
-    since: () => {},
   },
   onMount: (part) => {
     part.private.onDocClick = (event) => {
@@ -357,20 +251,8 @@ export default {
       part.set('sidebarOpen', false);
     };
     document.addEventListener('click', part.private.onDocClick);
-    part.private.sinceTimer = setInterval(() => checkSince(part).catch(() => {}), 60000);
-    const initialPolling = part.state.cards
-      .filter(
-        (card) => pendingStatuses.has(card.videoStatus) || pendingStatuses.has(card.audioStatus),
-      )
-      .map((card) => card.youtubeId);
-    if (initialPolling.length) {
-      part.set('pollingIds', [...new Set(initialPolling)]);
-      poll(part).catch(() => {});
-    }
   },
   onDestroy: (part) => {
     document.removeEventListener('click', part.private.onDocClick);
-    clearInterval(part.private.sinceTimer);
-    clearTimeout(part.private.pollTimer);
   },
 };

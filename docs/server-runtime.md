@@ -94,7 +94,7 @@ Expected result: HTTP 200, not proxied Node 404.
 - Channel/admin: `/channel/:id`, `/admin`
 - Player pages: `/v/:id`, `/a/:id`
 - Authorized media entrypoints: `/media/v/:id`, `/media/a/:id`, `/t/:id`
-- API: `/api/download`, `/api/sidebar/mode`, `/api/channel`, `/api/video`, `/api/channel/display-name`, `/api/channel/tags`, `/api/channel/auto-download`, `/api/channel/reorder`, `/api/tag/reorder`, `/api/tag/delete`, `/api/admin/...`, `/api/status`, `/api/since`
+- API: `/api/download`, `/api/sidebar/mode`, `/api/channel`, `/api/video`, `/api/channel/display-name`, `/api/channel/tags`, `/api/channel/auto-download`, `/api/channel/reorder`, `/api/tag/reorder`, `/api/tag/delete`, `/api/admin/...`, `/api/status`, `/api/since`, `/api/feed/cards`
 
 Handlers should remain the HTTP boundary: request/response, session, params/forms, redirects, status codes. Page HTML handlers should call one page renderer and should not manually load page data from the DB. Server-side part bakers handle page data loading and state building.
 
@@ -141,6 +141,7 @@ Authenticated user routes:
 - `POST /api/sidebar/mode`
 - `GET /api/status`
 - `GET /api/since`
+- `GET /api/feed/cards`
 
 The frontend may hide admin controls for non-admin users, but UI hiding is not authorization. Backend guards are authoritative so console/Postman calls cannot bypass role checks.
 
@@ -169,6 +170,7 @@ Examples:
 - `POST /api/sidebar/mode` stores the feed sidebar mode in session data.
 - `GET /api/status?ids=...` returns current DB media statuses for polling.
 - `GET /api/since?...` returns new videos since a timestamp for feed updates.
+- `GET /api/feed/cards?...` returns one paginated card collection page for feed controls.
 
 ## Protected Media Flow
 
