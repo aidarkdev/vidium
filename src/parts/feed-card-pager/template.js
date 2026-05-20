@@ -63,9 +63,7 @@ export function pagerHtml(state) {
         ${state.page >= state.pageCount || state.loading ? 'disabled' : ''}
       >&gt;</button>
     </div>
-    <div class="feed-pager-message" data-ref="message">
-      ${state.loading ? htmlEscape(state.strings.loading) : htmlEscape(state.error || '')}
-    </div>
+    <div class="feed-pager-message" data-ref="message">${htmlEscape(state.error || '')}</div>
   </nav>`;
 }
 
