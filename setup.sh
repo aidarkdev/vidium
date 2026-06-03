@@ -4,15 +4,26 @@ set -euo pipefail
 # ============================================
 # vidium setup script
 # Ubuntu 24.04, fresh install
-# Run as root from project root: sudo bash setup.sh
+# Run as root from project root: sudo bash setup.sh your-domain.com
+# Or: DOMAIN=your-domain.com sudo -E bash setup.sh
 # Source code is already in place alongside this script
 # ============================================
 
-DOMAIN="vidium.pupupu.work"
+DOMAIN="${DOMAIN:-${1:-}}"
 APP_DIR="$(cd "$(dirname "$0")" && pwd)"
 MEDIA_DIR="${APP_DIR}/media"
 DATA_DIR="${APP_DIR}/data"
 NODE_MAJOR=24
+
+if [ -z "${DOMAIN}" ]; then
+  read -rp "Domain for nginx/certbot (example: example.com): " DOMAIN
+fi
+
+if [ -z "${DOMAIN}" ] || [[ "${DOMAIN}" =~ [[:space:]/] ]]; then
+  echo "ERROR: domain is required and must not contain spaces or slashes."
+  echo "Usage: bash setup.sh your-domain.com"
+  exit 1
+fi
 
 # Detect the user who owns the project directory; fall back to root
 APP_USER="$(stat -c '%U' "${APP_DIR}")"

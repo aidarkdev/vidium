@@ -47,7 +47,7 @@ Use this for a clean VPS or when you want the server to manage code through git.
 ssh root@<VPS_IP>
 git clone https://github.com/aidarkdev/vidium /root/vidium
 cd /root/vidium
-bash setup.sh
+bash setup.sh your-domain.com
 nano .env
 systemctl enable --now vidium-server vidium-worker vidium-proxy-check.timer
 ```
@@ -108,7 +108,7 @@ Run setup once on the VPS:
 ```bash
 ssh root@<VPS_IP>
 cd /root/vidium
-bash setup.sh
+bash setup.sh your-domain.com
 nano .env
 systemctl enable --now vidium-server vidium-worker vidium-proxy-check.timer
 ```

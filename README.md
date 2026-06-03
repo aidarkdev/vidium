@@ -58,7 +58,7 @@ Run as root on the VPS:
 ssh root@<VPS_IP>
 git clone https://github.com/aidarkdev/vidium /root/vidium
 cd /root/vidium
-bash setup.sh
+bash setup.sh your-domain.com
 nano /root/vidium/.env
 systemctl enable --now vidium-server vidium-worker
 ```

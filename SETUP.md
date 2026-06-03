@@ -7,7 +7,7 @@ Clone the repo and run the setup script from the project directory:
 ```bash
 git clone <repo> ~/vidium
 cd ~/vidium
-sudo bash setup.sh
+sudo bash setup.sh your-domain.com
 ```
 
 The script:
