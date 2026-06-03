@@ -106,6 +106,15 @@ function renderProxyStatus(state) {
   const checkedAt = state.proxyStatus.checkedAt
     ? `<span>${htmlEscape(state.proxy.checkedAt)}: ${htmlEscape(formatCheckedAt(state.proxyStatus.checkedAt))}</span>`
     : '';
+  const attempts = state.proxyStatus.attempts
+    ? `<span>${htmlEscape(state.proxy.attempts)}: ${htmlEscape(String(state.proxyStatus.attempts))}</span>`
+    : '';
+  const latency = state.proxyStatus.latencyMs
+    ? `<span>${htmlEscape(state.proxy.latency)}: ${htmlEscape(String(state.proxyStatus.latencyMs))} ms</span>`
+    : '';
+  const url = state.proxyStatus.url
+    ? `<span>${htmlEscape(state.proxy.url)}: ${htmlEscape(state.proxyStatus.url)}</span>`
+    : '';
   const error = state.proxyStatus.error
     ? `<span class="admin-status-error">${htmlEscape(state.proxy.error)}: ${htmlEscape(state.proxyStatus.error)}</span>`
     : '';
@@ -118,6 +127,9 @@ function renderProxyStatus(state) {
     <div class="admin-system-status-line">
       <strong>${htmlEscape(proxyStatusLabel(state))}</strong>
       ${checkedAt}
+      ${attempts}
+      ${latency}
+      ${url}
       ${error}
     </div>
   </section>`;

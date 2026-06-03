@@ -71,6 +71,9 @@ export function bakeAdminPage(ctx: AdminBakeContext): {
         failed: t(lang, 'admin.proxy.failed'),
         invalid: t(lang, 'admin.proxy.invalid'),
         checkedAt: t(lang, 'admin.proxy.checked_at'),
+        attempts: t(lang, 'admin.proxy.attempts'),
+        latency: t(lang, 'admin.proxy.latency'),
+        url: t(lang, 'admin.proxy.url'),
         error: t(lang, 'admin.proxy.error'),
       },
       cols: {

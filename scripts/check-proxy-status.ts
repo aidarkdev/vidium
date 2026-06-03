@@ -10,14 +10,18 @@ import { renameSync } from 'node:fs';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
 
-const CHECK_URL = 'https://ifconfig.me';
-const TIMEOUT_SECONDS = '10';
+const CHECK_URL = 'https://www.google.com/generate_204';
+const TIMEOUT_SECONDS = '20';
+const ATTEMPTS = 3;
 const MAX_ERROR_LENGTH = 240;
 
 interface CheckResult {
   ok: boolean;
   checkedAt: string;
   error: string;
+  url: string;
+  attempts: number;
+  latencyMs: number;
 }
 
 function truncate(value: string, maxLength: number): string {
@@ -25,8 +29,9 @@ function truncate(value: string, maxLength: number): string {
   return trimmed.length <= maxLength ? trimmed : `${trimmed.slice(0, maxLength)}...`;
 }
 
-function runCurl(proxy: string): Promise<string> {
+function runCurl(proxy: string): Promise<{ body: string; latencyMs: number }> {
   return new Promise((resolve, reject) => {
+    const startedAt = Date.now();
     const proc = spawn('curl', [
       '--silent',
       '--show-error',
@@ -46,7 +51,7 @@ function runCurl(proxy: string): Promise<string> {
     proc.on('error', reject);
     proc.on('close', (code) => {
       if (code === 0) {
-        resolve(Buffer.concat(stdout).toString('utf8'));
+        resolve({ body: Buffer.concat(stdout).toString('utf8'), latencyMs: Date.now() - startedAt });
         return;
       }
 
@@ -54,6 +59,36 @@ function runCurl(proxy: string): Promise<string> {
       reject(new Error(err));
     });
   });
+}
+
+async function checkProxy(proxy: string): Promise<CheckResult> {
+  const checkedAt = new Date().toISOString();
+  let lastError = '';
+
+  for (let attempt = 1; attempt <= ATTEMPTS; attempt += 1) {
+    try {
+      const result = await runCurl(proxy);
+      return {
+        ok: true,
+        checkedAt,
+        error: '',
+        url: CHECK_URL,
+        attempts: attempt,
+        latencyMs: result.latencyMs,
+      };
+    } catch (err) {
+      lastError = err instanceof Error ? err.message : String(err);
+    }
+  }
+
+  return {
+    ok: false,
+    checkedAt,
+    error: truncate(lastError, MAX_ERROR_LENGTH),
+    url: CHECK_URL,
+    attempts: ATTEMPTS,
+    latencyMs: 0,
+  };
 }
 
 async function writeStatus(path: string, result: CheckResult): Promise<void> {
@@ -71,18 +106,7 @@ async function main(): Promise<void> {
 
   if (!proxy || !statusPath) return;
 
-  const checkedAt = new Date().toISOString();
-
-  try {
-    await runCurl(proxy);
-    await writeStatus(statusPath, { ok: true, checkedAt, error: '' });
-  } catch (err) {
-    await writeStatus(statusPath, {
-      ok: false,
-      checkedAt,
-      error: truncate(err instanceof Error ? err.message : String(err), MAX_ERROR_LENGTH),
-    });
-  }
+  await writeStatus(statusPath, await checkProxy(proxy));
 }
 
 await main();

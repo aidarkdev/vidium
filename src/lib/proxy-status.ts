@@ -11,6 +11,9 @@ export interface ProxyStatus {
   state: ProxyStatusState;
   checkedAt: string;
   error: string;
+  url: string;
+  attempts: number;
+  latencyMs: number;
 }
 
 function asRecord(value: unknown): Record<string, unknown> | null {
@@ -24,22 +27,49 @@ function shortString(value: unknown, maxLength: number): string {
   return value.length <= maxLength ? value : `${value.slice(0, maxLength)}...`;
 }
 
+function positiveInteger(value: unknown): number {
+  return typeof value === 'number' && Number.isInteger(value) && value > 0 ? value : 0;
+}
+
 export function readProxyStatus(): ProxyStatus | null {
   const path = config.PROXY_STATUS_PATH;
   if (!path) return null;
 
   try {
     if (statSync(path).size > 4096) {
-      return { state: 'invalid', checkedAt: '', error: 'proxy status file is too large' };
+      return {
+        state: 'invalid',
+        checkedAt: '',
+        error: 'proxy status file is too large',
+        url: '',
+        attempts: 0,
+        latencyMs: 0,
+      };
     }
 
     const raw = readFileSync(path, 'utf8');
     const data = asRecord(JSON.parse(raw));
-    if (!data) return { state: 'invalid', checkedAt: '', error: 'proxy status JSON is invalid' };
+    if (!data) {
+      return {
+        state: 'invalid',
+        checkedAt: '',
+        error: 'proxy status JSON is invalid',
+        url: '',
+        attempts: 0,
+        latencyMs: 0,
+      };
+    }
 
     const checkedAt = shortString(data.checkedAt, 64);
     if (!checkedAt) {
-      return { state: 'invalid', checkedAt: '', error: 'proxy status checkedAt is missing' };
+      return {
+        state: 'invalid',
+        checkedAt: '',
+        error: 'proxy status checkedAt is missing',
+        url: '',
+        attempts: 0,
+        latencyMs: 0,
+      };
     }
 
     const state =
@@ -52,13 +82,23 @@ export function readProxyStatus(): ProxyStatus | null {
           : null;
 
     if (!state) {
-      return { state: 'invalid', checkedAt, error: 'proxy status state is invalid' };
+      return {
+        state: 'invalid',
+        checkedAt,
+        error: 'proxy status state is invalid',
+        url: '',
+        attempts: 0,
+        latencyMs: 0,
+      };
     }
 
     return {
       state,
       checkedAt,
       error: shortString(data.error, 240),
+      url: shortString(data.url, 120),
+      attempts: positiveInteger(data.attempts),
+      latencyMs: positiveInteger(data.latencyMs),
     };
   } catch {
     return null;
