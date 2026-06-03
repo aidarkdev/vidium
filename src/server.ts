@@ -32,6 +32,7 @@ import {
   handleAddVideo,
   handleSetChannelDisplayName,
   handleSetChannelAutoDownload,
+  handleSetChannelGuestVisible,
   handleSetChannelTags,
   handleDeleteTag,
   handleReorderTag,
@@ -182,6 +183,11 @@ const routes: RouteConfig[] = [
     method: 'post',
     path: '/api/channel/auto-download',
     handler: handleSetChannelAutoDownload,
+  },
+  {
+    method: 'post',
+    path: '/api/channel/guest-visible',
+    handler: handleSetChannelGuestVisible,
   },
   {
     method: 'post',

@@ -30,9 +30,10 @@ export function mountScript(
   </script>`;
 }
 
-function navState(lang: string, isAdmin: boolean): Record<string, unknown> {
+function navState(lang: string, isAdmin: boolean, isGuest: boolean): Record<string, unknown> {
   return {
     isAdmin,
+    isGuest,
     controlsLabel: t(lang, 'nav.controls'),
     manageLabel: t(lang, 'nav.manage'),
     editLabel: t(lang, 'sidebar.edit'),
@@ -61,6 +62,8 @@ function navState(lang: string, isAdmin: boolean): Record<string, unknown> {
     langHref: `/lang/${lang === 'ru' ? 'en' : 'ru'}`,
     langLabel: lang === 'ru' ? 'EN' : 'RU',
     logoutLabel: t(lang, 'nav.logout'),
+    loginLabel: t(lang, 'auth.login'),
+    registerLabel: t(lang, 'auth.register'),
   };
 }
 
@@ -72,6 +75,7 @@ interface PartPageOptions {
   isAdmin: boolean;
   mainClass?: string;
   bodyClass?: string;
+  isGuest?: boolean;
 }
 
 export function renderPartPage(opts: PartPageOptions): string {
@@ -81,7 +85,7 @@ export function renderPartPage(opts: PartPageOptions): string {
   const bodyClass = opts.bodyClass ? ` class="${escapeHtml(opts.bodyClass)}"` : '';
   const baked = {
     ...opts.baked,
-    'nav-controls': navState(opts.lang, opts.isAdmin),
+    'nav-controls': navState(opts.lang, opts.isAdmin, opts.isGuest ?? false),
     'back-top': { visible: false, eventScrollTop: 0 },
   };
   /**

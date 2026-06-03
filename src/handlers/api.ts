@@ -15,6 +15,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import { unlink } from 'node:fs/promises';
 import { config } from '../config.ts';
 import {
+  getOptionalSession,
   requireSessionApi,
   requireAdminApi,
   checkCsrf,
@@ -41,6 +42,7 @@ import {
   setMediaStatusesNone,
   insertVideos,
   DEFAULT_VIDEO_PAGE_SIZE,
+  getGuestVideoPage,
   getVideoPage,
   getNewVideosSince,
   getNewVideosSinceByChannel,
@@ -53,11 +55,13 @@ import {
   MANUAL_CHANNEL_ID,
   setChannelDisplayName,
   setChannelAutoDownload,
+  setChannelGuestVisible,
   setChannelTags,
   moveTag as moveTagOrder,
   moveChannel as moveChannelOrder,
   normalizeChannelTags,
 } from '../lib/channel.ts';
+import { getGuestVisibleVideo } from '../lib/guest-access.ts';
 import { fetchMeta } from '../lib/ytdlp.ts';
 
 async function unlinkIfExists(path: string): Promise<boolean> {
@@ -121,14 +125,14 @@ export async function handleSidebarMode(req: IncomingMessage, res: ServerRespons
 }
 
 export function handleStatus(req: IncomingMessage, res: ServerResponse): void {
-  if (!requireSessionApi(req, res)) return;
+  const session = getOptionalSession(req);
 
   const ids = (getQuery(req).ids ?? '').split(',').filter(Boolean);
   if (!ids.length) return json(res, 200, {});
 
   const result: Record<string, { video: string; audio: string }> = {};
   for (const id of ids) {
-    const v = getVideoById(id);
+    const v = session ? getVideoById(id) : getGuestVisibleVideo(id);
     if (v) result[id] = { video: v.videoStatus, audio: v.audioStatus };
   }
 
@@ -170,17 +174,18 @@ export function handleSince(req: IncomingMessage, res: ServerResponse): void {
 }
 
 export function handleFeedCards(req: IncomingMessage, res: ServerResponse): void {
-  if (!requireSessionApi(req, res)) return;
+  const session = getOptionalSession(req);
 
   const q = getQuery(req);
   const page = Number.parseInt(q.page ?? '1', 10);
   const channelId = Number.parseInt(q.channelId ?? '', 10);
-  const result = getVideoPage({
+  const query = {
     page: Number.isInteger(page) && page > 0 ? page : 1,
     pageSize: DEFAULT_VIDEO_PAGE_SIZE,
     tag: (q.tag ?? 'all').trim() || 'all',
     channelId: Number.isInteger(channelId) && channelId > 0 ? channelId : 0,
-  });
+  };
+  const result = session ? getVideoPage(query) : getGuestVideoPage(query);
 
   json(res, 200, {
     ok: true,
@@ -336,6 +341,32 @@ export async function handleSetChannelAutoDownload(
 
   const saved = setChannelAutoDownload(data.channelId, data.type, data.enabled);
   json(res, 200, { ok: true, saved, type: data.type, enabled: data.enabled });
+}
+
+export async function handleSetChannelGuestVisible(
+  req: IncomingMessage,
+  res: ServerResponse,
+): Promise<void> {
+  if (!requireAdminApi(req, res)) return;
+  if (!checkCsrf(req, res)) return;
+
+  let data: { channelId: number; enabled: boolean };
+  try {
+    data = JSON.parse(await readBody(req));
+  } catch {
+    return json(res, 400, { error: 'invalid json' });
+  }
+
+  if (
+    !Number.isInteger(data.channelId) ||
+    data.channelId <= MANUAL_CHANNEL_ID ||
+    typeof data.enabled !== 'boolean'
+  ) {
+    return json(res, 400, { error: 'invalid request' });
+  }
+
+  const saved = setChannelGuestVisible(data.channelId, data.enabled);
+  json(res, 200, { ok: true, saved, enabled: data.enabled });
 }
 
 export async function handleReorderChannel(

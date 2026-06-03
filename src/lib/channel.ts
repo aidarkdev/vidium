@@ -14,6 +14,7 @@ export interface Channel {
   sortOrder: number;
   autoDownloadVideo: boolean;
   autoDownloadAudio: boolean;
+  guestVisible: boolean;
 }
 
 export interface TagLabel {
@@ -26,7 +27,7 @@ export interface TagLabel {
 
 const stmtGetById = db.prepare(
   `SELECT c.id, c.name, c.display_name, c.url, c.youtube_channel_id, c.sort_order,
-          c.auto_download_video, c.auto_download_audio,
+          c.auto_download_video, c.auto_download_audio, c.guest_visible,
           COALESCE(GROUP_CONCAT(ct.tag, ','), '') AS tags
    FROM channels c
    LEFT JOIN channel_tags ct ON ct.channel_id = c.id
@@ -44,7 +45,7 @@ const stmtUpdateCrawled = db.prepare(
 const stmtSetDisplayName = db.prepare(`UPDATE channels SET display_name = ? WHERE id = ?`);
 const stmtGetAll = db.prepare(
   `SELECT c.id, c.name, c.display_name, c.url, c.youtube_channel_id, c.sort_order,
-          c.auto_download_video, c.auto_download_audio,
+          c.auto_download_video, c.auto_download_audio, c.guest_visible,
           COALESCE(GROUP_CONCAT(ct.tag, ','), '') AS tags
    FROM channels c
    LEFT JOIN channel_tags ct ON ct.channel_id = c.id
@@ -74,6 +75,9 @@ const stmtSetAutoDownloadVideo = db.prepare(
 );
 const stmtSetAutoDownloadAudio = db.prepare(
   `UPDATE channels SET auto_download_audio = ? WHERE id = ? AND id != ?`,
+);
+const stmtSetGuestVisible = db.prepare(
+  `UPDATE channels SET guest_visible = ? WHERE id = ? AND id != ?`,
 );
 const stmtGetOrderedTags = db.prepare(`
   SELECT tl.tag
@@ -118,6 +122,7 @@ type RawChannel = {
   sort_order: number;
   auto_download_video: number;
   auto_download_audio: number;
+  guest_visible: number;
 };
 
 function toChannel(r: RawChannel): Channel {
@@ -131,6 +136,7 @@ function toChannel(r: RawChannel): Channel {
     sortOrder: r.sort_order,
     autoDownloadVideo: r.auto_download_video === 1,
     autoDownloadAudio: r.auto_download_audio === 1,
+    guestVisible: r.guest_visible === 1,
   };
 }
 
@@ -179,8 +185,16 @@ export function setChannelAutoDownload(
   return stmt.run(enabled ? 1 : 0, channelId, MANUAL_CHANNEL_ID).changes > 0;
 }
 
+export function setChannelGuestVisible(channelId: number, enabled: boolean): boolean {
+  return stmtSetGuestVisible.run(enabled ? 1 : 0, channelId, MANUAL_CHANNEL_ID).changes > 0;
+}
+
 export function getAllChannels(): Channel[] {
   return (stmtGetAll.all() as RawChannel[]).map(toChannel);
+}
+
+export function getGuestVisibleChannels(): Channel[] {
+  return getAllChannels().filter((channel) => channel.id !== MANUAL_CHANNEL_ID && channel.guestVisible);
 }
 
 export function normalizeChannelTags(rawTags: string): string[] {

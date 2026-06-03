@@ -6,6 +6,7 @@ interface PlayerRenderContext {
   lang: string;
   params: Record<string, string>;
   isAdmin: boolean;
+  isGuest?: boolean;
 }
 
 export function renderPlayerPage(ctx: PlayerRenderContext): string | undefined {
@@ -16,6 +17,7 @@ export function renderPlayerPage(ctx: PlayerRenderContext): string | undefined {
     title: page.title,
     lang: ctx.lang,
     isAdmin: ctx.isAdmin,
+    isGuest: ctx.isGuest ?? false,
     baked: { [page.id]: page.state },
     body: mountScript('/parts/player-page/index.js', page.id),
   });

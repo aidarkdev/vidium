@@ -1,10 +1,18 @@
-import { getAllChannels, getAllTags, getChannelById, getTagLabel } from '../../lib/channel.ts';
+import {
+  getAllChannels,
+  getAllTags,
+  getChannelById,
+  getGuestVisibleChannels,
+  getTagLabel,
+} from '../../lib/channel.ts';
+import type { ViewerMode } from '../../lib/guest-access.ts';
 import { t } from '../../pages/lang.ts';
 
 interface FeedBakeContext {
   lang: string;
   params: Record<string, string>;
   sidebarMode?: 'channels' | 'tags';
+  viewerMode?: ViewerMode;
 }
 
 type PageBakeResult =
@@ -39,16 +47,19 @@ function labels(lang: string): Record<string, string> {
 }
 
 export function bakeFeedPage(ctx: FeedBakeContext): SuccessfulPageBake {
+  const isGuest = ctx.viewerMode === 'guest';
   const activeTag = ctx.params.tag ?? 'all';
-  const channels = getAllChannels();
-  const tags = getAllTags();
+  const channels = isGuest ? getGuestVisibleChannels() : getAllChannels();
+  const tags = isGuest ? [] : getAllTags();
   const manualCh = channels.find((ch) => ch.id === 1);
   const systemLabels: Record<string, string> = {
     all: t(ctx.lang, 'tag.all'),
     ready: t(ctx.lang, 'tag.ready'),
     manual: manualCh?.displayName || manualCh?.name || 'manual',
   };
-  const title = systemLabels[activeTag] ?? getTagLabel(activeTag)?.label ?? activeTag;
+  const title = isGuest
+    ? (systemLabels[activeTag] ?? activeTag)
+    : (systemLabels[activeTag] ?? getTagLabel(activeTag)?.label ?? activeTag);
 
   return {
     ok: true,
@@ -62,7 +73,9 @@ export function bakeFeedPage(ctx: FeedBakeContext): SuccessfulPageBake {
       activeTag,
       activeChannelId: 0,
       sidebarOpen: false,
-      sidebarMode: ctx.sidebarMode ?? 'channels',
+      sidebarMode: isGuest ? 'channels' : (ctx.sidebarMode ?? 'channels'),
+      showSystemLinks: !isGuest,
+      showSidebarModeTabs: !isGuest,
       editMode: false,
       movingChannelId: 0,
       movingTag: '',
@@ -76,12 +89,14 @@ export function bakeFeedPage(ctx: FeedBakeContext): SuccessfulPageBake {
 }
 
 export function bakeChannelPage(ctx: FeedBakeContext): PageBakeResult {
+  const isGuest = ctx.viewerMode === 'guest';
   const channelId = parseInt(ctx.params.id, 10);
   const channel = getChannelById(channelId);
   if (!channel) return { ok: false, message: 'Channel not found' };
+  if (isGuest && !channel.guestVisible) return { ok: false, message: 'Channel not found' };
 
-  const channels = getAllChannels();
-  const tags = getAllTags();
+  const channels = isGuest ? getGuestVisibleChannels() : getAllChannels();
+  const tags = isGuest ? [] : getAllTags();
   const title = channel.displayName || channel.name;
 
   return {
@@ -96,7 +111,9 @@ export function bakeChannelPage(ctx: FeedBakeContext): PageBakeResult {
       activeTag: '',
       activeChannelId: channel.id,
       sidebarOpen: false,
-      sidebarMode: ctx.sidebarMode ?? 'channels',
+      sidebarMode: isGuest ? 'channels' : (ctx.sidebarMode ?? 'channels'),
+      showSystemLinks: !isGuest,
+      showSidebarModeTabs: !isGuest,
       editMode: false,
       movingChannelId: 0,
       movingTag: '',

@@ -64,7 +64,9 @@ function rerenderUpdatedCards(part, updates) {
     if (!card || !node) continue;
 
     const fresh = document.createElement('template');
-    fresh.innerHTML = cardHtml(card, part.state.strings);
+    fresh.innerHTML = cardHtml(card, part.state.strings, {
+      allowDownload: part.state.allowDownload !== false,
+    });
     node.replaceWith(fresh.content.firstElementChild);
   }
 }
@@ -158,6 +160,7 @@ export default {
       loadPage(part, page).catch(() => {});
     },
     'click [data-action="download"]': async (part, event) => {
+      if (part.state.allowDownload === false) return;
       const btn = event.target.closest('[data-action="download"]');
       const id = btn.dataset.id;
       const type = btn.dataset.type;

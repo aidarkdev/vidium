@@ -1,5 +1,6 @@
 import { bakeChannelPage } from '../parts/feed-page/baker.ts';
 import { bakeFeedCardPager } from '../parts/feed-card-pager/baker.ts';
+import type { ViewerMode } from '../lib/guest-access.ts';
 import { mountScript, renderPartPage } from './part-page.ts';
 
 interface ChannelRenderContext {
@@ -8,6 +9,7 @@ interface ChannelRenderContext {
   isAdmin: boolean;
   sidebarMode?: 'channels' | 'tags';
   page?: number;
+  viewerMode?: ViewerMode;
 }
 
 export function renderChannelPage(ctx: ChannelRenderContext): string | undefined {
@@ -20,12 +22,15 @@ export function renderChannelPage(ctx: ChannelRenderContext): string | undefined
     page: ctx.page,
     activeTag: '',
     activeChannelId: channelId,
+    viewerMode: ctx.viewerMode,
+    allowDownload: ctx.viewerMode !== 'guest',
   });
 
   return renderPartPage({
     lang: ctx.lang,
     title: page.title,
     isAdmin: ctx.isAdmin,
+    isGuest: ctx.viewerMode === 'guest',
     baked: { [page.id]: page.state, [pager.id]: pager.state },
     mainClass: 'feed-main',
     bodyClass: 'feed-layout',

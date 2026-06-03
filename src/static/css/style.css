@@ -782,6 +782,15 @@ button.btn-audio:hover {
 
 .admin-page {
   --admin-anchor-offset: calc(var(--nav-height) + 3.25rem + 1rem);
+  --admin-topbar-height: var(--feed-topbar-height);
+  --admin-section-header-top: calc(var(--nav-height) + var(--admin-topbar-height));
+}
+
+.admin-page .topbar {
+  background: var(--page-bg);
+  border-bottom: 1px solid #333;
+  min-height: var(--admin-topbar-height);
+  z-index: 100;
 }
 
 .admin-contents {
@@ -815,14 +824,21 @@ button.btn-audio:hover {
   scroll-margin-top: var(--admin-anchor-offset);
 }
 
-.admin-system-status h2 {
+.admin-system-status h2,
+.admin-section h2 {
   display: flex;
   align-items: baseline;
   gap: 0.65rem;
   flex-wrap: wrap;
-  margin-bottom: 0.35rem;
+  margin-bottom: 0.6rem;
   font-size: 1.05rem;
   scroll-margin-top: var(--admin-anchor-offset);
+  position: sticky;
+  top: var(--admin-section-header-top);
+  z-index: 80;
+  background: var(--page-bg);
+  padding: 0.45rem 0;
+  border-bottom: 1px solid #333;
 }
 
 .admin-system-status-line {
@@ -851,16 +867,6 @@ button.btn-audio:hover {
 
 .admin-section {
   margin-bottom: 1.5rem;
-  scroll-margin-top: var(--admin-anchor-offset);
-}
-
-.admin-section h2 {
-  display: flex;
-  align-items: baseline;
-  gap: 0.65rem;
-  flex-wrap: wrap;
-  margin-bottom: 0.6rem;
-  font-size: 1.05rem;
   scroll-margin-top: var(--admin-anchor-offset);
 }
 
@@ -893,8 +899,6 @@ button.btn-audio:hover {
 .admin-table th {
   background: #181818;
   color: #ddd;
-  position: sticky;
-  top: 0;
 }
 
 .admin-actions-cell {

@@ -18,7 +18,7 @@ function formatDuration(seconds) {
     : `${m}:${String(s).padStart(2, '0')}`;
 }
 
-function actionButton(id, type, status, strings) {
+function actionButton(id, type, status, strings, options = {}) {
   if (status === 'ready') {
     const href = type === 'video' ? `/v/${htmlEscape(id)}` : `/a/${htmlEscape(id)}`;
     const label = type === 'video' ? strings.watch : strings.listen;
@@ -33,6 +33,8 @@ function actionButton(id, type, status, strings) {
       data-type="${type}"
     >${htmlEscape(label)}</span>`;
   }
+
+  if (options.allowDownload === false) return '';
 
   const label = type === 'video' ? strings.downloadVideo : strings.downloadAudio;
   return `<button
@@ -55,7 +57,7 @@ function durationHtml(card) {
   return `<span class="card-duration">${formatDuration(card.duration)}</span>`;
 }
 
-export function cardHtml(card, strings) {
+export function cardHtml(card, strings, options = {}) {
   return `<article class="card" data-id="${htmlEscape(card.youtubeId)}">
     <img
       class="card-thumb"
@@ -73,8 +75,8 @@ export function cardHtml(card, strings) {
         ${durationHtml(card)}
       </div>
       <div class="card-actions">
-        ${actionButton(card.youtubeId, 'video', card.videoStatus, strings)}
-        ${actionButton(card.youtubeId, 'audio', card.audioStatus, strings)}
+        ${actionButton(card.youtubeId, 'video', card.videoStatus, strings, options)}
+        ${actionButton(card.youtubeId, 'audio', card.audioStatus, strings, options)}
       </div>
     </div>
   </article>`;
@@ -194,18 +196,23 @@ export function sidebarHtml(state) {
   const manual = state.channels.find((ch) => ch.id === 1);
   const regular = state.channels.filter((ch) => ch.id !== 1);
   const manualLabel = manual?.displayName || manual?.name || 'manual';
+  const systemLinks =
+    state.showSystemLinks === false
+      ? ''
+      : `<div class="sidebar-system">
+        ${systemLink('/feed', state.activeTag === 'all', state.labels.all)}
+        ${systemLink('/feed/ready', state.activeTag === 'ready', state.labels.ready)}
+        ${systemLink('/feed/manual', state.activeTag === 'manual', manualLabel)}
+      </div>
+      <div class="sidebar-divider"></div>`;
+  const modeTabs = state.showSidebarModeTabs === false ? '' : sidebarModeTabs(state);
 
   return `<div
     class="sidebar-panel${state.sidebarOpen ? ' open' : ''}${state.editMode ? ' edit-mode' : ''}"
     data-ref="sidebar"
   >
-    <div class="sidebar-system">
-      ${systemLink('/feed', state.activeTag === 'all', state.labels.all)}
-      ${systemLink('/feed/ready', state.activeTag === 'ready', state.labels.ready)}
-      ${systemLink('/feed/manual', state.activeTag === 'manual', manualLabel)}
-    </div>
-    <div class="sidebar-divider"></div>
-    ${sidebarModeTabs(state)}
+    ${systemLinks}
+    ${modeTabs}
     <div class="sidebar-channels" data-ref="sidebarChannels">
       ${
         state.sidebarMode === 'tags'

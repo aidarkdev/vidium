@@ -4,7 +4,8 @@
 
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { config } from '../config.ts';
-import { requireSession, html, getQuery } from '../lib/http.ts';
+import { parseCookies } from '../lib/auth/cookies.ts';
+import { getOptionalSession, html, getQuery } from '../lib/http.ts';
 import { renderFeedPage } from '../pages/feed.ts';
 
 function pageFromQuery(req: IncomingMessage): number {
@@ -17,17 +18,17 @@ export function handleFeed(
   res: ServerResponse,
   params: Record<string, string>,
 ): void {
-  const session = requireSession(req, res);
-  if (!session) return;
+  const session = getOptionalSession(req);
 
   html(
     res,
     renderFeedPage({
-      lang: session.data.lang ?? config.DEFAULT_LANG,
+      lang: session?.data.lang ?? parseCookies(req).lang ?? config.DEFAULT_LANG,
       params,
-      isAdmin: session.role === 'admin',
-      sidebarMode: session.data.sidebarMode,
+      isAdmin: session?.role === 'admin',
+      sidebarMode: session?.data.sidebarMode,
       page: pageFromQuery(req),
+      viewerMode: session ? 'user' : 'guest',
     }),
   );
 }

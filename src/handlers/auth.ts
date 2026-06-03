@@ -97,6 +97,8 @@ export function handleLang(
 
   if (session) {
     updateSessionData(session.sid, { ...session.data, lang });
+  } else {
+    setCookie(res, 'lang', lang, config.SESSION_MAX_AGE);
   }
 
   const ref = (req.headers.referer as string | undefined) ?? '';
@@ -108,5 +110,5 @@ export function handleLogout(req: IncomingMessage, res: ServerResponse): void {
   const cookies = parseCookies(req);
   if (cookies.sid) destroySession(cookies.sid);
   clearCookie(res, 'sid');
-  redirect(res, '/login');
+  redirect(res, '/');
 }

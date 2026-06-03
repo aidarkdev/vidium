@@ -82,10 +82,14 @@ export function getQuery(req: IncomingMessage): Record<string, string> {
   return Object.fromEntries(qs.split('&').map((p) => p.split('=').map(decodeURIComponent)));
 }
 
+export function getOptionalSession(req: IncomingMessage): Session | undefined {
+  const cookies = parseCookies(req);
+  return cookies.sid ? getSession(cookies.sid) : undefined;
+}
+
 /** Returns session or redirects to /login. Use in HTML handlers. */
 export function requireSession(req: IncomingMessage, res: ServerResponse): Session | undefined {
-  const cookies = parseCookies(req);
-  const session = cookies.sid ? getSession(cookies.sid) : undefined;
+  const session = getOptionalSession(req);
   if (!session) redirect(res, '/login');
   return session;
 }
@@ -102,8 +106,7 @@ export function requireAdmin(req: IncomingMessage, res: ServerResponse): Session
 
 /** Returns session or responds with JSON 401. Use in API handlers. */
 export function requireSessionApi(req: IncomingMessage, res: ServerResponse): Session | undefined {
-  const cookies = parseCookies(req);
-  const session = cookies.sid ? getSession(cookies.sid) : undefined;
+  const session = getOptionalSession(req);
   if (!session) {
     json(res, 401, { error: 'unauthorized' });
     return undefined;

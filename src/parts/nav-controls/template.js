@@ -73,14 +73,18 @@ export default function template(state) {
         </div>
       </details>`
     : '';
+  const authControls = state.isGuest
+    ? `<a href="/login" class="nav-lang">${htmlEscape(state.loginLabel)}</a>
+      <a href="/register" class="nav-lang">${htmlEscape(state.registerLabel)}</a>`
+    : `<form method="post" action="/logout">
+      <button class="nav-logout" type="submit">${htmlEscape(state.logoutLabel)}</button>
+    </form>`;
 
   return `<div class="nav-controls" data-ref="root">
     ${adminControls}
     <a href="${htmlEscape(state.langHref)}" class="nav-lang">
       ${htmlEscape(state.langLabel)}
     </a>
-    <form method="post" action="/logout">
-      <button class="nav-logout" type="submit">${htmlEscape(state.logoutLabel)}</button>
-    </form>
+    ${authControls}
   </div>`;
 }

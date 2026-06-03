@@ -82,6 +82,9 @@ const SEL_WITH_CHAPTERS = `
          v.chapters_json,
          COALESCE(NULLIF(c.display_name,''), c.name, '') AS channel_name
   FROM videos v LEFT JOIN channels c ON v.channel_id = c.id`;
+const GUEST_READY_WHERE = `
+  c.guest_visible = 1
+  AND (v.video_status = 'ready' OR v.audio_status = 'ready')`;
 
 const stmtGetById = db.prepare(`${SEL_WITH_CHAPTERS} WHERE v.youtube_id = ?`);
 const stmtGetAll = db.prepare(`${SEL} ORDER BY v.date DESC, v.created_at DESC LIMIT 200`);
@@ -168,6 +171,35 @@ const stmtCountReady = db.prepare(
 const stmtGetReadyPage = db.prepare(
   `${SEL} WHERE v.video_status = 'ready' OR v.audio_status = 'ready' ORDER BY v.ready_at DESC LIMIT ? OFFSET ?`,
 );
+const stmtGuestCountAll = db.prepare(`
+  SELECT COUNT(*) AS count
+  FROM videos v JOIN channels c ON v.channel_id = c.id
+  WHERE ${GUEST_READY_WHERE}`);
+const stmtGuestGetAllPage = db.prepare(
+  `${SEL} WHERE ${GUEST_READY_WHERE} ORDER BY v.date DESC, v.created_at DESC LIMIT ? OFFSET ?`,
+);
+const stmtGuestCountByChannel = db.prepare(`
+  SELECT COUNT(*) AS count
+  FROM videos v JOIN channels c ON v.channel_id = c.id
+  WHERE v.channel_id = ? AND ${GUEST_READY_WHERE}`);
+const stmtGuestGetByChannelPage = db.prepare(
+  `${SEL} WHERE v.channel_id = ? AND ${GUEST_READY_WHERE} ORDER BY v.date DESC, v.created_at DESC LIMIT ? OFFSET ?`,
+);
+const stmtGuestCountByTag = db.prepare(`
+  SELECT COUNT(*) AS count
+  FROM videos v
+  JOIN channel_tags ct ON ct.channel_id = v.channel_id
+  JOIN channels c ON v.channel_id = c.id
+  WHERE ct.tag = ? AND ${GUEST_READY_WHERE}`);
+const stmtGuestGetByTagPage = db.prepare(`
+  SELECT v.youtube_id, v.title, v.channel_id, v.date, v.duration, v.video_status, v.audio_status,
+         '[]' AS chapters_json,
+         COALESCE(NULLIF(c.display_name,''), c.name, '') AS channel_name
+  FROM videos v
+  JOIN channel_tags ct ON ct.channel_id = v.channel_id
+  JOIN channels c ON v.channel_id = c.id
+  WHERE ct.tag = ? AND ${GUEST_READY_WHERE}
+  ORDER BY v.date DESC, v.created_at DESC LIMIT ? OFFSET ?`);
 const stmtExists = db.prepare(`SELECT id FROM videos WHERE youtube_id = ?`);
 const stmtSetVideoStatus = db.prepare(
   `UPDATE videos SET video_status = ?, ready_at = CASE WHEN ? = 'ready' THEN strftime('%Y-%m-%dT%H:%M:%SZ','now') ELSE ready_at END WHERE youtube_id = ?`,
@@ -408,6 +440,44 @@ export function getVideoPage(query: VideoPageQuery): VideoPage {
   total = (stmtCountAll.get() as RawCountRow).count;
   const page = clampPage(requestedPage, pageSize, total);
   rows = stmtGetAllPage.all(pageSize, offsetFor(page, pageSize)) as RawRow[];
+  return pageResult(rows, page, pageSize, total);
+}
+
+export function getGuestVideoPage(query: VideoPageQuery): VideoPage {
+  const rawPageSize = Math.floor(query.pageSize);
+  const rawPage = Math.floor(query.page);
+  const pageSize = Number.isFinite(rawPageSize) && rawPageSize > 0 ? rawPageSize : 1;
+  const requestedPage = Number.isFinite(rawPage) && rawPage > 0 ? rawPage : 1;
+  const channelId =
+    typeof query.channelId === 'number' && Number.isInteger(query.channelId)
+      ? query.channelId
+      : 0;
+  const tag = (query.tag ?? 'all').trim() || 'all';
+
+  let total = 0;
+  let rows: RawRow[] = [];
+
+  if (channelId > 0) {
+    total = (stmtGuestCountByChannel.get(channelId) as RawCountRow).count;
+    const page = clampPage(requestedPage, pageSize, total);
+    rows = stmtGuestGetByChannelPage.all(channelId, pageSize, offsetFor(page, pageSize)) as RawRow[];
+    return pageResult(rows, page, pageSize, total);
+  }
+
+  if (tag === 'manual') {
+    return pageResult([], 1, pageSize, 0);
+  }
+
+  if (tag !== 'all' && tag !== 'ready') {
+    total = (stmtGuestCountByTag.get(tag) as RawCountRow).count;
+    const page = clampPage(requestedPage, pageSize, total);
+    rows = stmtGuestGetByTagPage.all(tag, pageSize, offsetFor(page, pageSize)) as RawRow[];
+    return pageResult(rows, page, pageSize, total);
+  }
+
+  total = (stmtGuestCountAll.get() as RawCountRow).count;
+  const page = clampPage(requestedPage, pageSize, total);
+  rows = stmtGuestGetAllPage.all(pageSize, offsetFor(page, pageSize)) as RawRow[];
   return pageResult(rows, page, pageSize, total);
 }
 

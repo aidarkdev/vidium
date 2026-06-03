@@ -167,6 +167,7 @@ export function channelsHead(s) {
     <th>${htmlEscape(s.tags)}</th>
     <th>${htmlEscape(s.autoVideo)}</th>
     <th>${htmlEscape(s.autoAudio)}</th>
+    <th>${htmlEscape(s.guestVisible)}</th>
     <th>${htmlEscape(s.actions)}</th>
   </tr>`;
 }
@@ -227,6 +228,8 @@ function channelRow(channel, state) {
     channel.id === 1 || state.pendingChannelAutoDownloadKey === videoAutoKey;
   const audioAutoDisabled =
     channel.id === 1 || state.pendingChannelAutoDownloadKey === audioAutoKey;
+  const guestVisibleDisabled =
+    channel.id === 1 || state.pendingChannelGuestVisibleId === channel.id;
 
   return `<tr data-channel-id="${channel.id}">
     <td>${channel.id}</td>
@@ -276,6 +279,19 @@ function channelRow(channel, state) {
       }
     </td>
     <td>
+      ${
+        channel.id === 1
+          ? ''
+          : `<input
+            type="checkbox"
+            data-action="admin-channel-guest-visible"
+            data-channel-id="${channel.id}"
+            ${channel.guestVisible ? 'checked' : ''}
+            ${guestVisibleDisabled ? 'disabled' : ''}
+          >`
+      }
+    </td>
+    <td>
       <button
         class="btn admin-btn"
         type="submit"
@@ -288,7 +304,7 @@ function channelRow(channel, state) {
 }
 
 export function renderChannels(state) {
-  return rows(state.channels, (channel) => channelRow(channel, state), state.empty, 7);
+  return rows(state.channels, (channel) => channelRow(channel, state), state.empty, 8);
 }
 
 function jobRow(job, state) {

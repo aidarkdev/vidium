@@ -231,6 +231,34 @@ export default {
         part.set('pendingChannelAutoDownloadKey', '');
       }
     },
+    'change [data-action="admin-channel-guest-visible"]': async (part, event) => {
+      const input = event.target.closest('[data-action="admin-channel-guest-visible"]');
+      const channelId = Number(input.dataset.channelId);
+      if (!Number.isInteger(channelId) || channelId <= 1) return;
+
+      const enabled = input.checked;
+      part.set({
+        pendingChannelGuestVisibleId: channelId,
+        channels: part.state.channels.map((channel) =>
+          channel.id === channelId ? { ...channel, guestVisible: enabled } : channel,
+        ),
+      });
+      try {
+        await postJson('/api/channel/guest-visible', {
+          channelId,
+          enabled,
+        });
+      } catch (err) {
+        part.set({
+          channels: part.state.channels.map((channel) =>
+            channel.id === channelId ? { ...channel, guestVisible: !enabled } : channel,
+          ),
+          errorMessage: err.message || part.state.actions.error,
+        });
+      } finally {
+        part.set('pendingChannelGuestVisibleId', 0);
+      }
+    },
   },
   state: {
     channels: (part) => {
@@ -327,6 +355,15 @@ export default {
       );
     },
     pendingChannelAutoDownloadKey: (part) => {
+      part.refs.channels.innerHTML = table(
+        part.state.sections.channels,
+        channelsHead(part.state.cols),
+        renderChannels(part.state),
+        'admin-channels',
+        part.state.contentsLink,
+      );
+    },
+    pendingChannelGuestVisibleId: (part) => {
       part.refs.channels.innerHTML = table(
         part.state.sections.channels,
         channelsHead(part.state.cols),

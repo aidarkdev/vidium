@@ -94,7 +94,7 @@ Expected result: HTTP 200, not proxied Node 404.
 - Channel/admin: `/channel/:id`, `/admin`
 - Player pages: `/v/:id`, `/a/:id`
 - Authorized media entrypoints: `/media/v/:id`, `/media/a/:id`, `/t/:id`
-- API: `/api/download`, `/api/sidebar/mode`, `/api/channel`, `/api/video`, `/api/channel/display-name`, `/api/channel/tags`, `/api/channel/auto-download`, `/api/channel/reorder`, `/api/tag/reorder`, `/api/tag/delete`, `/api/admin/...`, `/api/status`, `/api/since`, `/api/feed/cards`
+- API: `/api/download`, `/api/sidebar/mode`, `/api/channel`, `/api/video`, `/api/channel/display-name`, `/api/channel/tags`, `/api/channel/auto-download`, `/api/channel/guest-visible`, `/api/channel/reorder`, `/api/tag/reorder`, `/api/tag/delete`, `/api/admin/...`, `/api/status`, `/api/since`, `/api/feed/cards`
 
 Handlers should remain the HTTP boundary: request/response, session, params/forms, redirects, status codes. Page HTML handlers should call one page renderer and should not manually load page data from the DB. Server-side part bakers handle page data loading and state building.
 
@@ -111,8 +111,10 @@ Use the shared helpers by route type:
 
 - HTML pages that require login: `requireSession(req, res)`.
 - HTML pages that require admin: `requireAdmin(req, res)`.
+- Public-capable HTML pages: use optional session lookup in the handler, then enforce guest channel/video access before rendering.
 - JSON APIs that require login: `requireSessionApi(req, res)`.
 - JSON APIs that require admin: `requireAdminApi(req, res)`.
+- Public-capable JSON APIs: use optional session lookup in the handler, then filter unauthenticated responses to guest-visible channels.
 
 Non-admin HTML admin routes respond with `403 Forbidden`. Non-admin admin API routes respond with JSON `403 { "error": "forbidden" }`.
 
@@ -124,6 +126,7 @@ Admin-only routes:
 - `POST /api/channel/display-name`
 - `POST /api/channel/tags`
 - `POST /api/channel/auto-download`
+- `POST /api/channel/guest-visible`
 - `POST /api/channel/reorder`
 - `POST /api/tag/reorder`
 - `POST /api/tag/delete`
@@ -133,15 +136,20 @@ Admin-only routes:
 - `POST /api/admin/video/status/reset`
 - `POST /api/admin/user/role`
 
+Guest-visible routes:
+
+- `GET /`, `/feed`, `/feed/:tag` render a public feed scoped to channels with `guest_visible = 1`.
+- `GET /channel/:id` renders only when the channel has `guest_visible = 1`.
+- `GET /v/:id`, `/a/:id`, `/media/v/:id`, `/media/a/:id` are public only for videos in guest-visible channels and only when the requested media kind is `ready`.
+- `GET /t/:id`, `GET /api/status`, and `GET /api/feed/cards` are public only for guest-visible channel data.
+
 Authenticated user routes:
 
-- Feed/channel/player pages.
-- Authorized media entrypoints: `/media/v/:id`, `/media/a/:id`, `/t/:id`.
+- Full feed/channel/player pages, including private channels and non-public tags.
+- Authorized media entrypoints for private or not-yet-public media: `/media/v/:id`, `/media/a/:id`, `/t/:id`.
 - `POST /api/download`
 - `POST /api/sidebar/mode`
-- `GET /api/status`
 - `GET /api/since`
-- `GET /api/feed/cards`
 
 The frontend may hide admin controls for non-admin users, but UI hiding is not authorization. Backend guards are authoritative so console/Postman calls cannot bypass role checks.
 

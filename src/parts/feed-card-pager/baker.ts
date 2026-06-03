@@ -1,4 +1,5 @@
-import { DEFAULT_VIDEO_PAGE_SIZE, getVideoPage } from '../../lib/video.ts';
+import { DEFAULT_VIDEO_PAGE_SIZE, getGuestVideoPage, getVideoPage } from '../../lib/video.ts';
+import type { ViewerMode } from '../../lib/guest-access.ts';
 import { t } from '../../pages/lang.ts';
 
 interface FeedCardPagerBakeContext {
@@ -9,6 +10,8 @@ interface FeedCardPagerBakeContext {
   activeChannelId?: number;
   syncUrl?: boolean;
   pageParam?: string;
+  viewerMode?: ViewerMode;
+  allowDownload?: boolean;
 }
 
 function strings(lang: string): Record<string, string> {
@@ -34,12 +37,13 @@ export function bakeFeedCardPager(ctx: FeedCardPagerBakeContext): {
 } {
   const activeChannelId = ctx.activeChannelId ?? 0;
   const activeTag = ctx.activeTag ?? 'all';
-  const page = getVideoPage({
+  const query = {
     page: ctx.page ?? 1,
     pageSize: DEFAULT_VIDEO_PAGE_SIZE,
     tag: activeTag,
     channelId: activeChannelId,
-  });
+  };
+  const page = ctx.viewerMode === 'guest' ? getGuestVideoPage(query) : getVideoPage(query);
 
   return {
     id: ctx.id,
@@ -51,6 +55,7 @@ export function bakeFeedCardPager(ctx: FeedCardPagerBakeContext): {
       total: page.total,
       activeTag,
       activeChannelId,
+      allowDownload: ctx.allowDownload ?? true,
       pageParam: ctx.pageParam ?? 'page',
       syncUrl: ctx.syncUrl ?? true,
       loading: false,
