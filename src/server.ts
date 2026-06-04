@@ -7,6 +7,7 @@
 
 import { createServer } from 'node:http';
 import { config } from './config.ts';
+import { loadAssetManifest } from './lib/assets.ts';
 import { NO_STORE } from './lib/http.ts';
 import { Router } from './lib/router.ts';
 import type { Handler } from './lib/router.ts';
@@ -253,6 +254,8 @@ for (const route of routes) {
 }
 
 // Server
+loadAssetManifest(config.ASSET_MANIFEST_PATH);
+
 const server = createServer((req, res) => {
   router.dispatch(req, res).catch((err) => {
     console.error(err);

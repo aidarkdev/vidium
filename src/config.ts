@@ -7,6 +7,8 @@
  * All values must be set in .env — defaults live there, not here.
  */
 
+import { join } from 'node:path';
+
 export interface Config {
   // HTTP server
   PORT: number;
@@ -34,6 +36,9 @@ export interface Config {
 
   // i18n
   DEFAULT_LANG: string;
+
+  // Prepared browser assets (optional — missing manifest falls back to source paths)
+  ASSET_MANIFEST_PATH: string;
 }
 
 const high = parseFloat(process.env.DISK_HIGH_WATERMARK ?? '');
@@ -64,6 +69,8 @@ export const config: Config = {
   SESSION_MAX_AGE: parseInt(process.env.SESSION_MAX_AGE ?? '', 10),
 
   DEFAULT_LANG: process.env.DEFAULT_LANG ?? '',
+
+  ASSET_MANIFEST_PATH: process.env.ASSET_MANIFEST_PATH ?? join(process.cwd(), 'deploy', 'asset-manifest.json'),
 };
 
 const required = [

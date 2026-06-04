@@ -78,10 +78,9 @@ cat > /etc/cron.d/ytdlp-update << 'EOF'
 EOF
 
 echo "=== Setting permissions for nginx ==="
-# nginx (www-data) needs execute on each parent dir to reach static/media files
-chmod o+x $(dirname "${APP_DIR}") "${APP_DIR}" "${APP_DIR}/src" "${APP_DIR}/src/static" "${APP_DIR}/src/engine" "${APP_DIR}/src/parts"
-# Symlink so nginx alias /static/ works without knowing about src/
-ln -sfn "${APP_DIR}/src/static" "${APP_DIR}/static"
+# nginx (www-data) needs execute on each parent dir to reach deploy/media files
+mkdir -p "${APP_DIR}/deploy"
+chmod o+x $(dirname "${APP_DIR}") "${APP_DIR}" "${APP_DIR}/src" "${APP_DIR}/deploy"
 
 echo "=== Creating nginx config ==="
 cat > /etc/nginx/sites-available/${DOMAIN} << NGINX
@@ -99,24 +98,22 @@ server {
         proxy_set_header X-Forwarded-Proto \$scheme;
     }
 
-    # Static frontend assets served directly by nginx.
+    # Hashed browser assets prepared by scripts/prepare-static.ts
     location /static/ {
-        alias ${APP_DIR}/static/;
-        add_header Cache-Control "no-cache" always;
+        alias ${APP_DIR}/deploy/static/;
+        add_header Cache-Control "public, max-age=31536000, immutable" always;
         try_files \$uri =404;
     }
 
-    # Client runtime modules.
     location /engine/ {
-        alias ${APP_DIR}/src/engine/;
-        add_header Cache-Control "no-cache" always;
+        alias ${APP_DIR}/deploy/engine/;
+        add_header Cache-Control "public, max-age=31536000, immutable" always;
         try_files \$uri =404;
     }
 
-    # Client part modules.
     location /parts/ {
-        alias ${APP_DIR}/src/parts/;
-        add_header Cache-Control "no-cache" always;
+        alias ${APP_DIR}/deploy/parts/;
+        add_header Cache-Control "public, max-age=31536000, immutable" always;
         try_files \$uri =404;
     }
 

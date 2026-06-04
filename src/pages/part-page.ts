@@ -3,6 +3,7 @@
  */
 
 import { t } from './lang.ts';
+import { assetUrl } from '../lib/assets.ts';
 
 function safeJson(data: unknown): string {
   return JSON.stringify(data).replace(/</g, '\\u003c');
@@ -24,8 +25,8 @@ export function mountScript(
 ): string {
   return `
   <script mount-dot="mount-dot-${id}" type="module">
-    import partModule from '${partPath}';
-    import { mount } from '/engine/core.js';
+    import partModule from '${assetUrl(partPath)}';
+    import { mount } from '${assetUrl('/engine/core.js')}';
     mount(partModule, ${safeJson({ id, microState: {}, ...params })});
   </script>`;
 }
@@ -104,16 +105,16 @@ export function renderPartPage(opts: PartPageOptions): string {
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width, initial-scale=1">
       <title>${title}</title>
-      <link rel="stylesheet" href="/static/css/style.css">
-      <link rel="icon" type="image/png" href="/static/favicon.png">
+      <link rel="stylesheet" href="${assetUrl('/static/css/style.css')}">
+      <link rel="icon" type="image/png" href="${assetUrl('/static/favicon.png')}">
       <link rel="manifest" href="/manifest.webmanifest">
       <meta name="theme-color" content="#111111">
       <meta name="mobile-web-app-capable" content="yes">
       <meta name="apple-mobile-web-app-capable" content="yes">
       <meta name="apple-mobile-web-app-title" content="vidium">
       <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-      <link rel="apple-touch-icon" href="/static/icon-192.png">
-      <script type="module" src="/engine/core.js"></script>
+      <link rel="apple-touch-icon" href="${assetUrl('/static/icon-192.png')}">
+      <script type="module" src="${assetUrl('/engine/core.js')}"></script>
       <script>
         if ('serviceWorker' in navigator) {
           navigator.serviceWorker.register('/sw.js');

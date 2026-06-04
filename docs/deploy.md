@@ -21,7 +21,7 @@ Files that should exist on the VPS for runtime:
 - `data/`
 - `media/`
 - `cookies.txt` if `YTDLP_COOKIES` points to it
-- `static` symlink pointing to `src/static`, created by `setup.sh`
+- `deploy/` — content-hashed browser assets and `asset-manifest.json`, built locally by `scripts/prepare-static.ts` and rsynced by `scripts/deploy-static.sh`
 
 `package.json` is needed for Node module mode because it contains `"type": "module"`. It is not used as an npm dependency manifest.
 
@@ -113,9 +113,9 @@ nano .env
 systemctl enable --now vidium-server vidium-worker vidium-proxy-check.timer
 ```
 
-`setup.sh` prepares the machine: installs system packages, creates `.env`, `data/`, `media/`, the `static` symlink, nginx config, and systemd services. Do not use it as a normal code deploy command.
+`setup.sh` prepares the machine: installs system packages, creates `.env`, `data/`, `media/`, `deploy/`, nginx config, and systemd services. Do not use it as a normal code deploy command.
 
-After setup, deploy the application files with rsync.
+After setup, deploy application source with rsync, then deploy hashed browser assets (see below).
 
 ### Subsequent rsync deploy
 
@@ -132,9 +132,19 @@ rsync -av --delete \
   root@<VPS_IP>:/root/vidium/
 ```
 
-Then restart Node services on the VPS:
+Then deploy hashed browser assets and restart Node services:
 
 ```bash
+~/<project_path>/vidium/scripts/deploy-static.sh root@<VPS_IP>
+```
+
+Or run the steps separately:
+
+```bash
+node ~/<project_path>/vidium/scripts/prepare-static.ts
+rsync -av --delete \
+  ~/<project_path>/vidium/tmp/vidium-static/ \
+  root@<VPS_IP>:/root/vidium/deploy/
 ssh root@<VPS_IP> 'systemctl restart vidium-server vidium-worker'
 ```
 
@@ -166,6 +176,41 @@ rsync -av --delete \
   root@<VPS_IP>:/root/vidium/
 ```
 
+## Static Asset Deploy
+
+Browser assets (`/engine/`, `/parts/`, `/static/`) are content-hashed at deploy time so nginx can serve them with long-lived immutable caching. The Node server reads `deploy/asset-manifest.json` and emits hashed URLs in HTML.
+
+Prepare locally (writes to `tmp/vidium-static/`):
+
+```bash
+node scripts/prepare-static.ts
+# or: npm run prepare:static
+```
+
+Deploy prepared assets to the VPS:
+
+```bash
+scripts/deploy-static.sh root@<VPS_IP>
+```
+
+Full rsync deploy sequence:
+
+1. rsync `src/` and `package.json` (commands above)
+2. `scripts/deploy-static.sh root@<VPS_IP>`
+
+Git-based VPS deploys still need a local static deploy step — run `deploy-static.sh` from your checkout after `git pull` on the VPS updates server code.
+
+Optional env override: `ASSET_MANIFEST_PATH` in `.env` (default: `<app>/deploy/asset-manifest.json`).
+
+### Migrating an existing VPS to hashed assets
+
+1. Deploy updated server code (`src/` rsync or `git pull`).
+2. Edit the nginx site config: point `/static/`, `/engine/`, and `/parts/` aliases to `${APP_DIR}/deploy/` and set `Cache-Control: public, max-age=31536000, immutable`. See `setup.sh` for the current template.
+3. `nginx -t && systemctl reload nginx`
+4. Run `scripts/deploy-static.sh root@<VPS_IP>` from your local checkout.
+
+Remove any old `static` → `src/static` symlink; it is no longer used.
+
 ## Static Assets And nginx
 
 Browser modules under `/engine/`, `/parts/`, and `/static/` are served by nginx aliases. Restarting Node does not fix 404s for those files.
@@ -181,6 +226,8 @@ If only `src/` changed:
 ```bash
 ssh root@<VPS_IP> 'systemctl restart vidium-server vidium-worker'
 ```
+
+If browser JS/CSS/images changed, also run `scripts/deploy-static.sh` locally — restarting Node alone does not update hashed files under `deploy/`.
 
 ## Checks After Deploy
 

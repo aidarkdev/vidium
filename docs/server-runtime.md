@@ -29,20 +29,20 @@ The active nginx site config must contain these locations inside the `server {}`
 
 ```nginx
 location /static/ {
-    alias /path/to/vidium/static/;
-    add_header Cache-Control "no-cache" always;
+    alias /path/to/vidium/deploy/static/;
+    add_header Cache-Control "public, max-age=31536000, immutable" always;
     try_files $uri =404;
 }
 
 location /engine/ {
-    alias /path/to/vidium/src/engine/;
-    add_header Cache-Control "no-cache" always;
+    alias /path/to/vidium/deploy/engine/;
+    add_header Cache-Control "public, max-age=31536000, immutable" always;
     try_files $uri =404;
 }
 
 location /parts/ {
-    alias /path/to/vidium/src/parts/;
-    add_header Cache-Control "no-cache" always;
+    alias /path/to/vidium/deploy/parts/;
+    add_header Cache-Control "public, max-age=31536000, immutable" always;
     try_files $uri =404;
 }
 
@@ -65,25 +65,27 @@ Replace `/path/to/vidium` with the deployed app directory. In `setup.sh`, shell 
 
 ## Static Frontend Assets
 
-- `/engine/core.js` maps to `src/engine/core.js`.
-- `/parts/<name>/index.js` maps to `src/parts/<name>/index.js`.
-- `/parts/<name>/template.js` and `/parts/<name>/handlers.js` are also browser modules and must be reachable.
-- `/parts/<name>/baker.ts` is server-only. Browser `index.js` must not import it.
-- `/static/` maps to static assets, currently via a symlink from `<app>/static` to `<app>/src/static` created by `setup.sh`.
-- Public browser assets use `Cache-Control: no-cache` so clients may store them but must revalidate before reuse. Do not use long-lived immutable caching here unless URLs become content-versioned.
+Production browser assets live under `<app>/deploy/`, prepared by `scripts/prepare-static.ts`. Each file gets a content hash in its filename (e.g. `core.e49da54c.js`). Node reads `deploy/asset-manifest.json` at startup and emits hashed URLs in HTML via `assetUrl()`.
 
-If `/engine/core.js` or `/parts/.../index.js` returns 404 in the browser, restarting Node will not fix it. The nginx site config is missing or not reloaded.
+- Logical path `/engine/core.js` → hashed file under `deploy/engine/`.
+- `/parts/<name>/index.js`, `template.js`, `handlers.js` → hashed files under `deploy/parts/<name>/`.
+- `/static/` CSS and icons → hashed files under `deploy/static/`.
+- `/parts/<name>/baker.ts` stays in `src/parts/` — server-only, never deployed to `deploy/`.
+
+nginx serves `deploy/` with `Cache-Control: public, max-age=31536000, immutable`. When content changes, the hash (and URL) changes, so browsers fetch fresh files.
+
+**Local development:** without `deploy/asset-manifest.json`, the server falls back to unhashed logical paths (`/engine/core.js`, etc.). Point nginx at `src/` for local static serving, or use a one-off `prepare-static` + copy to `deploy/` to test production URLs.
+
+If a hashed asset returns 404, restarting Node will not fix it — run `deploy-static.sh` or check nginx aliases point to `deploy/`.
 
 Verify static module delivery after nginx changes:
 
 ```bash
-curl -I https://example.com/engine/core.js
-curl -I https://example.com/parts/feed-page/index.js
-curl -I https://example.com/parts/feed-page/template.js
-curl -I https://example.com/parts/feed-page/handlers.js
+curl -I https://example.com/engine/core.<hash>.js
+curl -I https://example.com/parts/feed-page/index.<hash>.js
 ```
 
-Expected result: HTTP 200, not proxied Node 404.
+Expected result: HTTP 200, `cache-control: immutable`, not proxied Node 404. Use the current hash from `deploy/asset-manifest.json`.
 
 ## Node Router
 
@@ -208,10 +210,9 @@ Deployment commands and git/rsync workflows live in `docs/deploy.md`.
 
 `setup.sh` creates or updates:
 
-- runtime directories
+- runtime directories including `deploy/`
 - permissions for nginx traversal
-- `/static` symlink to `src/static`
-- nginx site config with `/static/`, `/engine/`, `/parts/`, `/protected_media/`
+- nginx site config with `/static/`, `/engine/`, `/parts/` aliases to `deploy/`, plus `/protected_media/`
 - systemd service for `vidium-server`
 
 Do not rerun `setup.sh` just to fix a missing `/engine/` or `/parts/` alias on an existing server unless you intend to reapply all setup steps. For that case, edit the active nginx site config directly, then run:

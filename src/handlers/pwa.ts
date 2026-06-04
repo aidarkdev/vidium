@@ -1,29 +1,32 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
+import { assetUrl } from '../lib/assets.ts';
 
-const MANIFEST = {
-  id: '/',
-  name: 'vidium',
-  short_name: 'vidium',
-  start_url: '/',
-  scope: '/',
-  display: 'standalone',
-  background_color: '#111111',
-  theme_color: '#111111',
-  icons: [
-    {
-      src: '/static/icon-192.png',
-      sizes: '192x192',
-      type: 'image/png',
-      purpose: 'any maskable',
-    },
-    {
-      src: '/static/icon-512.png',
-      sizes: '512x512',
-      type: 'image/png',
-      purpose: 'any maskable',
-    },
-  ],
-};
+function webManifest() {
+  return {
+    id: '/',
+    name: 'vidium',
+    short_name: 'vidium',
+    start_url: '/',
+    scope: '/',
+    display: 'standalone',
+    background_color: '#111111',
+    theme_color: '#111111',
+    icons: [
+      {
+        src: assetUrl('/static/icon-192.png'),
+        sizes: '192x192',
+        type: 'image/png',
+        purpose: 'any maskable',
+      },
+      {
+        src: assetUrl('/static/icon-512.png'),
+        sizes: '512x512',
+        type: 'image/png',
+        purpose: 'any maskable',
+      },
+    ],
+  };
+}
 
 const SERVICE_WORKER = `
 self.addEventListener('install', (event) => {
@@ -48,7 +51,7 @@ export function handleManifest(
     'Content-Type': 'application/manifest+json; charset=utf-8',
     'Cache-Control': 'no-cache',
   });
-  res.end(JSON.stringify(MANIFEST));
+  res.end(JSON.stringify(webManifest()));
 }
 
 export function handleServiceWorker(
