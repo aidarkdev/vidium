@@ -1,4 +1,9 @@
-import { DEFAULT_VIDEO_PAGE_SIZE, getGuestVideoPage, getVideoPage } from '../../lib/video.ts';
+import {
+  DEFAULT_VIDEO_PAGE_SIZE,
+  getGuestVideoPage,
+  getVideoPage,
+  toPublicVideoRow,
+} from '../../lib/video.ts';
 import type { ViewerMode } from '../../lib/guest-access.ts';
 import { t } from '../../pages/lang.ts';
 
@@ -48,7 +53,7 @@ export function bakeFeedCardPager(ctx: FeedCardPagerBakeContext): {
   return {
     id: ctx.id,
     state: {
-      cards: page.items,
+      cards: page.items.map(toPublicVideoRow),
       page: page.page,
       pageSize: page.pageSize,
       pageCount: page.pageCount,

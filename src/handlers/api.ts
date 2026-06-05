@@ -1,8 +1,8 @@
 /**
  * handlers/api.ts — JSON API endpoints.
  *
- * POST /api/download  — enqueue video or audio download
- * GET  /api/status    — poll job status for given youtube IDs
+ * POST /api/download  — enqueue video or audio download (body uses public uid)
+ * GET  /api/status    — poll job status for given public uids
  * GET  /api/since     — new videos since a timestamp
  * GET  /api/feed/cards — paginated feed card data
  * POST /api/channel   — add channel + enqueue crawl
@@ -32,10 +32,12 @@ import {
   enqueue,
   getJobAdminById,
 } from '../lib/queue.ts';
-import { isValidVideoId, CHANNEL_URL_RE, VIDEO_URL_RE } from '../lib/validation.ts';
+import { isValidUid, isValidVideoId, CHANNEL_URL_RE, VIDEO_URL_RE } from '../lib/validation.ts';
 import {
   deleteVideoByYoutubeId,
-  getVideoById,
+  getVideoByUid,
+  getVideoByYoutubeId,
+  toPublicVideoRow,
   videoExists,
   setVideoStatus,
   setAudioStatus,
@@ -81,22 +83,25 @@ export async function handleDownload(req: IncomingMessage, res: ServerResponse):
   if (!requireSessionApi(req, res)) return;
   if (!checkCsrf(req, res)) return;
 
-  let data: { youtubeId: string; type: 'video' | 'audio' };
+  let data: { uid: string; type: 'video' | 'audio' };
   try {
     data = JSON.parse(await readBody(req));
   } catch {
     return json(res, 400, { error: 'invalid json' });
   }
 
-  if (!isValidVideoId(data.youtubeId) || !['video', 'audio'].includes(data.type)) {
+  if (!isValidUid(data.uid) || !['video', 'audio'].includes(data.type)) {
     return json(res, 400, { error: 'invalid request' });
   }
 
+  const video = getVideoByUid(data.uid);
+  if (!video) return json(res, 404, { error: 'not found' });
+
   const jobType = data.type === 'video' ? 'download_video' : 'download_audio';
 
-  if (data.type === 'video') setVideoStatus(data.youtubeId, 'queued');
-  else setAudioStatus(data.youtubeId, 'queued');
-  enqueue(jobType, { youtubeId: data.youtubeId });
+  if (data.type === 'video') setVideoStatus(video.youtubeId, 'queued');
+  else setAudioStatus(video.youtubeId, 'queued');
+  enqueue(jobType, { youtubeId: video.youtubeId });
 
   json(res, 200, { ok: true, status: 'queued' });
 }
@@ -131,9 +136,10 @@ export function handleStatus(req: IncomingMessage, res: ServerResponse): void {
   if (!ids.length) return json(res, 200, {});
 
   const result: Record<string, { video: string; audio: string }> = {};
-  for (const id of ids) {
-    const v = session ? getVideoById(id) : getGuestVisibleVideo(id);
-    if (v) result[id] = { video: v.videoStatus, audio: v.audioStatus };
+  for (const uid of ids) {
+    if (!isValidUid(uid)) continue;
+    const v = session ? getVideoByUid(uid) : getGuestVisibleVideo(uid);
+    if (v) result[uid] = { video: v.videoStatus, audio: v.audioStatus };
   }
 
   json(res, 200, result);
@@ -160,16 +166,7 @@ export function handleSince(req: IncomingMessage, res: ServerResponse): void {
   json(
     res,
     200,
-    rows.map((r) => ({
-      youtubeId: r.youtubeId,
-      title: r.title,
-      channelId: r.channelId,
-      channelName: r.channelName,
-      date: r.date,
-      duration: r.duration,
-      videoStatus: r.videoStatus,
-      audioStatus: r.audioStatus,
-    })),
+    rows.map((r) => toPublicVideoRow(r)),
   );
 }
 
@@ -189,7 +186,7 @@ export function handleFeedCards(req: IncomingMessage, res: ServerResponse): void
 
   json(res, 200, {
     ok: true,
-    cards: result.items,
+    cards: result.items.map(toPublicVideoRow),
     page: result.page,
     pageSize: result.pageSize,
     pageCount: result.pageCount,
@@ -487,7 +484,7 @@ function resetDownloadJobStatus(jobId: number): ResetStatusResult | null {
   const job = getJobAdminById(jobId);
   if (!job || job.status === 'done' || !job.youtubeId) return null;
 
-  const video = getVideoById(job.youtubeId);
+  const video = getVideoByYoutubeId(job.youtubeId);
   if (!video) return null;
 
   if (job.type === 'download_video') {
@@ -544,7 +541,7 @@ export async function handleAdminResetVideoStatus(
 
   if (!isValidVideoId(data.youtubeId)) return json(res, 400, { error: 'invalid request' });
 
-  const video = getVideoById(data.youtubeId);
+  const video = getVideoByYoutubeId(data.youtubeId);
   if (!video) return json(res, 404, { error: 'not found' });
 
   const resetVideo = RESETTABLE_MEDIA_STATUSES.has(video.videoStatus);

@@ -58,10 +58,10 @@ function durationHtml(card) {
 }
 
 export function cardHtml(card, strings, options = {}) {
-  return `<article class="card" data-id="${htmlEscape(card.youtubeId)}">
+  return `<article class="card" data-id="${htmlEscape(card.uid)}">
     <img
       class="card-thumb"
-      src="/t/${htmlEscape(card.youtubeId)}"
+      src="/t/${htmlEscape(card.uid)}"
       alt="${htmlEscape(card.title)}"
       loading="lazy"
     >
@@ -75,8 +75,8 @@ export function cardHtml(card, strings, options = {}) {
         ${durationHtml(card)}
       </div>
       <div class="card-actions">
-        ${actionButton(card.youtubeId, 'video', card.videoStatus, strings, options)}
-        ${actionButton(card.youtubeId, 'audio', card.audioStatus, strings, options)}
+        ${actionButton(card.uid, 'video', card.videoStatus, strings, options)}
+        ${actionButton(card.uid, 'audio', card.audioStatus, strings, options)}
       </div>
     </div>
   </article>`;

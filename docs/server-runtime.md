@@ -94,8 +94,8 @@ Expected result: HTTP 200, `cache-control: immutable`, not proxied Node 404. Use
 - Auth: `/login`, `/register`, `/logout`, `/lang/:code`
 - Feed: `/`, `/feed`, `/feed/:tag`
 - Channel/admin: `/channel/:id`, `/admin`
-- Player pages: `/v/:id`, `/a/:id`
-- Authorized media entrypoints: `/media/v/:id`, `/media/a/:id`, `/t/:id`
+- Player pages: `/v/:id`, `/a/:id` (`:id` is the public video `uid`, not the internal YouTube id)
+- Authorized media entrypoints: `/media/v/:id`, `/media/a/:id`, `/t/:id` (same public `uid`; Node resolves to on-disk `{youtube_id}.*` files)
 - API: `/api/download`, `/api/sidebar/mode`, `/api/channel`, `/api/video`, `/api/channel/display-name`, `/api/channel/tags`, `/api/channel/auto-download`, `/api/channel/guest-visible`, `/api/channel/reorder`, `/api/tag/reorder`, `/api/tag/delete`, `/api/admin/...`, `/api/status`, `/api/since`, `/api/feed/cards`
 
 Handlers should remain the HTTP boundary: request/response, session, params/forms, redirects, status codes. Page HTML handlers should call one page renderer and should not manually load page data from the DB. Server-side part bakers handle page data loading and state building.
@@ -142,8 +142,8 @@ Guest-visible routes:
 
 - `GET /`, `/feed`, `/feed/:tag` render a public feed scoped to channels with `guest_visible = 1`.
 - `GET /channel/:id` renders only when the channel has `guest_visible = 1`.
-- `GET /v/:id`, `/a/:id`, `/media/v/:id`, `/media/a/:id` are public only for videos in guest-visible channels and only when the requested media kind is `ready`.
-- `GET /t/:id`, `GET /api/status`, and `GET /api/feed/cards` are public only for guest-visible channel data.
+- `GET /v/:id`, `/a/:id`, `/media/v/:id`, `/media/a/:id` are public only for videos in guest-visible channels and only when the requested media kind is `ready`. `:id` is the public `uid`.
+- `GET /t/:id`, `GET /api/status`, and `GET /api/feed/cards` are public only for guest-visible channel data. Client APIs use `uid`, not `youtubeId`.
 
 Authenticated user routes:
 
@@ -176,9 +176,9 @@ API requests are proxied to Node. API handlers may read JSON bodies, perform CSR
 
 Examples:
 
-- `POST /api/download` sets video/audio status to `queued` and enqueues a download job.
+- `POST /api/download` accepts `{ uid, type }`, resolves the internal `youtube_id`, sets status to `queued`, and enqueues a download job.
 - `POST /api/sidebar/mode` stores the feed sidebar mode in session data.
-- `GET /api/status?ids=...` returns current DB media statuses for polling.
+- `GET /api/status?ids=...` returns current DB media statuses for polling (comma-separated public `uid`s).
 - `GET /api/since?...` returns new videos since a timestamp for feed updates.
 - `GET /api/feed/cards?...` returns one paginated card collection page for feed controls.
 
@@ -187,19 +187,20 @@ Examples:
 Raw media files are not public through `/media/` paths. The flow is:
 
 ```text
-browser -> /media/v/:id or /media/a/:id or /t/:id
+browser -> /media/v/:uid or /media/a/:uid or /t/:uid
 nginx -> Node handler
-Node -> require session
-Node -> responds with X-Accel-Redirect: /protected_media/...
+Node -> require session (or guest-visible access)
+Node -> resolve uid -> internal youtube_id
+Node -> responds with X-Accel-Redirect: /protected_media/.../{youtube_id}.*
 nginx -> internal /protected_media/ alias -> media file bytes
 ```
 
 Relevant Node handlers are in `src/handlers/video.ts`:
 
 ```ts
-X-Accel-Redirect: /protected_media/videos/:id.mp4
-X-Accel-Redirect: /protected_media/audio/:id.m4a
-X-Accel-Redirect: /protected_media/thumbs/:id.jpg
+X-Accel-Redirect: /protected_media/videos/{youtube_id}.mp4
+X-Accel-Redirect: /protected_media/audio/{youtube_id}.m4a
+X-Accel-Redirect: /protected_media/thumbs/{youtube_id}.jpg
 ```
 
 `/protected_media/` must be `internal` in nginx so clients cannot bypass Node authorization.

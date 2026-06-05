@@ -6,6 +6,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import { config } from '../config.ts';
 import { parseCookies } from '../lib/auth/cookies.ts';
 import { canGuestAccessVideo, getGuestVisibleVideo } from '../lib/guest-access.ts';
+import { getVideoByUid } from '../lib/video.ts';
 import { getOptionalSession, notFound, html, NO_STORE } from '../lib/http.ts';
 import { renderPlayerPage } from '../pages/player.ts';
 
@@ -64,10 +65,12 @@ export function handleMediaVideo(
   params: Record<string, string>,
 ): void {
   const session = getOptionalSession(req);
-  const id = params.id;
-  if (!id) return notFound(res);
-  if (!session && !canGuestAccessVideo(id, 'video')) return notFound(res);
-  accel(res, `/protected_media/videos/${id}.mp4`, 'video/mp4');
+  const uid = params.id;
+  if (!uid) return notFound(res);
+  if (!session && !canGuestAccessVideo(uid, 'video')) return notFound(res);
+  const video = getVideoByUid(uid);
+  if (!video) return notFound(res);
+  accel(res, `/protected_media/videos/${video.youtubeId}.mp4`, 'video/mp4');
 }
 
 export function handleMediaAudio(
@@ -76,10 +79,12 @@ export function handleMediaAudio(
   params: Record<string, string>,
 ): void {
   const session = getOptionalSession(req);
-  const id = params.id;
-  if (!id) return notFound(res);
-  if (!session && !canGuestAccessVideo(id, 'audio')) return notFound(res);
-  accel(res, `/protected_media/audio/${id}.m4a`, 'audio/mp4');
+  const uid = params.id;
+  if (!uid) return notFound(res);
+  if (!session && !canGuestAccessVideo(uid, 'audio')) return notFound(res);
+  const video = getVideoByUid(uid);
+  if (!video) return notFound(res);
+  accel(res, `/protected_media/audio/${video.youtubeId}.m4a`, 'audio/mp4');
 }
 
 export function handleThumb(
@@ -88,8 +93,9 @@ export function handleThumb(
   params: Record<string, string>,
 ): void {
   const session = getOptionalSession(req);
-  const id = params.id;
-  if (!id) return notFound(res);
-  if (!session && !getGuestVisibleVideo(id)) return notFound(res);
-  accel(res, `/protected_media/thumbs/${id}.jpg`, 'image/jpeg');
+  const uid = params.id;
+  if (!uid) return notFound(res);
+  const video = session ? getVideoByUid(uid) : getGuestVisibleVideo(uid);
+  if (!video) return notFound(res);
+  accel(res, `/protected_media/thumbs/${video.youtubeId}.jpg`, 'image/jpeg');
 }

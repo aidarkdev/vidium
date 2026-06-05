@@ -11,6 +11,7 @@
 import { existsSync } from 'node:fs';
 import { config } from '../src/config.ts';
 import { db } from '../src/lib/db.ts';
+import { generateVideoUid } from '../src/lib/video.ts';
 
 const MEDIA_ID_RE = /^[a-zA-Z0-9_-]+$/;
 const MANUAL_CHANNEL_ID = 1;
@@ -37,18 +38,19 @@ if (!existsSync(filePath)) {
 }
 
 const date = new Date().toISOString().slice(0, 10);
+const uid = generateVideoUid();
 const stmt = db.prepare(`
   INSERT INTO videos (
-    channel_id, youtube_id, title, date, duration,
+    channel_id, uid, youtube_id, title, date, duration,
     video_status, audio_status, source_type, ready_at
   )
-  VALUES (?, ?, ?, ?, 0, 'ready', 'none', 'manual', strftime('%Y-%m-%dT%H:%M:%SZ','now'))
+  VALUES (?, ?, ?, ?, ?, 0, 'ready', 'none', 'manual', strftime('%Y-%m-%dT%H:%M:%SZ','now'))
   ON CONFLICT (youtube_id) DO NOTHING
 `);
 
-const result = stmt.run(MANUAL_CHANNEL_ID, youtubeId, title, date);
+const result = stmt.run(MANUAL_CHANNEL_ID, uid, youtubeId, title, date);
 if (result.changes === 0) {
   fail(`video already exists: ${youtubeId}`);
 }
 
-console.log(`registered: ${youtubeId} -> /v/${youtubeId}`);
+console.log(`registered: ${youtubeId} -> /v/${uid}`);

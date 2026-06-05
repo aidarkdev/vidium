@@ -52,6 +52,7 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS videos (
     id           INTEGER PRIMARY KEY AUTOINCREMENT,
     channel_id   INTEGER REFERENCES channels(id) ON DELETE SET NULL,
+    uid          TEXT    NOT NULL UNIQUE,
     youtube_id   TEXT    NOT NULL UNIQUE,
     title        TEXT    NOT NULL DEFAULT '',
     date         TEXT    NOT NULL DEFAULT '',
@@ -103,6 +104,7 @@ db.exec(`
 db.exec(`
   CREATE INDEX IF NOT EXISTS idx_videos_channel   ON videos(channel_id);
   CREATE INDEX IF NOT EXISTS idx_videos_date      ON videos(date DESC);
+  CREATE UNIQUE INDEX IF NOT EXISTS idx_videos_uid ON videos(uid);
   CREATE INDEX IF NOT EXISTS idx_channel_tags_tag ON channel_tags(tag);
   CREATE INDEX IF NOT EXISTS idx_jobs_status      ON jobs(status, created_at);
   CREATE INDEX IF NOT EXISTS idx_sessions_user    ON sessions(user_id);
@@ -133,6 +135,10 @@ if (!hasColumn('channels', 'guest_visible')) {
 
 if (!hasColumn('videos', 'chapters_json')) {
   db.exec(`ALTER TABLE videos ADD COLUMN chapters_json TEXT NOT NULL DEFAULT '[]'`);
+}
+
+if (!hasColumn('videos', 'uid')) {
+  db.exec(`ALTER TABLE videos ADD COLUMN uid TEXT`);
 }
 
 // ── System channels ───────────────────────────────────────────────────────────

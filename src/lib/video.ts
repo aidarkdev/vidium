@@ -2,11 +2,13 @@
  * video.ts — data access layer for the videos table.
  */
 
+import { randomBytes } from 'node:crypto';
 import { db } from './db.ts';
 
 export const DEFAULT_VIDEO_PAGE_SIZE = 42;
 
 export interface VideoRow {
+  uid: string;
   youtubeId: string;
   title: string;
   channelId: number;
@@ -70,15 +72,17 @@ export interface VideoPage {
   total: number;
 }
 
+export type PublicVideoRow = Omit<VideoRow, 'youtubeId' | 'chapters'>;
+
 // ── Statements ────────────────────────────────────────────────────────────────
 
 const SEL = `
-  SELECT v.youtube_id, v.title, v.channel_id, v.date, v.duration, v.video_status, v.audio_status,
+  SELECT v.uid, v.youtube_id, v.title, v.channel_id, v.date, v.duration, v.video_status, v.audio_status,
          '[]' AS chapters_json,
          COALESCE(NULLIF(c.display_name,''), c.name, '') AS channel_name
   FROM videos v LEFT JOIN channels c ON v.channel_id = c.id`;
 const SEL_WITH_CHAPTERS = `
-  SELECT v.youtube_id, v.title, v.channel_id, v.date, v.duration, v.video_status, v.audio_status,
+  SELECT v.uid, v.youtube_id, v.title, v.channel_id, v.date, v.duration, v.video_status, v.audio_status,
          v.chapters_json,
          COALESCE(NULLIF(c.display_name,''), c.name, '') AS channel_name
   FROM videos v LEFT JOIN channels c ON v.channel_id = c.id`;
@@ -86,7 +90,8 @@ const GUEST_READY_WHERE = `
   c.guest_visible = 1
   AND (v.video_status = 'ready' OR v.audio_status = 'ready')`;
 
-const stmtGetById = db.prepare(`${SEL_WITH_CHAPTERS} WHERE v.youtube_id = ?`);
+const stmtGetByYoutubeId = db.prepare(`${SEL_WITH_CHAPTERS} WHERE v.youtube_id = ?`);
+const stmtGetByUid = db.prepare(`${SEL_WITH_CHAPTERS} WHERE v.uid = ?`);
 const stmtGetAll = db.prepare(`${SEL} ORDER BY v.date DESC, v.created_at DESC LIMIT 200`);
 const stmtCountAll = db.prepare(`SELECT COUNT(*) AS count FROM videos`);
 const stmtGetAllPage = db.prepare(`${SEL} ORDER BY v.date DESC, v.created_at DESC LIMIT ? OFFSET ?`);
@@ -98,7 +103,7 @@ const stmtGetByChannelPage = db.prepare(
   `${SEL} WHERE v.channel_id = ? ORDER BY v.date DESC, v.created_at DESC LIMIT ? OFFSET ?`,
 );
 const stmtGetByTag = db.prepare(`
-  SELECT v.youtube_id, v.title, v.channel_id, v.date, v.duration, v.video_status, v.audio_status,
+  SELECT v.uid, v.youtube_id, v.title, v.channel_id, v.date, v.duration, v.video_status, v.audio_status,
          '[]' AS chapters_json,
          COALESCE(NULLIF(c.display_name,''), c.name, '') AS channel_name
   FROM videos v
@@ -112,7 +117,7 @@ const stmtCountByTag = db.prepare(`
   JOIN channel_tags ct ON ct.channel_id = v.channel_id
   WHERE ct.tag = ?`);
 const stmtGetByTagPage = db.prepare(`
-  SELECT v.youtube_id, v.title, v.channel_id, v.date, v.duration, v.video_status, v.audio_status,
+  SELECT v.uid, v.youtube_id, v.title, v.channel_id, v.date, v.duration, v.video_status, v.audio_status,
          '[]' AS chapters_json,
          COALESCE(NULLIF(c.display_name,''), c.name, '') AS channel_name
   FROM videos v
@@ -121,7 +126,7 @@ const stmtGetByTagPage = db.prepare(`
   WHERE ct.tag = ?
   ORDER BY v.date DESC, v.created_at DESC LIMIT ? OFFSET ?`);
 const stmtGetByTagManual = db.prepare(`
-  SELECT v.youtube_id, v.title, v.channel_id, v.date, v.duration, v.video_status, v.audio_status,
+  SELECT v.uid, v.youtube_id, v.title, v.channel_id, v.date, v.duration, v.video_status, v.audio_status,
          '[]' AS chapters_json,
          COALESCE(NULLIF(c.display_name,''), c.name, '') AS channel_name
   FROM videos v JOIN channels c ON v.channel_id = c.id
@@ -131,7 +136,7 @@ const stmtCountByTagManual = db.prepare(
   `SELECT COUNT(*) AS count FROM videos WHERE source_type = 'manual'`,
 );
 const stmtGetByTagManualPage = db.prepare(`
-  SELECT v.youtube_id, v.title, v.channel_id, v.date, v.duration, v.video_status, v.audio_status,
+  SELECT v.uid, v.youtube_id, v.title, v.channel_id, v.date, v.duration, v.video_status, v.audio_status,
          '[]' AS chapters_json,
          COALESCE(NULLIF(c.display_name,''), c.name, '') AS channel_name
   FROM videos v JOIN channels c ON v.channel_id = c.id
@@ -144,7 +149,7 @@ const stmtGetSinceByChannel = db.prepare(
   `${SEL} WHERE v.created_at > ? AND v.channel_id = ? ORDER BY v.date DESC, v.created_at DESC LIMIT 50`,
 );
 const stmtGetSinceByTag = db.prepare(`
-  SELECT v.youtube_id, v.title, v.channel_id, v.date, v.duration, v.video_status, v.audio_status,
+  SELECT v.uid, v.youtube_id, v.title, v.channel_id, v.date, v.duration, v.video_status, v.audio_status,
          '[]' AS chapters_json,
          COALESCE(NULLIF(c.display_name,''), c.name, '') AS channel_name
   FROM videos v
@@ -153,7 +158,7 @@ const stmtGetSinceByTag = db.prepare(`
   WHERE v.created_at > ? AND ct.tag = ?
   ORDER BY v.date DESC, v.created_at DESC LIMIT 50`);
 const stmtGetSinceByTagManual = db.prepare(`
-  SELECT v.youtube_id, v.title, v.channel_id, v.date, v.duration, v.video_status, v.audio_status,
+  SELECT v.uid, v.youtube_id, v.title, v.channel_id, v.date, v.duration, v.video_status, v.audio_status,
          '[]' AS chapters_json,
          COALESCE(NULLIF(c.display_name,''), c.name, '') AS channel_name
   FROM videos v JOIN channels c ON v.channel_id = c.id
@@ -192,7 +197,7 @@ const stmtGuestCountByTag = db.prepare(`
   JOIN channels c ON v.channel_id = c.id
   WHERE ct.tag = ? AND ${GUEST_READY_WHERE}`);
 const stmtGuestGetByTagPage = db.prepare(`
-  SELECT v.youtube_id, v.title, v.channel_id, v.date, v.duration, v.video_status, v.audio_status,
+  SELECT v.uid, v.youtube_id, v.title, v.channel_id, v.date, v.duration, v.video_status, v.audio_status,
          '[]' AS chapters_json,
          COALESCE(NULLIF(c.display_name,''), c.name, '') AS channel_name
   FROM videos v
@@ -212,8 +217,8 @@ const stmtSetDuration = db.prepare(
 );
 const stmtSetChapters = db.prepare(`UPDATE videos SET chapters_json = ? WHERE youtube_id = ?`);
 const stmtInsert = db.prepare(`
-  INSERT INTO videos (channel_id, youtube_id, title, date, duration, source_type)
-  VALUES (?, ?, ?, ?, ?, ?)
+  INSERT INTO videos (channel_id, uid, youtube_id, title, date, duration, source_type)
+  VALUES (?, ?, ?, ?, ?, ?, ?)
   ON CONFLICT (youtube_id) DO NOTHING
 `);
 const stmtGetStatusSummary = db.prepare(`
@@ -248,6 +253,7 @@ const stmtSetAudioNone = db.prepare(`UPDATE videos SET audio_status = 'none' WHE
 // ── Internal ──────────────────────────────────────────────────────────────────
 
 type RawRow = {
+  uid: string;
   youtube_id: string;
   title: string;
   channel_id: number;
@@ -287,8 +293,13 @@ type RawCountRow = {
   count: number;
 };
 
+export function generateVideoUid(): string {
+  return randomBytes(12).toString('base64url');
+}
+
 function toRow(r: RawRow): VideoRow {
   return {
+    uid: r.uid,
     youtubeId: r.youtube_id,
     title: r.title,
     channelId: r.channel_id,
@@ -352,9 +363,27 @@ function parseChaptersJson(value: string): VideoChapter[] {
 
 // ── Public API ────────────────────────────────────────────────────────────────
 
-export function getVideoById(youtubeId: string): VideoRow | undefined {
-  const r = stmtGetById.get(youtubeId) as RawRow | undefined;
+export function getVideoByYoutubeId(youtubeId: string): VideoRow | undefined {
+  const r = stmtGetByYoutubeId.get(youtubeId) as RawRow | undefined;
   return r ? toRow(r) : undefined;
+}
+
+export function getVideoByUid(uid: string): VideoRow | undefined {
+  const r = stmtGetByUid.get(uid) as RawRow | undefined;
+  return r ? toRow(r) : undefined;
+}
+
+export function toPublicVideoRow(row: VideoRow): PublicVideoRow {
+  return {
+    uid: row.uid,
+    title: row.title,
+    channelId: row.channelId,
+    channelName: row.channelName,
+    date: row.date,
+    duration: row.duration,
+    videoStatus: row.videoStatus,
+    audioStatus: row.audioStatus,
+  };
 }
 
 export function getAllVideos(): VideoRow[] {
@@ -510,15 +539,24 @@ export function insertVideos(
   db.exec('BEGIN');
   try {
     for (const e of entries) {
-      const result = stmtInsert.run(
-        channelId,
-        e.youtubeId,
-        e.title,
-        e.date,
-        e.duration ?? 0,
-        sourceType,
-      );
-      if (result.changes > 0) insertedYoutubeIds.push(e.youtubeId);
+      let uid = generateVideoUid();
+      for (let attempt = 0; attempt < 5; attempt++) {
+        const result = stmtInsert.run(
+          channelId,
+          uid,
+          e.youtubeId,
+          e.title,
+          e.date,
+          e.duration ?? 0,
+          sourceType,
+        );
+        if (result.changes > 0) {
+          insertedYoutubeIds.push(e.youtubeId);
+          break;
+        }
+        if (videoExists(e.youtubeId)) break;
+        uid = generateVideoUid();
+      }
     }
     db.exec('COMMIT');
     return insertedYoutubeIds;

@@ -3,6 +3,11 @@
  */
 
 export const VIDEO_ID_RE = /^[a-zA-Z0-9_-]{11}$/;
+export const UID_RE = /^[A-Za-z0-9_-]{16,22}$/;
+
+export function isValidUid(id: unknown): id is string {
+  return typeof id === 'string' && UID_RE.test(id);
+}
 export const CHANNEL_URL_RE =
   /^https?:\/\/(www\.)?youtube\.com\/@[^/?#]+(\/(videos|streams|shorts|playlists|featured))?\/?$/;
 export const VIDEO_URL_RE =

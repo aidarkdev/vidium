@@ -40,7 +40,7 @@ function queryForPage(part, page) {
 function pollingIdsForCards(cards) {
   return cards
     .filter((card) => pendingStatuses.has(card.videoStatus) || pendingStatuses.has(card.audioStatus))
-    .map((card) => card.youtubeId);
+    .map((card) => card.uid);
 }
 
 function rerenderCards(part) {
@@ -59,7 +59,7 @@ function rerenderPager(part) {
 
 function rerenderUpdatedCards(part, updates) {
   for (const { id } of updates) {
-    const card = part.state.cards.find((item) => item.youtubeId === id);
+    const card = part.state.cards.find((item) => item.uid === id);
     const node = part.refs.cards.querySelector(`[data-id="${CSS.escape(id)}"]`);
     if (!card || !node) continue;
 
@@ -73,7 +73,7 @@ function rerenderUpdatedCards(part, updates) {
 
 function applyCardStatusUpdates(part, updates) {
   part.state.cards = part.state.cards.map((card) => {
-    const update = updates.find((item) => item.id === card.youtubeId);
+    const update = updates.find((item) => item.id === card.uid);
     if (!update) return card;
 
     return {
@@ -93,7 +93,7 @@ async function poll(part) {
   const patchCardStatusUpdates = [];
 
   for (const [id, status] of Object.entries(data)) {
-    const current = part.state.cards.find((card) => card.youtubeId === id);
+    const current = part.state.cards.find((card) => card.uid === id);
     if (
       current &&
       (current.videoStatus !== status.video || current.audioStatus !== status.audio)
@@ -173,7 +173,7 @@ export default {
       await fetch('/api/download', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ youtubeId: id, type }),
+        body: JSON.stringify({ uid: id, type }),
       });
       if (!part.private.pollTimer) poll(part).catch(() => {});
     },
