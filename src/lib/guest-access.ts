@@ -1,7 +1,9 @@
 import {
   getChannelById,
   getGuestVisibleChannels,
+  getGuestVisibleTags,
   type Channel,
+  type TagLabel,
 } from './channel.ts';
 import { getVideoByUid, type VideoRow } from './video.ts';
 
@@ -10,6 +12,10 @@ export type ViewerMode = 'user' | 'guest';
 
 export function getGuestChannels(): Channel[] {
   return getGuestVisibleChannels();
+}
+
+export function getGuestTags(): TagLabel[] {
+  return getGuestVisibleTags();
 }
 
 export function getGuestChannelIds(): Set<number> {

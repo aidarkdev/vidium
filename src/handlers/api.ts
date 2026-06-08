@@ -9,6 +9,7 @@
  * POST /api/video     — add single video by URL
  * POST /api/channel/display-name — rename channel in sidebar
  * POST /api/tag/reorder — change tag order in sidebar
+ * POST /api/play     — record first play on player page
  */
 
 import type { IncomingMessage, ServerResponse } from 'node:http';
@@ -63,7 +64,9 @@ import {
   moveChannel as moveChannelOrder,
   normalizeChannelTags,
 } from '../lib/channel.ts';
-import { getGuestVisibleVideo } from '../lib/guest-access.ts';
+import { normalizeGuestFeedTag } from '../lib/feed-tags.ts';
+import { canGuestAccessVideo, getGuestVisibleVideo } from '../lib/guest-access.ts';
+import { recordPlayEvent } from '../lib/play-stats.ts';
 import { fetchMeta } from '../lib/ytdlp.ts';
 
 async function unlinkIfExists(path: string): Promise<boolean> {
@@ -104,6 +107,32 @@ export async function handleDownload(req: IncomingMessage, res: ServerResponse):
   enqueue(jobType, { youtubeId: video.youtubeId });
 
   json(res, 200, { ok: true, status: 'queued' });
+}
+
+export async function handlePlay(req: IncomingMessage, res: ServerResponse): Promise<void> {
+  if (!checkCsrf(req, res)) return;
+
+  let data: { uid: string; kind: 'video' | 'audio' };
+  try {
+    data = JSON.parse(await readBody(req));
+  } catch {
+    return json(res, 400, { error: 'invalid json' });
+  }
+
+  if (!isValidUid(data.uid) || !['video', 'audio'].includes(data.kind)) {
+    return json(res, 400, { error: 'invalid request' });
+  }
+
+  const session = getOptionalSession(req);
+  const video = session ? getVideoByUid(data.uid) : getGuestVisibleVideo(data.uid);
+  if (!video) return json(res, 404, { error: 'not found' });
+  if (!session && !canGuestAccessVideo(data.uid, data.kind)) {
+    return json(res, 404, { error: 'not found' });
+  }
+
+  if (!recordPlayEvent(data.uid, data.kind)) return json(res, 404, { error: 'not found' });
+
+  json(res, 200, { ok: true });
 }
 
 export async function handleSidebarMode(req: IncomingMessage, res: ServerResponse): Promise<void> {
@@ -176,10 +205,11 @@ export function handleFeedCards(req: IncomingMessage, res: ServerResponse): void
   const q = getQuery(req);
   const page = Number.parseInt(q.page ?? '1', 10);
   const channelId = Number.parseInt(q.channelId ?? '', 10);
+  const rawTag = (q.tag ?? 'all').trim() || 'all';
   const query = {
     page: Number.isInteger(page) && page > 0 ? page : 1,
     pageSize: DEFAULT_VIDEO_PAGE_SIZE,
-    tag: (q.tag ?? 'all').trim() || 'all',
+    tag: session ? rawTag : normalizeGuestFeedTag(rawTag),
     channelId: Number.isInteger(channelId) && channelId > 0 ? channelId : 0,
   };
   const result = session ? getVideoPage(query) : getGuestVideoPage(query);

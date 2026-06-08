@@ -26,6 +26,7 @@ import {
 } from './handlers/video.ts';
 import {
   handleDownload,
+  handlePlay,
   handleSidebarMode,
   handleStatus,
   handleSince,
@@ -154,6 +155,11 @@ const routes: RouteConfig[] = [
     method: 'post',
     path: '/api/download',
     handler: handleDownload,
+  },
+  {
+    method: 'post',
+    path: '/api/play',
+    handler: handlePlay,
   },
   {
     method: 'post',

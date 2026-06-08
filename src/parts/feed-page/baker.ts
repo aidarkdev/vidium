@@ -3,8 +3,15 @@ import {
   getAllTags,
   getChannelById,
   getGuestVisibleChannels,
+  getGuestVisibleTags,
   getTagLabel,
 } from '../../lib/channel.ts';
+import {
+  FEED_TAG_ALL,
+  FEED_TAG_MANUAL,
+  FEED_TAG_READY,
+  isCustomFeedTag,
+} from '../../lib/feed-tags.ts';
 import type { ViewerMode } from '../../lib/guest-access.ts';
 import { t } from '../../pages/lang.ts';
 
@@ -20,6 +27,12 @@ type PageBakeResult =
   | { ok: false; message: string };
 
 type SuccessfulPageBake = Extract<PageBakeResult, { ok: true }>;
+
+interface SystemFeedLink {
+  href: string;
+  tag: string;
+  label: string;
+}
 
 function cardStrings(lang: string): Record<string, string> {
   return {
@@ -46,44 +59,76 @@ function labels(lang: string): Record<string, string> {
   };
 }
 
-export function bakeFeedPage(ctx: FeedBakeContext): SuccessfulPageBake {
+function manualChannelLabel(): string {
+  const manual = getChannelById(1);
+  return manual?.displayName || manual?.name || FEED_TAG_MANUAL;
+}
+
+function systemFeedLinks(lang: string, isGuest: boolean): SystemFeedLink[] {
+  const links: SystemFeedLink[] = [
+    { href: '/feed', tag: FEED_TAG_ALL, label: t(lang, 'tag.all') },
+  ];
+  if (!isGuest) {
+    links.push(
+      { href: '/feed/ready', tag: FEED_TAG_READY, label: t(lang, 'tag.ready') },
+      { href: '/feed/manual', tag: FEED_TAG_MANUAL, label: manualChannelLabel() },
+    );
+  }
+  return links;
+}
+
+function resolveSidebarMode(
+  ctx: FeedBakeContext,
+  activeTag: string,
+  activeChannelId: number,
+): 'channels' | 'tags' {
+  if (activeChannelId > 0) return 'channels';
+  if (isCustomFeedTag(activeTag)) return 'tags';
+  return ctx.sidebarMode ?? 'channels';
+}
+
+function feedTitle(lang: string, activeTag: string): string {
+  if (activeTag === FEED_TAG_ALL) return t(lang, 'tag.all');
+  if (activeTag === FEED_TAG_READY) return t(lang, 'tag.ready');
+  if (activeTag === FEED_TAG_MANUAL) return manualChannelLabel();
+  return getTagLabel(activeTag)?.label ?? activeTag;
+}
+
+function sharedFeedState(ctx: FeedBakeContext, activeTag: string, activeChannelId: number) {
   const isGuest = ctx.viewerMode === 'guest';
-  const activeTag = ctx.params.tag ?? 'all';
-  const channels = isGuest ? getGuestVisibleChannels() : getAllChannels();
-  const tags = isGuest ? [] : getAllTags();
-  const manualCh = channels.find((ch) => ch.id === 1);
-  const systemLabels: Record<string, string> = {
-    all: t(ctx.lang, 'tag.all'),
-    ready: t(ctx.lang, 'tag.ready'),
-    manual: manualCh?.displayName || manualCh?.name || 'manual',
+
+  return {
+    strings: cardStrings(ctx.lang),
+    channels: isGuest ? getGuestVisibleChannels() : getAllChannels(),
+    tags: isGuest ? getGuestVisibleTags() : getAllTags(),
+    activeTag,
+    activeChannelId,
+    sidebarOpen: false,
+    sidebarMode: resolveSidebarMode(ctx, activeTag, activeChannelId),
+    systemFeedLinks: systemFeedLinks(ctx.lang, isGuest),
+    showSidebarModeTabs: true,
+    persistSidebarMode: !isGuest,
+    editMode: false,
+    movingChannelId: 0,
+    movingTag: '',
+    savingChannelNameId: 0,
+    patchChannelDisplayNameUpdates: [],
+    patchChannelOrderIds: [],
+    patchTagOrderTags: [],
+    labels: labels(ctx.lang),
   };
-  const title = isGuest
-    ? (systemLabels[activeTag] ?? activeTag)
-    : (systemLabels[activeTag] ?? getTagLabel(activeTag)?.label ?? activeTag);
+}
+
+export function bakeFeedPage(ctx: FeedBakeContext): SuccessfulPageBake {
+  const activeTag = ctx.params.tag ?? FEED_TAG_ALL;
 
   return {
     ok: true,
     id: 'feed-page',
     title: 'vidium',
     state: {
-      title,
-      strings: cardStrings(ctx.lang),
-      channels,
-      tags,
-      activeTag,
-      activeChannelId: 0,
-      sidebarOpen: false,
-      sidebarMode: isGuest ? 'channels' : (ctx.sidebarMode ?? 'channels'),
-      showSystemLinks: !isGuest,
-      showSidebarModeTabs: !isGuest,
-      editMode: false,
-      movingChannelId: 0,
-      movingTag: '',
-      savingChannelNameId: 0,
-      patchChannelDisplayNameUpdates: [],
-      patchChannelOrderIds: [],
-      patchTagOrderTags: [],
-      labels: labels(ctx.lang),
+      title: feedTitle(ctx.lang, activeTag),
+      ...sharedFeedState(ctx, activeTag, 0),
     },
   };
 }
@@ -95,8 +140,6 @@ export function bakeChannelPage(ctx: FeedBakeContext): PageBakeResult {
   if (!channel) return { ok: false, message: 'Channel not found' };
   if (isGuest && !channel.guestVisible) return { ok: false, message: 'Channel not found' };
 
-  const channels = isGuest ? getGuestVisibleChannels() : getAllChannels();
-  const tags = isGuest ? [] : getAllTags();
   const title = channel.displayName || channel.name;
 
   return {
@@ -105,23 +148,7 @@ export function bakeChannelPage(ctx: FeedBakeContext): PageBakeResult {
     title,
     state: {
       title,
-      strings: cardStrings(ctx.lang),
-      channels,
-      tags,
-      activeTag: '',
-      activeChannelId: channel.id,
-      sidebarOpen: false,
-      sidebarMode: isGuest ? 'channels' : (ctx.sidebarMode ?? 'channels'),
-      showSystemLinks: !isGuest,
-      showSidebarModeTabs: !isGuest,
-      editMode: false,
-      movingChannelId: 0,
-      movingTag: '',
-      savingChannelNameId: 0,
-      patchChannelDisplayNameUpdates: [],
-      patchChannelOrderIds: [],
-      patchTagOrderTags: [],
-      labels: labels(ctx.lang),
+      ...sharedFeedState(ctx, '', channel.id),
     },
   };
 }

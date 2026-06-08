@@ -84,6 +84,16 @@ function syncPlayerProgress(part) {
   saveResumeTime(part);
 }
 
+function recordFirstPlay(part) {
+  if (part.private.playRecorded) return;
+  part.private.playRecorded = true;
+  fetch('/api/play', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ uid: part.state.uid, kind: part.state.kind }),
+  }).catch(() => {});
+}
+
 export default {
   events: {
     'click [data-action="back"]': (part) => part.set('eventBack', part.state.eventBack + 1),
@@ -149,7 +159,9 @@ export default {
     part.private.sync = () => part.set('paused', part.refs.media.paused);
     part.private.restore = () => restoreResumeTime(part);
     part.private.clearResume = () => clearResumeTime(part);
+    part.private.recordFirstPlay = () => recordFirstPlay(part);
     part.refs.media.addEventListener('play', part.private.sync);
+    part.refs.media.addEventListener('play', part.private.recordFirstPlay);
     part.refs.media.addEventListener('pause', part.private.sync);
     part.refs.media.addEventListener('loadedmetadata', part.private.restore, { once: true });
     part.refs.media.addEventListener('ended', part.private.clearResume);
@@ -160,6 +172,7 @@ export default {
   },
   onDestroy: (part) => {
     part.refs.media.removeEventListener('play', part.private.sync);
+    part.refs.media.removeEventListener('play', part.private.recordFirstPlay);
     part.refs.media.removeEventListener('pause', part.private.sync);
     part.refs.media.removeEventListener('loadedmetadata', part.private.restore);
     part.refs.media.removeEventListener('ended', part.private.clearResume);

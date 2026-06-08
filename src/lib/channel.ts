@@ -106,6 +106,24 @@ const stmtGetTags = db.prepare(`
            label COLLATE NOCASE,
            tl.tag COLLATE NOCASE
 `);
+const stmtGetGuestVisibleTags = db.prepare(`
+  SELECT tl.tag, COALESCE(NULLIF(tl.label, ''), tl.tag) AS label, tl.sort_order AS sortOrder
+  FROM tags tl
+  WHERE EXISTS (
+    SELECT 1
+    FROM channel_tags ct
+    JOIN channels c ON c.id = ct.channel_id
+    JOIN videos v ON v.channel_id = c.id
+    WHERE ct.tag = tl.tag
+      AND c.guest_visible = 1
+      AND c.id != ?
+      AND (v.video_status = 'ready' OR v.audio_status = 'ready')
+  )
+  ORDER BY CASE WHEN tl.sort_order = 0 THEN 1 ELSE 0 END,
+           tl.sort_order ASC,
+           label COLLATE NOCASE,
+           tl.tag COLLATE NOCASE
+`);
 const stmtGetTag = db.prepare(
   `SELECT tag, COALESCE(NULLIF(label, ''), tag) AS label, sort_order AS sortOrder FROM tags WHERE tag = ?`,
 );
@@ -233,6 +251,10 @@ export function setChannelTags(channelId: number, rawTags: string): boolean {
 
 export function getAllTags(): TagLabel[] {
   return stmtGetTags.all() as unknown as TagLabel[];
+}
+
+export function getGuestVisibleTags(): TagLabel[] {
+  return stmtGetGuestVisibleTags.all(MANUAL_CHANNEL_ID) as unknown as TagLabel[];
 }
 
 export function getTagLabel(tag: string): TagLabel | undefined {

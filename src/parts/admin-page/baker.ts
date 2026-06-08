@@ -3,6 +3,7 @@ import { readDiskStatus } from '../../lib/disk-status.ts';
 import { readProxyStatus } from '../../lib/proxy-status.ts';
 import { listUsers } from '../../lib/auth/auth.ts';
 import { getAllChannels } from '../../lib/channel.ts';
+import { getPlayStatsRows } from '../../lib/play-stats.ts';
 import { getDownloadedVideos, getProblemStatusRows, getVideoStatusSummary } from '../../lib/video.ts';
 import { t } from '../../pages/lang.ts';
 
@@ -31,6 +32,7 @@ export function bakeAdminPage(ctx: AdminBakeContext): {
       statusSummary: getVideoStatusSummary(),
       problemRows: getProblemStatusRows(200),
       downloadedVideos: getDownloadedVideos(300),
+      playStats: getPlayStatsRows(),
       diskStatus: readDiskStatus(),
       proxyStatus: readProxyStatus(),
       pendingAction: null,
@@ -52,6 +54,7 @@ export function bakeAdminPage(ctx: AdminBakeContext): {
         statuses: t(lang, 'admin.statuses'),
         problemRows: t(lang, 'admin.problem_rows'),
         downloaded: t(lang, 'admin.downloaded'),
+        playStats: t(lang, 'admin.play_stats'),
       },
       disk: {
         title: t(lang, 'admin.disk'),
@@ -82,6 +85,9 @@ export function bakeAdminPage(ctx: AdminBakeContext): {
         status: t(lang, 'admin.col.status'),
         attempts: t(lang, 'admin.col.attempts'),
         youtubeId: t(lang, 'admin.col.youtube_id'),
+        uid: t(lang, 'admin.col.uid'),
+        kind: t(lang, 'admin.col.kind'),
+        playCount: t(lang, 'admin.col.play_count'),
         error: t(lang, 'admin.col.error'),
         createdAt: t(lang, 'admin.col.created_at'),
         readyAt: t(lang, 'admin.col.ready_at'),

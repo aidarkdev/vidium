@@ -140,7 +140,7 @@ Admin-only routes:
 
 Guest-visible routes:
 
-- `GET /`, `/feed`, `/feed/:tag` render a public feed scoped to channels with `guest_visible = 1`.
+- `GET /`, `/feed`, `/feed/:tag` render a public feed scoped to channels with `guest_visible = 1`. The sidebar shows an All link, guest-visible channels, and tags that have ready content on those channels. Guest requests to `/feed/ready` or `/feed/manual` redirect to `/feed`.
 - `GET /channel/:id` renders only when the channel has `guest_visible = 1`.
 - `GET /v/:id`, `/a/:id`, `/media/v/:id`, `/media/a/:id` are public only for videos in guest-visible channels and only when the requested media kind is `ready`. `:id` is the public `uid`.
 - `GET /t/:id`, `GET /api/status`, and `GET /api/feed/cards` are public only for guest-visible channel data. Client APIs use `uid`, not `youtubeId`.

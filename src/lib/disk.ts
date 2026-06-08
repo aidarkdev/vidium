@@ -1,28 +1,12 @@
 /**
- * disk.ts — checks disk usage via df and cleans up old media files
+ * disk.ts — checks disk usage and cleans up old video/audio files
  * when usage exceeds the high watermark.
  */
 
-import { spawn } from 'node:child_process';
 import { readdirSync, statSync, unlinkSync } from 'node:fs';
 import { join, basename, extname, dirname } from 'node:path';
 import { config } from '../config.ts';
-
-// ── df ────────────────────────────────────────────────────────────────────────
-
-function getDiskUsage(): Promise<number> {
-  return new Promise((resolve, reject) => {
-    const proc = spawn('df', ['--output=pcent', config.MEDIA_DIR]);
-    const out: Buffer[] = [];
-    proc.stdout.on('data', (chunk: Buffer) => out.push(chunk));
-    proc.on('close', (code) => {
-      if (code !== 0) return reject(new Error(`df exited with code ${code}`));
-      const lines = Buffer.concat(out).toString().trim().split('\n');
-      resolve(parseInt(lines[1], 10) / 100);
-    });
-    proc.on('error', reject);
-  });
-}
+import { getDiskUsageRatio } from './disk-status.ts';
 
 // ── Cleanup ───────────────────────────────────────────────────────────────────
 
@@ -51,8 +35,12 @@ export interface DeletedFile {
   type: MediaType;
 }
 
+function getDiskUsage(): number | undefined {
+  return getDiskUsageRatio();
+}
+
 async function cleanup(onDeleted: (file: DeletedFile) => void): Promise<void> {
-  const dirs = ['videos', 'audio', 'thumbs'].map((d) => join(config.MEDIA_DIR, d));
+  const dirs = ['videos', 'audio'].map((d) => join(config.MEDIA_DIR, d));
   let files: FileEntry[] = [];
   for (const dir of dirs) {
     files = files.concat(collectFiles(dir));
@@ -61,26 +49,25 @@ async function cleanup(onDeleted: (file: DeletedFile) => void): Promise<void> {
 
   for (let i = 0; i < files.length; i++) {
     if (i % 10 === 0) {
-      const usage = await getDiskUsage();
-      if (usage <= config.DISK_LOW_WATERMARK) break;
+      const usage = getDiskUsage();
+      if (usage === undefined || usage <= config.DISK_LOW_WATERMARK) break;
     }
     const filePath = files[i].path;
     const dir = basename(dirname(filePath));
     unlinkSync(filePath);
     console.log(`disk cleanup: removed ${filePath}`);
-    if (dir === 'videos' || dir === 'audio') {
-      onDeleted({
-        youtubeId: basename(filePath, extname(filePath)),
-        type: dir === 'videos' ? 'video' : 'audio',
-      });
-    }
+    onDeleted({
+      youtubeId: basename(filePath, extname(filePath)),
+      type: dir === 'videos' ? 'video' : 'audio',
+    });
   }
 }
 
 // ── Public API ────────────────────────────────────────────────────────────────
 
 export async function checkDisk(onDeleted: (file: DeletedFile) => void): Promise<void> {
-  const usage = await getDiskUsage();
+  const usage = getDiskUsage();
+  if (usage === undefined) return;
   if (usage >= config.DISK_HIGH_WATERMARK) {
     console.log(`disk usage ${Math.round(usage * 100)}% — starting cleanup`);
     await cleanup(onDeleted);

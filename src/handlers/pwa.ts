@@ -4,8 +4,8 @@ import { assetUrl } from '../lib/assets.ts';
 function webManifest() {
   return {
     id: '/',
-    name: 'vidium',
-    short_name: 'vidium',
+    name: 'paguo',
+    short_name: 'paguo',
     start_url: '/',
     scope: '/',
     display: 'standalone',

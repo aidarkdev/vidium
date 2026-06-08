@@ -4,6 +4,7 @@
 
 import { randomBytes } from 'node:crypto';
 import { db } from './db.ts';
+import { FEED_TAG_ALL, normalizeGuestFeedTag } from './feed-tags.ts';
 
 export const DEFAULT_VIDEO_PAGE_SIZE = 42;
 
@@ -481,7 +482,7 @@ export function getGuestVideoPage(query: VideoPageQuery): VideoPage {
     typeof query.channelId === 'number' && Number.isInteger(query.channelId)
       ? query.channelId
       : 0;
-  const tag = (query.tag ?? 'all').trim() || 'all';
+  const tag = normalizeGuestFeedTag((query.tag ?? FEED_TAG_ALL).trim() || FEED_TAG_ALL);
 
   let total = 0;
   let rows: RawRow[] = [];
@@ -493,11 +494,7 @@ export function getGuestVideoPage(query: VideoPageQuery): VideoPage {
     return pageResult(rows, page, pageSize, total);
   }
 
-  if (tag === 'manual') {
-    return pageResult([], 1, pageSize, 0);
-  }
-
-  if (tag !== 'all' && tag !== 'ready') {
+  if (tag !== FEED_TAG_ALL) {
     total = (stmtGuestCountByTag.get(tag) as RawCountRow).count;
     const page = clampPage(requestedPage, pageSize, total);
     rows = stmtGuestGetByTagPage.all(tag, pageSize, offsetFor(page, pageSize)) as RawRow[];

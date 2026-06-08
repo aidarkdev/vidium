@@ -17,6 +17,19 @@ export interface DiskStatus {
   error: string;
 }
 
+export function getDiskUsageRatio(): number | undefined {
+  const stats = statfsSync(config.MEDIA_DIR);
+  const totalBytes = stats.blocks * stats.bsize;
+  const freeBytes = stats.bavail * stats.bsize;
+
+  if (!Number.isFinite(totalBytes) || totalBytes <= 0 || freeBytes < 0) {
+    return undefined;
+  }
+
+  const usedBytes = Math.max(0, totalBytes - freeBytes);
+  return usedBytes / totalBytes;
+}
+
 function invalid(error: string): DiskStatus {
   return {
     state: 'invalid',
@@ -34,13 +47,13 @@ export function readDiskStatus(): DiskStatus {
     const stats = statfsSync(config.MEDIA_DIR);
     const totalBytes = stats.blocks * stats.bsize;
     const freeBytes = stats.bavail * stats.bsize;
+    const usage = getDiskUsageRatio();
 
-    if (!Number.isFinite(totalBytes) || totalBytes <= 0 || freeBytes < 0) {
+    if (usage === undefined) {
       return invalid('disk stats are invalid');
     }
 
     const usedBytes = Math.max(0, totalBytes - freeBytes);
-    const usage = usedBytes / totalBytes;
 
     return {
       state: usage >= config.DISK_HIGH_WATERMARK ? 'busy' : 'free',

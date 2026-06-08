@@ -5,7 +5,8 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { config } from '../config.ts';
 import { parseCookies } from '../lib/auth/cookies.ts';
-import { getOptionalSession, html, getQuery } from '../lib/http.ts';
+import { isGuestRestrictedFeedTag } from '../lib/feed-tags.ts';
+import { getOptionalSession, html, getQuery, redirect } from '../lib/http.ts';
 import { renderFeedPage } from '../pages/feed.ts';
 
 function pageFromQuery(req: IncomingMessage): number {
@@ -19,6 +20,11 @@ export function handleFeed(
   params: Record<string, string>,
 ): void {
   const session = getOptionalSession(req);
+  const tag = params.tag?.trim();
+
+  if (!session && tag && isGuestRestrictedFeedTag(tag)) {
+    return redirect(res, '/feed');
+  }
 
   html(
     res,

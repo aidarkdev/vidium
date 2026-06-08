@@ -80,7 +80,6 @@ interface PartPageOptions {
 }
 
 export function renderPartPage(opts: PartPageOptions): string {
-  const title = escapeHtml(opts.title);
   const lang = escapeHtml(opts.lang);
   const mainClass = opts.mainClass ? `main ${escapeHtml(opts.mainClass)}` : 'main';
   const bodyClass = opts.bodyClass ? ` class="${escapeHtml(opts.bodyClass)}"` : '';
@@ -104,14 +103,14 @@ export function renderPartPage(opts: PartPageOptions): string {
     <head>
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width, initial-scale=1">
-      <title>${title}</title>
+      <title>paguo</title>
       <link rel="stylesheet" href="${assetUrl('/static/css/style.css')}">
       <link rel="icon" type="image/png" href="${assetUrl('/static/favicon.png')}">
       <link rel="manifest" href="/manifest.webmanifest">
       <meta name="theme-color" content="#111111">
       <meta name="mobile-web-app-capable" content="yes">
       <meta name="apple-mobile-web-app-capable" content="yes">
-      <meta name="apple-mobile-web-app-title" content="vidium">
+      <meta name="apple-mobile-web-app-title" content="paguo">
       <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
       <link rel="apple-touch-icon" href="${assetUrl('/static/icon-192.png')}">
       <script type="module" src="${assetUrl('/engine/core.js')}"></script>
@@ -125,7 +124,7 @@ export function renderPartPage(opts: PartPageOptions): string {
     <body${bodyClass}>
       <nav class="nav">
         <div class="nav-inner">
-          <a class="nav-logo" href="/">vidium</a>
+          <a class="nav-logo" href="/">paguo</a>
           <div class="nav-links">
             ${navControls}
           </div>

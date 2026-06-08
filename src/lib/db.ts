@@ -97,6 +97,13 @@ db.exec(`
     data     TEXT    NOT NULL DEFAULT '{}',
     expires  TEXT    NOT NULL
   );
+
+  CREATE TABLE IF NOT EXISTS video_play_events (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    video_id   INTEGER NOT NULL REFERENCES videos(id) ON DELETE CASCADE,
+    kind       TEXT    NOT NULL CHECK(kind IN ('video','audio')),
+    played_at  TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now'))
+  );
 `);
 
 // ── Indexes ───────────────────────────────────────────────────────────────────
@@ -109,6 +116,7 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_jobs_status      ON jobs(status, created_at);
   CREATE INDEX IF NOT EXISTS idx_sessions_user    ON sessions(user_id);
   CREATE INDEX IF NOT EXISTS idx_sessions_expires ON sessions(expires);
+  CREATE INDEX IF NOT EXISTS idx_video_play_events_video ON video_play_events(video_id, played_at DESC);
 `);
 
 function hasColumn(table: string, column: string): boolean {

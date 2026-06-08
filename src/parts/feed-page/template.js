@@ -192,19 +192,19 @@ function systemLink(href, active, label) {
   return `<a class="sidebar-system-link${active ? ' active' : ''}" href="${href}">${htmlEscape(label)}</a>`;
 }
 
-export function sidebarHtml(state) {
-  const manual = state.channels.find((ch) => ch.id === 1);
-  const regular = state.channels.filter((ch) => ch.id !== 1);
-  const manualLabel = manual?.displayName || manual?.name || 'manual';
-  const systemLinks =
-    state.showSystemLinks === false
-      ? ''
-      : `<div class="sidebar-system">
-        ${systemLink('/feed', state.activeTag === 'all', state.labels.all)}
-        ${systemLink('/feed/ready', state.activeTag === 'ready', state.labels.ready)}
-        ${systemLink('/feed/manual', state.activeTag === 'manual', manualLabel)}
+function systemLinksHtml(state) {
+  const links = state.systemFeedLinks ?? [];
+  if (!links.length) return '';
+
+  return `<div class="sidebar-system">
+        ${links.map((link) => systemLink(link.href, state.activeTag === link.tag, link.label)).join('')}
       </div>
       <div class="sidebar-divider"></div>`;
+}
+
+export function sidebarHtml(state) {
+  const regular = state.channels.filter((ch) => ch.id !== 1);
+  const systemLinks = systemLinksHtml(state);
   const modeTabs = state.showSidebarModeTabs === false ? '' : sidebarModeTabs(state);
 
   return `<div

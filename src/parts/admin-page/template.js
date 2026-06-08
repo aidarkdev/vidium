@@ -15,6 +15,7 @@ const ADMIN_SECTIONS = [
   ['statuses', 'admin-statuses'],
   ['problemRows', 'admin-problem-rows'],
   ['downloaded', 'admin-downloaded'],
+  ['playStats', 'admin-play-stats'],
 ];
 
 function contentsLinks(state) {
@@ -403,6 +404,30 @@ export function renderDownloaded(state) {
   return rows(state.downloadedVideos, (row) => downloadedRow(row, state), state.empty, 7);
 }
 
+export function playStatsHead(cols) {
+  return `<tr>
+    <th>${htmlEscape(cols.uid)}</th>
+    <th>${htmlEscape(cols.youtubeId)}</th>
+    <th>${htmlEscape(cols.title)}</th>
+    <th>${htmlEscape(cols.kind)}</th>
+    <th>${htmlEscape(cols.playCount)}</th>
+  </tr>`;
+}
+
+function playStatsRow(row, state) {
+  return `<tr>
+    <td>${htmlEscape(row.uid)}</td>
+    <td>${htmlEscape(row.youtubeId)}</td>
+    <td>${htmlEscape(row.title)}</td>
+    <td>${htmlEscape(row.kind)}</td>
+    <td>${row.playCount}</td>
+  </tr>`;
+}
+
+export function renderPlayStats(state) {
+  return rows(state.playStats, (row) => playStatsRow(row, state), state.empty, 5);
+}
+
 export default function template(state) {
   return `<section class="admin-page">
     <div class="topbar">
@@ -428,6 +453,9 @@ export default function template(state) {
     </div>
     <div data-ref="downloaded">
       ${table(state.sections.downloaded, videoHead(state.cols, true), renderDownloaded(state), 'admin-downloaded', state.contentsLink)}
+    </div>
+    <div data-ref="playStats">
+      ${table(state.sections.playStats, playStatsHead(state.cols), renderPlayStats(state), 'admin-play-stats', state.contentsLink)}
     </div>
   </section>`;
 }

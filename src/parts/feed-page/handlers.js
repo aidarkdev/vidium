@@ -111,6 +111,7 @@ export default {
       const mode = btn.dataset.mode;
       if (!['channels', 'tags'].includes(mode)) return;
       part.set('sidebarMode', mode);
+      if (part.state.persistSidebarMode === false) return;
       fetch('/api/sidebar/mode', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -216,7 +217,7 @@ export default {
   state: {
     title: (part, value) => {
       part.refs.title.textContent = value;
-      document.title = value;
+      document.title = 'paguo';
     },
     channels: rerenderSidebar,
     tags: rerenderSidebar,
