@@ -19,9 +19,11 @@ const JS_IMPORT_RE = /\b(?:from|import)\s+(['"])(\.[^'"]+\.js)\1/g;
 interface AssetFile {
   absPath: string;
   logicalPath: string;
+  source: Buffer;
   hash: string;
   hashedName: string;
   outRelPath: string;
+  body: Buffer;
 }
 
 function parseArgs(): string {
@@ -111,6 +113,17 @@ function rewriteJsImports(content: string, sourceAbs: string, byAbs: Map<string,
   });
 }
 
+function buildBody(asset: AssetFile, byAbs: Map<string, AssetFile>): Buffer {
+  if (!asset.absPath.endsWith('.js')) return asset.source;
+  return Buffer.from(rewriteJsImports(asset.source.toString('utf8'), asset.absPath, byAbs));
+}
+
+function refreshAssetNames(asset: AssetFile): void {
+  const name = basename(asset.absPath);
+  asset.hashedName = hashedFilename(name, asset.hash);
+  asset.outRelPath = outRelPathFromLogical(asset.logicalPath, asset.hashedName);
+}
+
 async function main(): Promise<void> {
   const outDir = parseArgs();
   await rm(outDir, { recursive: true, force: true });
@@ -120,28 +133,46 @@ async function main(): Promise<void> {
   const assets: AssetFile[] = [];
 
   for (const absPath of sourcePaths) {
-    const content = await readFile(absPath);
-    const hash = contentHash(content);
-    const name = basename(absPath);
-    const hashedName = hashedFilename(name, hash);
+    const source = await readFile(absPath);
     const logicalPath = logicalPathFromAbs(absPath);
-    const outRelPath = outRelPathFromLogical(logicalPath, hashedName);
-    assets.push({ absPath, logicalPath, hash, hashedName, outRelPath });
+    const hash = contentHash(source);
+    const asset: AssetFile = {
+      absPath,
+      logicalPath,
+      source,
+      hash,
+      hashedName: '',
+      outRelPath: '',
+      body: source,
+    };
+    refreshAssetNames(asset);
+    assets.push(asset);
   }
 
-  const byAbs = new Map(assets.map((a) => [a.absPath, a]));
+  // Hash deploy output, not source: index.js keeps the same source when handlers change,
+  // but rewritten imports change — filename must follow final body.
+  let changed = true;
+  while (changed) {
+    changed = false;
+    const byAbs = new Map(assets.map((a) => [a.absPath, a]));
+    for (const asset of assets) {
+      const body = buildBody(asset, byAbs);
+      const hash = contentHash(body);
+      if (hash !== asset.hash) {
+        asset.hash = hash;
+        refreshAssetNames(asset);
+        changed = true;
+      }
+      asset.body = body;
+    }
+  }
+
   const manifest: Record<string, string> = {};
 
   for (const asset of assets) {
-    const raw = await readFile(asset.absPath);
-    let body: string | Buffer = raw;
-    if (asset.absPath.endsWith('.js')) {
-      body = rewriteJsImports(raw.toString('utf8'), asset.absPath, byAbs);
-    }
-
     const dest = join(outDir, asset.outRelPath);
     await mkdir(dirname(dest), { recursive: true });
-    await writeFile(dest, body);
+    await writeFile(dest, asset.body);
 
     manifest[asset.logicalPath] = `/${asset.outRelPath.replaceAll('\\', '/')}`;
   }
