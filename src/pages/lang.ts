@@ -12,6 +12,21 @@ const strings: Record<Lang, Record<string, string>> = {
     'nav.manage': 'Manage',
     'nav.controls': 'Controls',
 
+    // Local media queue
+    'media_queue.open': 'Media queue',
+    'media_queue.title': 'Media queue',
+    'media_queue.close': 'Close',
+    'media_queue.remove': 'Remove from queue',
+    'media_queue.empty': 'The queue is empty',
+    'media_queue.storage_error': 'This browser could not access the saved queue',
+    'media_queue.video': 'Video',
+    'media_queue.audio': 'Audio',
+    'media_queue.status.none': 'Not queued',
+    'media_queue.status.queued': 'Queued',
+    'media_queue.status.downloading': 'Downloading',
+    'media_queue.status.ready': 'Ready',
+    'media_queue.status.expired': 'Expired',
+
     // Auth
     'auth.login': 'Log in',
     'auth.register': 'Register',
@@ -55,6 +70,8 @@ const strings: Record<Lang, Record<string, string>> = {
 
     // Player
     'player.back': 'Back',
+    'player.share': 'Share',
+    'player.sleep': 'Sleep',
 
     // Add video
     'video.add': '+video',
@@ -146,6 +163,21 @@ const strings: Record<Lang, Record<string, string>> = {
     'nav.manage': 'Управление',
     'nav.controls': 'Действия',
 
+    // Local media queue
+    'media_queue.open': 'Очередь медиа',
+    'media_queue.title': 'Очередь медиа',
+    'media_queue.close': 'Закрыть',
+    'media_queue.remove': 'Удалить из очереди',
+    'media_queue.empty': 'Очередь пуста',
+    'media_queue.storage_error': 'Браузер не смог открыть сохранённую очередь',
+    'media_queue.video': 'Видео',
+    'media_queue.audio': 'Аудио',
+    'media_queue.status.none': 'Не в очереди',
+    'media_queue.status.queued': 'В очереди',
+    'media_queue.status.downloading': 'Загружается',
+    'media_queue.status.ready': 'Готово',
+    'media_queue.status.expired': 'Истекло',
+
     // Auth
     'auth.login': 'Войти',
     'auth.register': 'Регистрация',
@@ -189,6 +221,8 @@ const strings: Record<Lang, Record<string, string>> = {
 
     // Player
     'player.back': 'Назад',
+    'player.share': 'Поделиться',
+    'player.sleep': 'Сон',
 
     // Add video
     'video.add': '+видео',

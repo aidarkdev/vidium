@@ -91,6 +91,14 @@ Reload nginx only if nginx config changed:
 nginx -t && systemctl reload nginx
 ```
 
+When deploying the guest audio-download rate limit to an existing VPS, update the active nginx site config manually before reloading nginx:
+
+- Add `limit_req_zone $binary_remote_addr zone=download_requests:10m rate=5r/m;` in the `http` context, immediately before the site's `server {}` block when using the generated site-file layout.
+- Add the exact `location = /api/download` proxy from `docs/server-runtime.md`, including `burst=4`, `nodelay`, and `limit_req_status 429`.
+- Run `nginx -t` before `systemctl reload nginx`.
+
+Do not rerun `setup.sh` only to apply this nginx change.
+
 ## rsync Deploy From Local Checkout
 
 Use this when local files are the source of truth and the VPS should receive only runtime-relevant files.

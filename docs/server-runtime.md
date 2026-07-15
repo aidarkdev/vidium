@@ -25,9 +25,26 @@ Node owns application routes and API routes that are not matched by nginx static
 
 ## nginx Locations
 
-The active nginx site config must contain these locations inside the `server {}` block, before the generic `location /` proxy.
+The active nginx site config must declare the download rate-limit zone in the `http` context. A site file included from nginx's `http` context may place it immediately before the `server {}` block:
 
 ```nginx
+limit_req_zone $binary_remote_addr zone=download_requests:10m rate=5r/m;
+```
+
+The active site config must also contain these locations inside the `server {}` block. The exact download location applies the shared per-IP limit and takes precedence over the generic `location /` proxy.
+
+```nginx
+location = /api/download {
+    limit_req zone=download_requests burst=4 nodelay;
+    limit_req_status 429;
+    proxy_pass http://127.0.0.1:3000;
+    proxy_http_version 1.1;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+}
+
 location /static/ {
     alias /path/to/vidium/deploy/static/;
     add_header Cache-Control "public, max-age=31536000, immutable" always;
@@ -62,6 +79,8 @@ location / {
 ```
 
 Replace `/path/to/vidium` with the deployed app directory. In `setup.sh`, shell escaping is required inside heredocs, so `try_files $uri =404;` appears as `try_files \$uri =404;` there.
+
+The download limit accepts an initial burst of five requests per IP, then replenishes capacity at five requests per minute. nginx returns `429 Too Many Requests` before the request reaches Node when the limit is exceeded. The limit applies to authenticated and guest callers alike; do not key it from a guest-controlled cookie.
 
 ## Static Frontend Assets
 
@@ -140,16 +159,17 @@ Admin-only routes:
 
 Guest-visible routes:
 
-- `GET /`, `/feed`, `/feed/:tag` render a public feed scoped to channels with `guest_visible = 1`. The sidebar shows an All link, guest-visible channels, and tags that have ready content on those channels. Guest requests to `/feed/ready` or `/feed/manual` redirect to `/feed`.
+- `GET /`, `/feed`, `/feed/:tag` render every catalog card from channels with `guest_visible = 1`, regardless of media readiness. The sidebar shows an All link, guest-visible channels, and tags that have catalog cards on those channels. Guest requests to `/feed/ready` or `/feed/manual` redirect to `/feed`.
 - `GET /channel/:id` renders only when the channel has `guest_visible = 1`.
 - `GET /v/:id`, `/a/:id`, `/media/v/:id`, `/media/a/:id` are public only for videos in guest-visible channels and only when the requested media kind is `ready`. `:id` is the public `uid`.
 - `GET /t/:id`, `GET /api/status`, and `GET /api/feed/cards` are public only for guest-visible channel data. Client APIs use `uid`, not `youtubeId`.
+- `POST /api/download` allows guests to queue audio only for videos in guest-visible channels. The endpoint is idempotent for media already queued, downloading, or ready and is rate-limited by nginx per client IP.
 
 Authenticated user routes:
 
 - Full feed/channel/player pages, including private channels and non-public tags.
 - Authorized media entrypoints for private or not-yet-public media: `/media/v/:id`, `/media/a/:id`, `/t/:id`.
-- `POST /api/download`
+- `POST /api/download` for video or audio, subject to the same nginx per-IP rate limit.
 - `POST /api/sidebar/mode`
 - `GET /api/since`
 
@@ -176,7 +196,7 @@ API requests are proxied to Node. API handlers may read JSON bodies, perform CSR
 
 Examples:
 
-- `POST /api/download` accepts `{ uid, type }`, resolves the internal `youtube_id`, sets status to `queued`, and enqueues a download job.
+- `POST /api/download` accepts `{ uid, type }`, resolves the internal `youtube_id`, and queues only media in `none` or `expired` status. Requests for media already queued, downloading, or ready return the current status without creating another job. Guests may request audio from guest-visible channels; authenticated users may request video or audio.
 - `POST /api/sidebar/mode` stores the feed sidebar mode in session data.
 - `GET /api/status?ids=...` returns current DB media statuses for polling (comma-separated public `uid`s).
 - `GET /api/since?...` returns new videos since a timestamp for feed updates.
@@ -213,10 +233,10 @@ Deployment commands and git/rsync workflows live in `docs/deploy.md`.
 
 - runtime directories including `deploy/`
 - permissions for nginx traversal
-- nginx site config with `/static/`, `/engine/`, `/parts/` aliases to `deploy/`, plus `/protected_media/`
+- nginx site config with the `/api/download` rate limit, `/static/`, `/engine/`, `/parts/` aliases to `deploy/`, plus `/protected_media/`
 - systemd service for `vidium-server`
 
-Do not rerun `setup.sh` just to fix a missing `/engine/` or `/parts/` alias on an existing server unless you intend to reapply all setup steps. For that case, edit the active nginx site config directly, then run:
+Do not rerun `setup.sh` just to add the download rate limit or fix a missing `/engine/` or `/parts/` alias on an existing server unless you intend to reapply all setup steps. For those cases, edit the active nginx site config directly, then run:
 
 ```bash
 sudo nginx -t

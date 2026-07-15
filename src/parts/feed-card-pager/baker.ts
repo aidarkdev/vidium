@@ -16,7 +16,10 @@ interface FeedCardPagerBakeContext {
   syncUrl?: boolean;
   pageParam?: string;
   viewerMode?: ViewerMode;
-  allowDownload?: boolean;
+  downloadPermissions?: {
+    video: boolean;
+    audio: boolean;
+  };
 }
 
 function strings(lang: string): Record<string, string> {
@@ -32,6 +35,7 @@ function strings(lang: string): Record<string, string> {
     pagination: t(lang, 'feed.page.pagination'),
     loading: t(lang, 'feed.page.loading'),
     error: t(lang, 'feed.page.error'),
+    queueStorageError: t(lang, 'media_queue.storage_error'),
     pageStatus: t(lang, 'feed.page.status'),
   };
 }
@@ -60,13 +64,14 @@ export function bakeFeedCardPager(ctx: FeedCardPagerBakeContext): {
       total: page.total,
       activeTag,
       activeChannelId,
-      allowDownload: ctx.allowDownload ?? true,
+      downloadPermissions: ctx.downloadPermissions ?? { video: true, audio: true },
       pageParam: ctx.pageParam ?? 'page',
       syncUrl: ctx.syncUrl ?? true,
       loading: false,
       error: '',
       pollingIds: [],
       patchCardStatusUpdates: [],
+      localQueueItems: [],
       strings: strings(ctx.lang),
     },
   };

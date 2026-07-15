@@ -34,7 +34,7 @@ function actionButton(id, type, status, strings, options = {}) {
     >${htmlEscape(label)}</span>`;
   }
 
-  if (options.allowDownload === false) return '';
+  if (options.downloadPermissions?.[type] === false) return '';
 
   const label = type === 'video' ? strings.downloadVideo : strings.downloadAudio;
   return `<button

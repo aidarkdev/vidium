@@ -1,11 +1,18 @@
 import { escape as htmlEscape } from '../../engine/core.js';
 
+export function formatCountdown(seconds) {
+  const value = Math.max(0, Math.ceil(Number(seconds) || 0));
+  const minutes = Math.floor(value / 60);
+  return `${minutes}:${String(value % 60).padStart(2, '0')}`;
+}
+
 function mediaHtml(state) {
   if (state.kind === 'video') {
     return `<video
       data-ref="media"
       id="video-player"
       controls
+      playsinline
       preload="metadata"
       src="${htmlEscape(state.mediaSrc)}"
     ></video>`;
@@ -27,8 +34,27 @@ function mediaHtml(state) {
 
 function channelHtml(state) {
   if (!state.channelName) return '';
+  if (!state.channelId) return `<div class="player-channel">${htmlEscape(state.channelName)}</div>`;
 
-  return `<div class="player-channel">${htmlEscape(state.channelName)}</div>`;
+  return `<a class="player-channel" href="/channel/${htmlEscape(String(state.channelId))}">${htmlEscape(state.channelName)}</a>`;
+}
+
+function shareHtml(state) {
+  if (!state.shareAvailable) return '';
+
+  return `<button data-action="share" data-ref="shareButton" type="button">
+    ${htmlEscape(state.shareLabel)}
+  </button>`;
+}
+
+function sleepAvailable(state) {
+  const mediaDuration = Number(state.mediaDurationSeconds);
+  const sleepDuration = Number(state.sleepDurationSeconds);
+  return (
+    Number.isFinite(mediaDuration) &&
+    Number.isFinite(sleepDuration) &&
+    mediaDuration >= sleepDuration
+  );
 }
 
 function formatChapterTime(seconds) {
@@ -106,6 +132,24 @@ export default function template(state) {
         </button>
         <button type="button" data-action="seek" data-seek="15">+15s</button>
         <button type="button" data-action="seek" data-seek="30">+30s</button>
+      </div>
+      <div class="player-actions">
+        ${shareHtml(state)}
+        <div
+          class="player-sleep-controls"
+          data-ref="sleepControls"
+          ${sleepAvailable(state) ? '' : 'hidden'}
+        >
+          <button
+            class="player-sleep-button"
+            data-action="sleep"
+            data-ref="sleepButton"
+            type="button"
+          >${htmlEscape(state.sleepLabel)}</button>
+          <span class="player-sleep-countdown" data-ref="sleepCountdown">
+            ${formatCountdown(state.sleepRemainingSeconds)}
+          </span>
+        </div>
       </div>
       <button
         class="player-rate"

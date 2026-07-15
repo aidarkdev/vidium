@@ -1,4 +1,5 @@
 import { getVideoByUid } from '../../lib/video.ts';
+import { isGuestVisibleChannel } from '../../lib/guest-access.ts';
 import { t } from '../../pages/lang.ts';
 
 interface PlayerBakeContext {
@@ -17,6 +18,7 @@ export function bakePlayerPage(
   if (!video) return { ok: false, message: 'Not found' };
 
   const id = `player-${ctx.kind}-${uid}`;
+  const mediaStatus = ctx.kind === 'video' ? video.videoStatus : video.audioStatus;
 
   return {
     ok: true,
@@ -26,12 +28,17 @@ export function bakePlayerPage(
       kind: ctx.kind,
       uid,
       title: video.title,
+      channelId: video.channelId,
       channelName: video.channelName,
+      mediaDurationSeconds: video.duration,
       chapters: video.chapters,
       resumeKey: `vidium:player-position:${ctx.kind}:${uid}`,
       mediaSrc: ctx.kind === 'video' ? `/media/v/${uid}` : `/media/a/${uid}`,
-      thumbSrc: ctx.kind === 'audio' ? `/t/${uid}` : '',
+      thumbSrc: `/t/${uid}`,
       backLabel: t(ctx.lang, 'player.back'),
+      shareLabel: t(ctx.lang, 'player.share'),
+      shareAvailable: isGuestVisibleChannel(video.channelId) && mediaStatus === 'ready',
+      sleepLabel: t(ctx.lang, 'player.sleep'),
       eventBack: 0,
       seekDelta: 0,
       eventSeek: 0,
@@ -43,6 +50,10 @@ export function bakePlayerPage(
       eventPlay: 0,
       playbackRate: 1,
       paused: true,
+      shareStatus: 'idle',
+      sleepDurationSeconds: 20 * 60,
+      sleepDeadline: 0,
+      sleepRemainingSeconds: 20 * 60,
     },
   };
 }

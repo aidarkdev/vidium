@@ -2,6 +2,39 @@ import { cardHtml } from '../feed-page/template.js';
 import { cardsHtml, pagerHtml } from './template.js';
 
 const pendingStatuses = new Set(['queued', 'downloading']);
+const QUEUE_STORAGE_KEY = 'vidium:media-queue:v1';
+const UID_RE = /^[A-Za-z0-9_-]{16,22}$/;
+
+function normalizeQueueItem(value) {
+  if (!value || typeof value !== 'object') return null;
+  if (!UID_RE.test(value.uid) || !['video', 'audio'].includes(value.type)) return null;
+  return {
+    uid: value.uid,
+    type: value.type,
+    title: typeof value.title === 'string' && value.title.trim() ? value.title.trim() : value.uid,
+    status: typeof value.status === 'string' && value.status ? value.status : 'none',
+    addedAt: Number.isFinite(value.addedAt) ? value.addedAt : 0,
+  };
+}
+
+function readLocalQueueItems() {
+  try {
+    const raw = localStorage.getItem(QUEUE_STORAGE_KEY);
+    if (!raw) return [];
+    const values = JSON.parse(raw);
+    if (!Array.isArray(values)) return [];
+    return values.map(normalizeQueueItem).filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+
+function upsertLocalQueueItem(items, nextItem) {
+  return [
+    nextItem,
+    ...items.filter((item) => item.uid !== nextItem.uid || item.type !== nextItem.type),
+  ].sort((a, b) => b.addedAt - a.addedAt);
+}
 
 function normalizePage(value, fallback) {
   const page = Number.parseInt(String(value), 10);
@@ -65,7 +98,7 @@ function rerenderUpdatedCards(part, updates) {
 
     const fresh = document.createElement('template');
     fresh.innerHTML = cardHtml(card, part.state.strings, {
-      allowDownload: part.state.allowDownload !== false,
+      downloadPermissions: part.state.downloadPermissions,
     });
     node.replaceWith(fresh.content.firstElementChild);
   }
@@ -110,12 +143,16 @@ async function poll(part) {
   }
 
   part.set({ pollingIds, patchCardStatusUpdates });
-  if (pollingIds.length)
+  if (pollingIds.length) {
     part.private.pollTimer = setTimeout(() => poll(part).catch(() => {}), 5000);
+  } else {
+    part.private.pollTimer = null;
+  }
 }
 
 function restartPolling(part, cards) {
   clearTimeout(part.private.pollTimer);
+  part.private.pollTimer = null;
   const pollingIds = [...new Set(pollingIdsForCards(cards))];
   part.set('pollingIds', pollingIds);
   if (pollingIds.length) poll(part).catch(() => {});
@@ -160,22 +197,50 @@ export default {
       loadPage(part, page).catch(() => {});
     },
     'click [data-action="download"]': async (part, event) => {
-      if (part.state.allowDownload === false) return;
       const btn = event.target.closest('[data-action="download"]');
       const id = btn.dataset.id;
       const type = btn.dataset.type;
-      const statusUpdate =
-        type === 'video' ? { id, videoStatus: 'queued' } : { id, audioStatus: 'queued' };
-      const pollingIds = part.state.pollingIds.includes(id)
-        ? part.state.pollingIds
-        : [...part.state.pollingIds, id];
-      part.set({ pollingIds, patchCardStatusUpdates: [statusUpdate] });
-      await fetch('/api/download', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ uid: id, type }),
-      });
-      if (!part.private.pollTimer) poll(part).catch(() => {});
+      if (!['video', 'audio'].includes(type)) return;
+      if (part.state.downloadPermissions?.[type] === false) return;
+
+      try {
+        const res = await fetch('/api/download', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ uid: id, type }),
+        });
+        if (!res.ok) throw new Error('request failed');
+
+        const data = await res.json();
+        if (!data.ok || typeof data.status !== 'string') throw new Error('request failed');
+
+        const current = part.state.cards.find((card) => card.uid === id);
+        if (!current) return;
+        const statusField = type === 'video' ? 'videoStatus' : 'audioStatus';
+        const next = { ...current, [statusField]: data.status };
+        const shouldPoll =
+          pendingStatuses.has(next.videoStatus) || pendingStatuses.has(next.audioStatus);
+        let pollingIds = part.state.pollingIds.filter((item) => item !== id);
+        if (shouldPoll) pollingIds = [...pollingIds, id];
+        const statusUpdate = { id, [statusField]: data.status };
+        const localQueueItems = upsertLocalQueueItem(readLocalQueueItems(), {
+          uid: id,
+          type,
+          title: current.title,
+          status: data.status,
+          addedAt: Date.now(),
+        });
+
+        part.set({
+          error: '',
+          pollingIds,
+          patchCardStatusUpdates: [statusUpdate],
+          localQueueItems,
+        });
+        if (shouldPoll && !part.private.pollTimer) poll(part).catch(() => {});
+      } catch {
+        part.set('error', part.state.strings.error);
+      }
     },
   },
   state: {
@@ -191,6 +256,13 @@ export default {
     error: rerenderPager,
     patchCardStatusUpdates: applyCardStatusUpdates,
     pollingIds: () => {},
+    localQueueItems: (part, items) => {
+      try {
+        localStorage.setItem(QUEUE_STORAGE_KEY, JSON.stringify(items));
+      } catch {
+        part.set('error', part.state.strings.queueStorageError);
+      }
+    },
   },
   onMount: (part) => {
     part.private.onPopState = () => {

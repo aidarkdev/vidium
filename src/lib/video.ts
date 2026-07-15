@@ -87,9 +87,7 @@ const SEL_WITH_CHAPTERS = `
          v.chapters_json,
          COALESCE(NULLIF(c.display_name,''), c.name, '') AS channel_name
   FROM videos v LEFT JOIN channels c ON v.channel_id = c.id`;
-const GUEST_READY_WHERE = `
-  c.guest_visible = 1
-  AND (v.video_status = 'ready' OR v.audio_status = 'ready')`;
+const GUEST_VISIBLE_WHERE = `c.guest_visible = 1`;
 
 const stmtGetByYoutubeId = db.prepare(`${SEL_WITH_CHAPTERS} WHERE v.youtube_id = ?`);
 const stmtGetByUid = db.prepare(`${SEL_WITH_CHAPTERS} WHERE v.uid = ?`);
@@ -180,23 +178,23 @@ const stmtGetReadyPage = db.prepare(
 const stmtGuestCountAll = db.prepare(`
   SELECT COUNT(*) AS count
   FROM videos v JOIN channels c ON v.channel_id = c.id
-  WHERE ${GUEST_READY_WHERE}`);
+  WHERE ${GUEST_VISIBLE_WHERE}`);
 const stmtGuestGetAllPage = db.prepare(
-  `${SEL} WHERE ${GUEST_READY_WHERE} ORDER BY v.date DESC, v.created_at DESC LIMIT ? OFFSET ?`,
+  `${SEL} WHERE ${GUEST_VISIBLE_WHERE} ORDER BY v.date DESC, v.created_at DESC LIMIT ? OFFSET ?`,
 );
 const stmtGuestCountByChannel = db.prepare(`
   SELECT COUNT(*) AS count
   FROM videos v JOIN channels c ON v.channel_id = c.id
-  WHERE v.channel_id = ? AND ${GUEST_READY_WHERE}`);
+  WHERE v.channel_id = ? AND ${GUEST_VISIBLE_WHERE}`);
 const stmtGuestGetByChannelPage = db.prepare(
-  `${SEL} WHERE v.channel_id = ? AND ${GUEST_READY_WHERE} ORDER BY v.date DESC, v.created_at DESC LIMIT ? OFFSET ?`,
+  `${SEL} WHERE v.channel_id = ? AND ${GUEST_VISIBLE_WHERE} ORDER BY v.date DESC, v.created_at DESC LIMIT ? OFFSET ?`,
 );
 const stmtGuestCountByTag = db.prepare(`
   SELECT COUNT(*) AS count
   FROM videos v
   JOIN channel_tags ct ON ct.channel_id = v.channel_id
   JOIN channels c ON v.channel_id = c.id
-  WHERE ct.tag = ? AND ${GUEST_READY_WHERE}`);
+  WHERE ct.tag = ? AND ${GUEST_VISIBLE_WHERE}`);
 const stmtGuestGetByTagPage = db.prepare(`
   SELECT v.uid, v.youtube_id, v.title, v.channel_id, v.date, v.duration, v.video_status, v.audio_status,
          '[]' AS chapters_json,
@@ -204,7 +202,7 @@ const stmtGuestGetByTagPage = db.prepare(`
   FROM videos v
   JOIN channel_tags ct ON ct.channel_id = v.channel_id
   JOIN channels c ON v.channel_id = c.id
-  WHERE ct.tag = ? AND ${GUEST_READY_WHERE}
+  WHERE ct.tag = ? AND ${GUEST_VISIBLE_WHERE}
   ORDER BY v.date DESC, v.created_at DESC LIMIT ? OFFSET ?`);
 const stmtExists = db.prepare(`SELECT id FROM videos WHERE youtube_id = ?`);
 const stmtSetVideoStatus = db.prepare(

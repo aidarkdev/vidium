@@ -68,6 +68,31 @@ function navState(lang: string, isAdmin: boolean, isGuest: boolean): Record<stri
   };
 }
 
+function mediaQueueState(lang: string): Record<string, unknown> {
+  return {
+    open: false,
+    items: [],
+    storageError: false,
+    labels: {
+      open: t(lang, 'media_queue.open'),
+      title: t(lang, 'media_queue.title'),
+      close: t(lang, 'media_queue.close'),
+      remove: t(lang, 'media_queue.remove'),
+      empty: t(lang, 'media_queue.empty'),
+      storageError: t(lang, 'media_queue.storage_error'),
+      video: t(lang, 'media_queue.video'),
+      audio: t(lang, 'media_queue.audio'),
+    },
+    statusLabels: {
+      none: t(lang, 'media_queue.status.none'),
+      queued: t(lang, 'media_queue.status.queued'),
+      downloading: t(lang, 'media_queue.status.downloading'),
+      ready: t(lang, 'media_queue.status.ready'),
+      expired: t(lang, 'media_queue.status.expired'),
+    },
+  };
+}
+
 interface PartPageOptions {
   lang: string;
   title: string;
@@ -86,6 +111,7 @@ export function renderPartPage(opts: PartPageOptions): string {
   const baked = {
     ...opts.baked,
     'nav-controls': navState(opts.lang, opts.isAdmin, opts.isGuest ?? false),
+    'media-queue': mediaQueueState(opts.lang),
     'back-top': { visible: false, eventScrollTop: 0 },
   };
   /**
@@ -96,6 +122,7 @@ export function renderPartPage(opts: PartPageOptions): string {
   const navControls = mountScript('/parts/nav-controls/index.js', 'nav-controls', {
     expose: ['sidebarEdit'],
   });
+  const mediaQueue = mountScript('/parts/media-queue/index.js', 'media-queue');
   const backTop = mountScript('/parts/back-top/index.js', 'back-top');
 
   return `<!DOCTYPE html>
@@ -111,7 +138,7 @@ export function renderPartPage(opts: PartPageOptions): string {
       <meta name="mobile-web-app-capable" content="yes">
       <meta name="apple-mobile-web-app-capable" content="yes">
       <meta name="apple-mobile-web-app-title" content="paguo">
-      <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+      <meta name="apple-mobile-web-app-status-bar-style" content="black">
       <link rel="apple-touch-icon" href="${assetUrl('/static/icon-192.png')}">
       <script type="module" src="${assetUrl('/engine/core.js')}"></script>
       <script>
@@ -124,7 +151,10 @@ export function renderPartPage(opts: PartPageOptions): string {
     <body${bodyClass}>
       <nav class="nav">
         <div class="nav-inner">
-          <a class="nav-logo" href="/">paguo</a>
+          <div class="nav-brand">
+            <a class="nav-logo" href="/">paguo</a>
+            ${mediaQueue}
+          </div>
           <div class="nav-links">
             ${navControls}
           </div>

@@ -2,7 +2,7 @@ import { escape as htmlEscape } from '../../engine/core.js';
 import { cardHtml } from '../feed-page/template.js';
 
 export function cardsHtml(state) {
-  const options = { allowDownload: state.allowDownload !== false };
+  const options = { downloadPermissions: state.downloadPermissions };
   return state.cards.map((card) => cardHtml(card, state.strings, options)).join('');
 }
 

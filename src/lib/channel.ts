@@ -117,7 +117,6 @@ const stmtGetGuestVisibleTags = db.prepare(`
     WHERE ct.tag = tl.tag
       AND c.guest_visible = 1
       AND c.id != ?
-      AND (v.video_status = 'ready' OR v.audio_status = 'ready')
   )
   ORDER BY CASE WHEN tl.sort_order = 0 THEN 1 ELSE 0 END,
            tl.sort_order ASC,

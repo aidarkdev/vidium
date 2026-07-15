@@ -83,7 +83,7 @@ async function unlinkIfExists(path: string): Promise<boolean> {
 // ── Handlers ──────────────────────────────────────────────────────────────────
 
 export async function handleDownload(req: IncomingMessage, res: ServerResponse): Promise<void> {
-  if (!requireSessionApi(req, res)) return;
+  const session = getOptionalSession(req);
   if (!checkCsrf(req, res)) return;
 
   let data: { uid: string; type: 'video' | 'audio' };
@@ -97,8 +97,14 @@ export async function handleDownload(req: IncomingMessage, res: ServerResponse):
     return json(res, 400, { error: 'invalid request' });
   }
 
-  const video = getVideoByUid(data.uid);
+  const video = session ? getVideoByUid(data.uid) : getGuestVisibleVideo(data.uid);
   if (!video) return json(res, 404, { error: 'not found' });
+  if (!session && data.type === 'video') return json(res, 403, { error: 'forbidden' });
+
+  const currentStatus = data.type === 'video' ? video.videoStatus : video.audioStatus;
+  if (!['none', 'expired'].includes(currentStatus)) {
+    return json(res, 200, { ok: true, status: currentStatus });
+  }
 
   const jobType = data.type === 'video' ? 'download_video' : 'download_audio';
 
