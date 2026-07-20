@@ -3,6 +3,7 @@ import { cardsHtml, pagerHtml } from './template.js';
 
 const pendingStatuses = new Set(['queued', 'downloading']);
 const QUEUE_STORAGE_KEY = 'vidium:media-queue:v1';
+const QUEUE_ITEM_ADDED_EVENT = 'vidium:media-queue-item-added';
 const UID_RE = /^[A-Za-z0-9_-]{16,22}$/;
 
 function normalizeQueueItem(value) {
@@ -259,6 +260,7 @@ export default {
     localQueueItems: (part, items) => {
       try {
         localStorage.setItem(QUEUE_STORAGE_KEY, JSON.stringify(items));
+        window.dispatchEvent(new CustomEvent(QUEUE_ITEM_ADDED_EVENT));
       } catch {
         part.set('error', part.state.strings.queueStorageError);
       }

@@ -8,6 +8,7 @@
  * POST /api/channel   — add channel + enqueue crawl
  * POST /api/video     — add single video by URL
  * POST /api/channel/display-name — rename channel in sidebar
+ * POST /api/channel/rss-enabled — enable or disable channel RSS polling
  * POST /api/tag/reorder — change tag order in sidebar
  * POST /api/play     — record first play on player page
  */
@@ -59,6 +60,7 @@ import {
   setChannelDisplayName,
   setChannelAutoDownload,
   setChannelGuestVisible,
+  setChannelRssEnabled,
   setChannelTags,
   moveTag as moveTagOrder,
   moveChannel as moveChannelOrder,
@@ -99,7 +101,6 @@ export async function handleDownload(req: IncomingMessage, res: ServerResponse):
 
   const video = session ? getVideoByUid(data.uid) : getGuestVisibleVideo(data.uid);
   if (!video) return json(res, 404, { error: 'not found' });
-  if (!session && data.type === 'video') return json(res, 403, { error: 'forbidden' });
 
   const currentStatus = data.type === 'video' ? video.videoStatus : video.audioStatus;
   if (!['none', 'expired'].includes(currentStatus)) {
@@ -399,6 +400,32 @@ export async function handleSetChannelGuestVisible(
   }
 
   const saved = setChannelGuestVisible(data.channelId, data.enabled);
+  json(res, 200, { ok: true, saved, enabled: data.enabled });
+}
+
+export async function handleSetChannelRssEnabled(
+  req: IncomingMessage,
+  res: ServerResponse,
+): Promise<void> {
+  if (!requireAdminApi(req, res)) return;
+  if (!checkCsrf(req, res)) return;
+
+  let data: { channelId: number; enabled: boolean };
+  try {
+    data = JSON.parse(await readBody(req));
+  } catch {
+    return json(res, 400, { error: 'invalid json' });
+  }
+
+  if (
+    !Number.isInteger(data.channelId) ||
+    data.channelId <= MANUAL_CHANNEL_ID ||
+    typeof data.enabled !== 'boolean'
+  ) {
+    return json(res, 400, { error: 'invalid request' });
+  }
+
+  const saved = setChannelRssEnabled(data.channelId, data.enabled);
   json(res, 200, { ok: true, saved, enabled: data.enabled });
 }
 

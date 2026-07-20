@@ -40,7 +40,8 @@ db.exec(`
     sort_order         INTEGER NOT NULL DEFAULT 0,
     auto_download_video INTEGER NOT NULL DEFAULT 0,
     auto_download_audio INTEGER NOT NULL DEFAULT 0,
-    guest_visible      INTEGER NOT NULL DEFAULT 0
+    guest_visible      INTEGER NOT NULL DEFAULT 0,
+    rss_enabled        INTEGER NOT NULL DEFAULT 1
   );
 
   CREATE TABLE IF NOT EXISTS channel_tags (
@@ -139,6 +140,10 @@ if (!hasColumn('channels', 'auto_download_audio')) {
 
 if (!hasColumn('channels', 'guest_visible')) {
   db.exec('ALTER TABLE channels ADD COLUMN guest_visible INTEGER NOT NULL DEFAULT 0');
+}
+
+if (!hasColumn('channels', 'rss_enabled')) {
+  db.exec('ALTER TABLE channels ADD COLUMN rss_enabled INTEGER NOT NULL DEFAULT 1');
 }
 
 if (!hasColumn('videos', 'chapters_json')) {

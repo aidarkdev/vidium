@@ -99,9 +99,10 @@ export default function template(state, part) {
 
   return `<div class="media-queue">
     <button
-      class="media-queue-open"
+      class="media-queue-open${state.queueHintActive ? ' media-queue-open-hint' : ''}"
       type="button"
       data-action="open"
+      data-ref="openButton"
       aria-haspopup="dialog"
       aria-controls="${htmlEscape(dialogId)}"
       aria-label="${htmlEscape(state.labels.open)}"

@@ -1,5 +1,7 @@
 import { fieldClass } from './template.js';
 
+const MEDIA_QUEUE_STORAGE_KEY = 'vidium:media-queue:v1';
+
 function setMsg(part, prefix, message, status) {
   part.set({ [`${prefix}Msg`]: message, [`${prefix}MsgStatus`]: status });
 }
@@ -16,6 +18,9 @@ async function postJson(url, body) {
 
 export default {
   events: {
+    'submit [data-action="logout"]': (part) => {
+      part.set('loggingOut', true);
+    },
     'submit [data-action="add-channel"]': async (part, event) => {
       event.preventDefault();
       const form = event.target;
@@ -63,6 +68,14 @@ export default {
     },
   },
   state: {
+    loggingOut: (_part, value) => {
+      if (!value) return;
+      try {
+        localStorage.removeItem(MEDIA_QUEUE_STORAGE_KEY);
+      } catch {
+        // Storage access must not prevent the native logout form submission.
+      }
+    },
     dropdownOpen: (part, value) => {
       if (!part.refs.dropdown || !part.refs.summary) return;
       part.refs.dropdown.open = value;

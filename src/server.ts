@@ -35,6 +35,7 @@ import {
   handleSetChannelDisplayName,
   handleSetChannelAutoDownload,
   handleSetChannelGuestVisible,
+  handleSetChannelRssEnabled,
   handleSetChannelTags,
   handleDeleteTag,
   handleReorderTag,
@@ -195,6 +196,11 @@ const routes: RouteConfig[] = [
     method: 'post',
     path: '/api/channel/guest-visible',
     handler: handleSetChannelGuestVisible,
+  },
+  {
+    method: 'post',
+    path: '/api/channel/rss-enabled',
+    handler: handleSetChannelRssEnabled,
   },
   {
     method: 'post',

@@ -20,10 +20,6 @@ export function renderFeedPage(ctx: FeedRenderContext): string {
     page: ctx.page,
     activeTag: ctx.params.tag ?? 'all',
     viewerMode: ctx.viewerMode,
-    downloadPermissions: {
-      video: ctx.viewerMode !== 'guest',
-      audio: true,
-    },
   });
 
   return renderPartPage({

@@ -1,6 +1,9 @@
 import { itemsHtml } from './template.js';
 
 const STORAGE_KEY = 'vidium:media-queue:v1';
+const QUEUE_KNOWN_STORAGE_KEY = 'vidium:media-queue-known:v1';
+const QUEUE_ITEM_ADDED_EVENT = 'vidium:media-queue-item-added';
+const QUEUE_HINT_DURATION_MS = 5000;
 const UID_RE = /^[A-Za-z0-9_-]{16,22}$/;
 const pendingStatuses = new Set(['queued', 'downloading']);
 
@@ -44,6 +47,31 @@ function readItems() {
   } catch {
     return { items: [], storageError: false };
   }
+}
+
+function queueIsKnown(part) {
+  if (part.private.queueKnown) return true;
+  try {
+    part.private.queueKnown = localStorage.getItem(QUEUE_KNOWN_STORAGE_KEY) === '1';
+  } catch {
+    part.private.queueKnown = false;
+  }
+  return part.private.queueKnown;
+}
+
+function clearQueueHintTimer(part) {
+  clearTimeout(part.private.queueHintTimer);
+  part.private.queueHintTimer = null;
+}
+
+function acknowledgeQueue(part) {
+  part.private.queueKnown = true;
+  try {
+    localStorage.setItem(QUEUE_KNOWN_STORAGE_KEY, '1');
+  } catch {
+    // Keep the acknowledgement for the lifetime of this page.
+  }
+  clearQueueHintTimer(part);
 }
 
 function stopPolling(part) {
@@ -107,9 +135,11 @@ export default {
   events: {
     'click [data-action="open"]': (part) => {
       const stored = readItems();
+      acknowledgeQueue(part);
       part.set({
         items: stored.items,
         storageError: stored.storageError,
+        queueHintActive: false,
         open: true,
       });
     },
@@ -137,6 +167,9 @@ export default {
     storageError: (part) => {
       part.refs.items.innerHTML = itemsHtml(part.state);
     },
+    queueHintActive: (part, active) => {
+      part.refs.openButton.classList.toggle('media-queue-open-hint', active);
+    },
     open: (part, open) => {
       if (open) {
         if (!part.refs.dialog.open) part.refs.dialog.showModal();
@@ -148,16 +181,28 @@ export default {
     },
   },
   onMount: (part) => {
+    part.private.onQueueItemAdded = () => {
+      if (queueIsKnown(part)) return;
+      clearQueueHintTimer(part);
+      part.set('queueHintActive', true);
+      part.private.queueHintTimer = setTimeout(() => {
+        part.private.queueHintTimer = null;
+        part.set('queueHintActive', false);
+      }, QUEUE_HINT_DURATION_MS);
+    };
     part.private.onKey = (event) => {
       if (event.key !== 'Escape' || !part.state.open) return;
       event.preventDefault();
       part.set('open', false);
     };
+    window.addEventListener(QUEUE_ITEM_ADDED_EVENT, part.private.onQueueItemAdded);
     document.addEventListener('keydown', part.private.onKey);
   },
   onDestroy: (part) => {
     part.private.destroyed = true;
+    window.removeEventListener(QUEUE_ITEM_ADDED_EVENT, part.private.onQueueItemAdded);
     document.removeEventListener('keydown', part.private.onKey);
+    clearQueueHintTimer(part);
     stopPolling(part);
   },
 };

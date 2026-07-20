@@ -76,7 +76,7 @@ export default function template(state) {
   const authControls = state.isGuest
     ? `<a href="/login" class="nav-lang">${htmlEscape(state.loginLabel)}</a>
       <a href="/register" class="nav-lang">${htmlEscape(state.registerLabel)}</a>`
-    : `<form method="post" action="/logout">
+    : `<form method="post" action="/logout" data-action="logout">
       <button class="nav-logout" type="submit">${htmlEscape(state.logoutLabel)}</button>
     </form>`;
 

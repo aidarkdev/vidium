@@ -23,10 +23,6 @@ export function renderChannelPage(ctx: ChannelRenderContext): string | undefined
     activeTag: '',
     activeChannelId: channelId,
     viewerMode: ctx.viewerMode,
-    downloadPermissions: {
-      video: ctx.viewerMode !== 'guest',
-      audio: true,
-    },
   });
 
   return renderPartPage({

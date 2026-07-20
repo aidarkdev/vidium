@@ -58,6 +58,7 @@ function navState(lang: string, isAdmin: boolean, isGuest: boolean): Record<stri
     videoDetailsOpen: false,
     sidebarEdit: false,
     dropdownOpen: false,
+    loggingOut: false,
     eventChannelReset: 0,
     eventVideoReset: 0,
     langHref: `/lang/${lang === 'ru' ? 'en' : 'ru'}`,
@@ -71,6 +72,7 @@ function navState(lang: string, isAdmin: boolean, isGuest: boolean): Record<stri
 function mediaQueueState(lang: string): Record<string, unknown> {
   return {
     open: false,
+    queueHintActive: false,
     items: [],
     storageError: false,
     labels: {

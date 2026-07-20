@@ -115,7 +115,7 @@ Expected result: HTTP 200, `cache-control: immutable`, not proxied Node 404. Use
 - Channel/admin: `/channel/:id`, `/admin`
 - Player pages: `/v/:id`, `/a/:id` (`:id` is the public video `uid`, not the internal YouTube id)
 - Authorized media entrypoints: `/media/v/:id`, `/media/a/:id`, `/t/:id` (same public `uid`; Node resolves to on-disk `{youtube_id}.*` files)
-- API: `/api/download`, `/api/sidebar/mode`, `/api/channel`, `/api/video`, `/api/channel/display-name`, `/api/channel/tags`, `/api/channel/auto-download`, `/api/channel/guest-visible`, `/api/channel/reorder`, `/api/tag/reorder`, `/api/tag/delete`, `/api/admin/...`, `/api/status`, `/api/since`, `/api/feed/cards`
+- API: `/api/download`, `/api/sidebar/mode`, `/api/channel`, `/api/video`, `/api/channel/display-name`, `/api/channel/tags`, `/api/channel/auto-download`, `/api/channel/guest-visible`, `/api/channel/rss-enabled`, `/api/channel/reorder`, `/api/tag/reorder`, `/api/tag/delete`, `/api/admin/...`, `/api/status`, `/api/since`, `/api/feed/cards`
 
 Handlers should remain the HTTP boundary: request/response, session, params/forms, redirects, status codes. Page HTML handlers should call one page renderer and should not manually load page data from the DB. Server-side part bakers handle page data loading and state building.
 
@@ -148,6 +148,7 @@ Admin-only routes:
 - `POST /api/channel/tags`
 - `POST /api/channel/auto-download`
 - `POST /api/channel/guest-visible`
+- `POST /api/channel/rss-enabled`
 - `POST /api/channel/reorder`
 - `POST /api/tag/reorder`
 - `POST /api/tag/delete`
@@ -163,7 +164,7 @@ Guest-visible routes:
 - `GET /channel/:id` renders only when the channel has `guest_visible = 1`.
 - `GET /v/:id`, `/a/:id`, `/media/v/:id`, `/media/a/:id` are public only for videos in guest-visible channels and only when the requested media kind is `ready`. `:id` is the public `uid`.
 - `GET /t/:id`, `GET /api/status`, and `GET /api/feed/cards` are public only for guest-visible channel data. Client APIs use `uid`, not `youtubeId`.
-- `POST /api/download` allows guests to queue audio only for videos in guest-visible channels. The endpoint is idempotent for media already queued, downloading, or ready and is rate-limited by nginx per client IP.
+- `POST /api/download` allows guests to queue video or audio for videos in guest-visible channels. The endpoint is idempotent for media already queued, downloading, or ready and is rate-limited by nginx per client IP.
 
 Authenticated user routes:
 
@@ -196,11 +197,12 @@ API requests are proxied to Node. API handlers may read JSON bodies, perform CSR
 
 Examples:
 
-- `POST /api/download` accepts `{ uid, type }`, resolves the internal `youtube_id`, and queues only media in `none` or `expired` status. Requests for media already queued, downloading, or ready return the current status without creating another job. Guests may request audio from guest-visible channels; authenticated users may request video or audio.
+- `POST /api/download` accepts `{ uid, type }`, resolves the internal `youtube_id`, and queues only media in `none` or `expired` status. Requests for media already queued, downloading, or ready return the current status without creating another job. Guests and authenticated users may request video or audio; guest requests are limited to guest-visible channels.
 - `POST /api/sidebar/mode` stores the feed sidebar mode in session data.
 - `GET /api/status?ids=...` returns current DB media statuses for polling (comma-separated public `uid`s).
 - `GET /api/since?...` returns new videos since a timestamp for feed updates.
 - `GET /api/feed/cards?...` returns one paginated card collection page for feed controls.
+- `POST /api/channel/rss-enabled` stores whether the worker should include a channel in periodic RSS polling. Initial explicit channel crawling is unaffected.
 
 ## Protected Media Flow
 

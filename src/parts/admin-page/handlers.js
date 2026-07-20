@@ -259,6 +259,34 @@ export default {
         part.set('pendingChannelGuestVisibleId', 0);
       }
     },
+    'change [data-action="admin-channel-rss"]': async (part, event) => {
+      const input = event.target.closest('[data-action="admin-channel-rss"]');
+      const channelId = Number(input.dataset.channelId);
+      if (!Number.isInteger(channelId) || channelId <= 1) return;
+
+      const enabled = input.checked;
+      part.set({
+        pendingChannelRssId: channelId,
+        channels: part.state.channels.map((channel) =>
+          channel.id === channelId ? { ...channel, rssEnabled: enabled } : channel,
+        ),
+      });
+      try {
+        await postJson('/api/channel/rss-enabled', {
+          channelId,
+          enabled,
+        });
+      } catch (err) {
+        part.set({
+          channels: part.state.channels.map((channel) =>
+            channel.id === channelId ? { ...channel, rssEnabled: !enabled } : channel,
+          ),
+          errorMessage: err.message || part.state.actions.error,
+        });
+      } finally {
+        part.set('pendingChannelRssId', 0);
+      }
+    },
   },
   state: {
     channels: (part) => {
@@ -269,6 +297,15 @@ export default {
         'admin-channels',
         part.state.contentsLink,
       );
+    },
+    pendingChannelRssId: (part, value, oldValue) => {
+      for (const channelId of [oldValue, value]) {
+        if (!channelId) continue;
+        const input = part.root.querySelector(
+          `[data-action="admin-channel-rss"][data-channel-id="${CSS.escape(String(channelId))}"]`,
+        );
+        if (input) input.disabled = channelId === value;
+      }
     },
     users: (part) => {
       part.refs.users.innerHTML = table(

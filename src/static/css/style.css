@@ -42,6 +42,8 @@
   --success-text: #4ade80;
   --success-text-soft: #86efac;
   --warning-text: #fbbf24;
+  --warning-control-bg: rgb(251 191 36 / 0.12);
+  --warning-glow: rgb(251 191 36 / 0.7);
   --danger-text: #f87171;
   --danger-text-soft: #fca5a5;
   --danger-text-muted: #fecaca;
@@ -208,6 +210,37 @@ a:hover { text-decoration: underline; }
   border-color: var(--border-control);
   background: var(--surface-control-bg);
   color: var(--text-primary);
+}
+
+.media-queue-open-hint {
+  animation: media-queue-hint-pulse 1s ease-in-out infinite;
+}
+
+@keyframes media-queue-hint-pulse {
+  0%,
+  100% {
+    border-color: var(--warning-text);
+    background: transparent;
+    box-shadow: 0 0 0 transparent;
+    color: var(--warning-text);
+  }
+
+  50% {
+    border-color: var(--warning-text);
+    background: var(--warning-control-bg);
+    box-shadow: 0 0 0.9rem var(--warning-glow);
+    color: var(--warning-text);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .media-queue-open-hint {
+    border-color: var(--warning-text);
+    animation: none;
+    background: var(--warning-control-bg);
+    box-shadow: 0 0 0.9rem var(--warning-glow);
+    color: var(--warning-text);
+  }
 }
 
 .media-queue-open svg,

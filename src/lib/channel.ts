@@ -15,6 +15,7 @@ export interface Channel {
   autoDownloadVideo: boolean;
   autoDownloadAudio: boolean;
   guestVisible: boolean;
+  rssEnabled: boolean;
 }
 
 export interface TagLabel {
@@ -27,7 +28,7 @@ export interface TagLabel {
 
 const stmtGetById = db.prepare(
   `SELECT c.id, c.name, c.display_name, c.url, c.youtube_channel_id, c.sort_order,
-          c.auto_download_video, c.auto_download_audio, c.guest_visible,
+          c.auto_download_video, c.auto_download_audio, c.guest_visible, c.rss_enabled,
           COALESCE(GROUP_CONCAT(ct.tag, ','), '') AS tags
    FROM channels c
    LEFT JOIN channel_tags ct ON ct.channel_id = c.id
@@ -45,7 +46,7 @@ const stmtUpdateCrawled = db.prepare(
 const stmtSetDisplayName = db.prepare(`UPDATE channels SET display_name = ? WHERE id = ?`);
 const stmtGetAll = db.prepare(
   `SELECT c.id, c.name, c.display_name, c.url, c.youtube_channel_id, c.sort_order,
-          c.auto_download_video, c.auto_download_audio, c.guest_visible,
+          c.auto_download_video, c.auto_download_audio, c.guest_visible, c.rss_enabled,
           COALESCE(GROUP_CONCAT(ct.tag, ','), '') AS tags
    FROM channels c
    LEFT JOIN channel_tags ct ON ct.channel_id = c.id
@@ -67,7 +68,7 @@ const stmtGetOrderedIds = db.prepare(
 const stmtGetRss = db.prepare(
   `SELECT id, youtube_channel_id, auto_download_video, auto_download_audio
    FROM channels
-   WHERE youtube_channel_id != ''`,
+   WHERE youtube_channel_id != '' AND rss_enabled = 1`,
 );
 const stmtSetSortOrder = db.prepare(`UPDATE channels SET sort_order = ? WHERE id = ?`);
 const stmtSetAutoDownloadVideo = db.prepare(
@@ -78,6 +79,9 @@ const stmtSetAutoDownloadAudio = db.prepare(
 );
 const stmtSetGuestVisible = db.prepare(
   `UPDATE channels SET guest_visible = ? WHERE id = ? AND id != ?`,
+);
+const stmtSetRssEnabled = db.prepare(
+  `UPDATE channels SET rss_enabled = ? WHERE id = ? AND id != ?`,
 );
 const stmtGetOrderedTags = db.prepare(`
   SELECT tl.tag
@@ -140,6 +144,7 @@ type RawChannel = {
   auto_download_video: number;
   auto_download_audio: number;
   guest_visible: number;
+  rss_enabled: number;
 };
 
 function toChannel(r: RawChannel): Channel {
@@ -154,6 +159,7 @@ function toChannel(r: RawChannel): Channel {
     autoDownloadVideo: r.auto_download_video === 1,
     autoDownloadAudio: r.auto_download_audio === 1,
     guestVisible: r.guest_visible === 1,
+    rssEnabled: r.rss_enabled === 1,
   };
 }
 
@@ -204,6 +210,10 @@ export function setChannelAutoDownload(
 
 export function setChannelGuestVisible(channelId: number, enabled: boolean): boolean {
   return stmtSetGuestVisible.run(enabled ? 1 : 0, channelId, MANUAL_CHANNEL_ID).changes > 0;
+}
+
+export function setChannelRssEnabled(channelId: number, enabled: boolean): boolean {
+  return stmtSetRssEnabled.run(enabled ? 1 : 0, channelId, MANUAL_CHANNEL_ID).changes > 0;
 }
 
 export function getAllChannels(): Channel[] {
