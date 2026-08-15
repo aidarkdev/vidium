@@ -70,7 +70,8 @@ export const config: Config = {
 
   DEFAULT_LANG: process.env.DEFAULT_LANG ?? '',
 
-  ASSET_MANIFEST_PATH: process.env.ASSET_MANIFEST_PATH ?? join(process.cwd(), 'deploy', 'asset-manifest.json'),
+  ASSET_MANIFEST_PATH:
+    process.env.ASSET_MANIFEST_PATH ?? join(process.cwd(), 'deploy', 'asset-manifest.json'),
 };
 
 const required = [
@@ -90,4 +91,24 @@ const required = [
 
 for (const key of required) {
   if (!config[key]) throw new Error(`${key} is not set in .env`);
+}
+
+const unsafeInviteCodes = new Set([
+  'changeme',
+  'change-me',
+  'password',
+  'invite',
+  'secret',
+  'admin',
+  'default',
+  'vidium',
+  'test',
+]);
+
+if (config.INVITE_CODE.trim() !== config.INVITE_CODE || !config.INVITE_CODE.trim()) {
+  throw new Error('INVITE_CODE must be a non-empty secret without surrounding whitespace');
+}
+
+if (unsafeInviteCodes.has(config.INVITE_CODE.toLowerCase())) {
+  throw new Error('INVITE_CODE must not use a known default value');
 }

@@ -6,7 +6,7 @@
  */
 
 import { spawn } from 'node:child_process';
-import { writeFile } from 'node:fs/promises';
+import { rename, writeFile } from 'node:fs/promises';
 import { config } from '../config.ts';
 import { isValidVideoId, parseDate } from './validation.ts';
 
@@ -156,7 +156,10 @@ export async function downloadThumb(youtubeId: string, destDir: string): Promise
   const res = await fetch(url, { signal: AbortSignal.timeout(15_000) });
   if (!res.ok) throw new Error(`thumbnail fetch failed: ${res.status} for ${youtubeId}`);
   const bytes = new Uint8Array(await res.arrayBuffer());
-  await writeFile(`${destDir}/${youtubeId}.jpg`, bytes);
+  const destination = `${destDir}/${youtubeId}.jpg`;
+  const temporary = `${destination}.part`;
+  await writeFile(temporary, bytes);
+  await rename(temporary, destination);
 }
 
 /** Fetch metadata for a single video without downloading. */

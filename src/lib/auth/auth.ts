@@ -68,6 +68,16 @@ function verifyPassword(password: string, hash: string): Promise<boolean> {
 
 // ── Public API ────────────────────────────────────────────────────────────────
 
+export function isValidRegistrationCredentials(login: string, password: string): boolean {
+  return (
+    login.length >= 3 &&
+    login.length <= 64 &&
+    login.trim() === login &&
+    password.length >= 12 &&
+    password.length <= 1024
+  );
+}
+
 export function checkInviteCode(code: string): boolean {
   const a = Buffer.from(code) as unknown as Buffer;
   const b = Buffer.from(config.INVITE_CODE) as unknown as Buffer;
@@ -76,6 +86,9 @@ export function checkInviteCode(code: string): boolean {
 }
 
 export async function register(login: string, password: string): Promise<User> {
+  if (!isValidRegistrationCredentials(login, password)) {
+    throw new Error('invalid registration credentials');
+  }
   const hash = await hashPassword(password);
   const result = stmtInsert.run(login, hash);
   return { id: result.lastInsertRowid as number, login, role: 'user' };

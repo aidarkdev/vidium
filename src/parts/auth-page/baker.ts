@@ -1,6 +1,9 @@
 import { t } from '../../pages/lang.ts';
 
-export function bakeLoginPage(lang: string, error?: string): { id: string; title: string; state: Record<string, unknown> } {
+export function bakeLoginPage(
+  lang: string,
+  error?: string,
+): { id: string; title: string; state: Record<string, unknown> } {
   return {
     id: 'login-page',
     title: t(lang, 'auth.login.title'),
@@ -29,7 +32,10 @@ export function bakeLoginPage(lang: string, error?: string): { id: string; title
   };
 }
 
-export function bakeRegisterPage(lang: string, error?: string): { id: string; title: string; state: Record<string, unknown> } {
+export function bakeRegisterPage(
+  lang: string,
+  error?: string,
+): { id: string; title: string; state: Record<string, unknown> } {
   return {
     id: 'register-page',
     title: t(lang, 'auth.register.title'),
@@ -44,12 +50,16 @@ export function bakeRegisterPage(lang: string, error?: string): { id: string; ti
           type: 'text',
           name: 'login',
           autocomplete: 'username',
+          minLength: 3,
+          maxLength: 64,
         },
         {
           label: t(lang, 'auth.field.password'),
           type: 'password',
           name: 'password',
           autocomplete: 'new-password',
+          minLength: 12,
+          maxLength: 1024,
         },
       ],
       submitLabel: t(lang, 'auth.register'),

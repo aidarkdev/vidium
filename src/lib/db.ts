@@ -105,6 +105,38 @@ db.exec(`
     kind       TEXT    NOT NULL CHECK(kind IN ('video','audio')),
     played_at  TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now'))
   );
+
+  CREATE TABLE IF NOT EXISTS video_play_counts (
+    video_id        INTEGER NOT NULL REFERENCES videos(id) ON DELETE CASCADE,
+    kind            TEXT    NOT NULL CHECK(kind IN ('video','audio')),
+    play_count      INTEGER NOT NULL DEFAULT 0 CHECK(play_count >= 0),
+    first_played_at TEXT    NOT NULL,
+    last_played_at  TEXT    NOT NULL,
+    PRIMARY KEY (video_id, kind)
+  );
+
+  CREATE TABLE IF NOT EXISTS schema_migrations (
+    name       TEXT PRIMARY KEY,
+    applied_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now'))
+  );
+`);
+
+// Import the legacy append-only events exactly once. The old table is retained
+// so an application rollback does not require a reverse schema migration.
+db.exec(`
+  BEGIN IMMEDIATE;
+  INSERT OR IGNORE INTO video_play_counts (
+    video_id, kind, play_count, first_played_at, last_played_at
+  )
+  SELECT
+    video_id, kind, COUNT(*), MIN(played_at), MAX(played_at)
+  FROM video_play_events
+  WHERE NOT EXISTS (
+    SELECT 1 FROM schema_migrations WHERE name = 'aggregate-play-counts-v1'
+  )
+  GROUP BY video_id, kind;
+  INSERT OR IGNORE INTO schema_migrations (name) VALUES ('aggregate-play-counts-v1');
+  COMMIT;
 `);
 
 // ── Indexes ───────────────────────────────────────────────────────────────────
@@ -156,9 +188,7 @@ if (!hasColumn('videos', 'uid')) {
 
 // ── System channels ───────────────────────────────────────────────────────────
 
-db.prepare(
-  `INSERT OR IGNORE INTO channels (id, name, url) VALUES (1, 'manual', '')`,
-).run();
+db.prepare(`INSERT OR IGNORE INTO channels (id, name, url) VALUES (1, 'manual', '')`).run();
 db.prepare(
   `UPDATE channels SET display_name = 'Загрузки' WHERE id = 1 AND display_name = ''`,
 ).run();

@@ -65,7 +65,8 @@ const stmtGetAttempts = db.prepare(`
 
 const stmtResetStale = db.prepare(`
   UPDATE jobs
-  SET status = 'pending'  WHERE status = 'processing'
+  SET status = 'pending', attempts = MAX(0, attempts - 1)
+  WHERE status = 'processing'
 `);
 
 const stmtGetRecentJobs = db.prepare(`

@@ -6,10 +6,10 @@ vidium should stay free of application-level npm dependencies.
 
 The runtime dependency model is intentionally small:
 
-- Node.js 24 provides the application runtime and built-in APIs.
+- Node.js 24 provides the application runtime and built-in APIs. Production uses the pinned official Linux x64 release tarball installed by `setup.sh` under `runtime/node`.
 - Browser code uses native ES modules and DOM APIs.
 - SQLite is accessed through the Node runtime API used by this project.
-- `yt-dlp` is a system binary installed outside npm.
+- `yt-dlp` is a pinned system binary installed outside npm by `setup.sh`.
 - nginx, certbot, and systemd are system-level runtime tools.
 
 Do not add `dependencies` to `package.json` for application features unless there is a concrete reason that cannot be solved with Node/browser/system APIs already in use.
@@ -50,6 +50,14 @@ If a dependency is still necessary, document:
 - how it affects VPS deployment.
 
 Default answer for convenience libraries is no.
+
+## yt-dlp Updates
+
+Do not use yt-dlp self-update in production. Updates should be explicit: review the upstream release, update the pinned version and sha256 in `setup.sh`, deploy the verified binary, and restart `vidium-worker`.
+
+## Node.js Updates
+
+Do not use remote shell installers for Node.js in production. Updates should be explicit: review the upstream release, update `NODE_VERSION` and `NODE_SHA256` in `setup.sh`, deploy the verified tarball, and restart `vidium-server` and `vidium-worker`.
 
 ## Deployment
 

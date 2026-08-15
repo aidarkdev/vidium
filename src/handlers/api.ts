@@ -69,6 +69,7 @@ import {
 import { normalizeGuestFeedTag } from '../lib/feed-tags.ts';
 import { canGuestAccessVideo, getGuestVisibleVideo } from '../lib/guest-access.ts';
 import { recordPlayEvent } from '../lib/play-stats.ts';
+import { getTrustedClientIp } from '../lib/client-ip.ts';
 import { fetchMeta } from '../lib/ytdlp.ts';
 
 async function unlinkIfExists(path: string): Promise<boolean> {
@@ -137,9 +138,15 @@ export async function handlePlay(req: IncomingMessage, res: ServerResponse): Pro
     return json(res, 404, { error: 'not found' });
   }
 
-  if (!recordPlayEvent(data.uid, data.kind)) return json(res, 404, { error: 'not found' });
+  const actor = session ? `user:${session.userId}` : `guest:${getTrustedClientIp(req)}`;
+  const result = recordPlayEvent(data.uid, data.kind, actor);
+  if (result === 'not_found') return json(res, 404, { error: 'not found' });
+  if (result === 'rate_limited') {
+    res.setHeader('Retry-After', '3600');
+    return json(res, 429, { error: 'rate limited' });
+  }
 
-  json(res, 200, { ok: true });
+  json(res, 200, { ok: true, recorded: result === 'recorded' });
 }
 
 export async function handleSidebarMode(req: IncomingMessage, res: ServerResponse): Promise<void> {

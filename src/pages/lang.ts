@@ -40,6 +40,8 @@ const strings: Record<Lang, Record<string, string>> = {
     'auth.error.invalid': 'Invalid login or password',
     'auth.error.invite': 'Invalid invite code',
     'auth.error.taken': 'Login already taken',
+    'auth.error.credentials':
+      'Login must be 3–64 characters without surrounding spaces; password must be 12–1024 characters',
     'auth.error.ratelimit': 'Too many attempts, try again later',
 
     // Card
@@ -192,6 +194,7 @@ const strings: Record<Lang, Record<string, string>> = {
     'auth.error.invalid': 'Неверный логин или пароль',
     'auth.error.invite': 'Неверный инвайт-код',
     'auth.error.taken': 'Логин уже занят',
+    'auth.error.credentials': 'Логин: 3–64 символа без пробелов по краям; пароль: 12–1024 символа',
     'auth.error.ratelimit': 'Слишком много попыток, попробуйте позже',
 
     // Card

@@ -13,7 +13,40 @@ DOMAIN="${DOMAIN:-${1:-}}"
 APP_DIR="$(cd "$(dirname "$0")" && pwd)"
 MEDIA_DIR="${APP_DIR}/media"
 DATA_DIR="${APP_DIR}/data"
-NODE_MAJOR=24
+APP_USER=vidium
+APP_GROUP=vidium
+NODE_VERSION=24.19.0
+NODE_SHA256=f625d97cd707df4ff96254916fbc5ff014f09c09effe5a1e0ca8f6d41a8789d4
+NODE_TARBALL="node-v${NODE_VERSION}-linux-x64.tar.gz"
+NODE_DIR="${APP_DIR}/runtime/node-v${NODE_VERSION}-linux-x64"
+NODE_LINK="${APP_DIR}/runtime/node"
+NODE_BIN="${NODE_LINK}/bin/node"
+NODE_TMP=
+YTDLP_VERSION=2026.07.04
+YTDLP_SHA256=495be29ff4d9d4e9be7eabdfef225221e5d5282e77f2f505abc6dca80349f3fd
+YTDLP_TMP=
+
+cleanup() {
+  if [ -n "${NODE_TMP}" ]; then
+    rm -f "${NODE_TMP}"
+  fi
+  if [ -n "${YTDLP_TMP}" ]; then
+    rm -f "${YTDLP_TMP}"
+  fi
+}
+trap cleanup EXIT
+
+if [ "$(id -u)" -ne 0 ]; then
+  echo "ERROR: setup.sh must run as root."
+  exit 1
+fi
+
+case "${APP_DIR}" in
+  /root|/root/*)
+    echo "ERROR: do not run vidium from /root; install it under /opt/vidium."
+    exit 1
+    ;;
+esac
 
 if [ -z "${DOMAIN}" ]; then
   read -rp "Domain for nginx/certbot (example: example.com): " DOMAIN
@@ -25,15 +58,11 @@ if [ -z "${DOMAIN}" ] || [[ "${DOMAIN}" =~ [[:space:]/] ]]; then
   exit 1
 fi
 
-# Detect the user who owns the project directory; fall back to root
-APP_USER="$(stat -c '%U' "${APP_DIR}")"
-APP_GROUP="$(stat -c '%G' "${APP_DIR}")"
-if [ "${APP_USER}" = "UNKNOWN" ] || [ -z "${APP_USER}" ]; then
-  APP_USER="root"
-  APP_GROUP="root"
-fi
+echo "=== Project directory: ${APP_DIR}; service account: ${APP_USER} ==="
 
-echo "=== Project directory: ${APP_DIR} (owner: ${APP_USER}) ==="
+if ! id "${APP_USER}" &>/dev/null; then
+  useradd --system --user-group --home-dir /nonexistent --shell /usr/sbin/nologin "${APP_USER}"
+fi
 
 echo "=== Updating system ==="
 apt update && apt upgrade -y
@@ -44,24 +73,45 @@ apt install -y curl wget git unzip
 echo "=== Installing nginx ==="
 apt install -y nginx
 systemctl enable nginx
+usermod -a -G "${APP_GROUP}" www-data
 
 echo "=== Installing certbot ==="
 apt install -y certbot python3-certbot-nginx
 
-echo "=== Installing Node.js ${NODE_MAJOR} ==="
-curl -fsSL https://deb.nodesource.com/setup_${NODE_MAJOR}.x | bash -
-apt install -y nodejs
-echo "Node.js version: $(node --version)"
+echo "=== Installing Node.js ${NODE_VERSION} ==="
+mkdir -p "${APP_DIR}/runtime"
+NODE_TMP="$(mktemp)"
+curl -fsSL "https://nodejs.org/download/release/v${NODE_VERSION}/${NODE_TARBALL}" -o "${NODE_TMP}"
+echo "${NODE_SHA256}  ${NODE_TMP}" | sha256sum -c -
+tar -xzf "${NODE_TMP}" -C "${APP_DIR}/runtime"
+rm -f "${NODE_TMP}"
+NODE_TMP=
+chown -R root:${APP_GROUP} "${NODE_DIR}"
+ln -sfn "${NODE_DIR}" "${NODE_LINK}"
+echo "Node.js version: $(${NODE_BIN} --version)"
 
-echo "=== Installing yt-dlp ==="
-curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp
-chmod a+rx /usr/local/bin/yt-dlp
+echo "=== Installing yt-dlp ${YTDLP_VERSION} ==="
+YTDLP_TMP="$(mktemp)"
+curl -fsSL "https://github.com/yt-dlp/yt-dlp/releases/download/${YTDLP_VERSION}/yt-dlp" -o "${YTDLP_TMP}"
+echo "${YTDLP_SHA256}  ${YTDLP_TMP}" | sha256sum -c -
+install -m 0755 "${YTDLP_TMP}" /usr/local/bin/yt-dlp
+rm -f "${YTDLP_TMP}"
+YTDLP_TMP=
 echo "yt-dlp version: $(yt-dlp --version)"
 
 echo "=== Creating runtime directories ==="
 mkdir -p ${MEDIA_DIR}/{videos,audio,thumbs}
 mkdir -p ${DATA_DIR}
-chown -R ${APP_USER}:${APP_GROUP} ${MEDIA_DIR} ${DATA_DIR}
+mkdir -p "${APP_DIR}/deploy"
+chown root:${APP_GROUP} "${APP_DIR}" "${APP_DIR}/package.json" "${APP_DIR}/setup.sh"
+chown -R root:${APP_GROUP} "${APP_DIR}/src" "${APP_DIR}/scripts" "${APP_DIR}/runtime" "${APP_DIR}/deploy"
+chmod 0750 "${APP_DIR}"
+chmod -R g+rX,o-rwx "${APP_DIR}/src" "${APP_DIR}/scripts" "${APP_DIR}/runtime" "${APP_DIR}/deploy"
+chown -R ${APP_USER}:${APP_GROUP} "${MEDIA_DIR}" "${DATA_DIR}"
+find "${DATA_DIR}" -type d -exec chmod 0700 {} +
+find "${DATA_DIR}" -type f -exec chmod 0600 {} +
+find "${MEDIA_DIR}" -type d -exec chmod 2750 {} +
+find "${MEDIA_DIR}" -type f -exec chmod 0640 {} +
 
 echo "=== Setting up firewall ==="
 if command -v ufw &>/dev/null; then
@@ -72,19 +122,13 @@ else
   echo "ufw not found — skipping firewall setup"
 fi
 
-echo "=== Creating yt-dlp update cron ==="
-cat > /etc/cron.d/ytdlp-update << 'EOF'
-0 */6 * * * root /usr/local/bin/yt-dlp -U > /dev/null 2>&1
-EOF
-
 echo "=== Setting permissions for nginx ==="
-# nginx (www-data) needs execute on each parent dir to reach deploy/media files
-mkdir -p "${APP_DIR}/deploy"
-chmod o+x $(dirname "${APP_DIR}") "${APP_DIR}" "${APP_DIR}/src" "${APP_DIR}/deploy"
+# nginx reads deploy/media through membership in the vidium group.
 
 echo "=== Creating nginx config ==="
 cat > /etc/nginx/sites-available/${DOMAIN} << NGINX
 limit_req_zone \$binary_remote_addr zone=download_requests:10m rate=5r/m;
+limit_req_zone \$binary_remote_addr zone=play_requests:10m rate=10r/m;
 
 server {
     listen 80;
@@ -98,7 +142,16 @@ server {
         proxy_http_version 1.1;
         proxy_set_header Host \$host;
         proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+    }
+
+    location = /api/play {
+        limit_req zone=play_requests burst=9 nodelay;
+        limit_req_status 429;
+        proxy_pass http://127.0.0.1:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
         proxy_set_header X-Forwarded-Proto \$scheme;
     }
 
@@ -107,7 +160,6 @@ server {
         proxy_http_version 1.1;
         proxy_set_header Host \$host;
         proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto \$scheme;
     }
 
@@ -140,7 +192,7 @@ NGINX
 
 ln -sf /etc/nginx/sites-available/${DOMAIN} /etc/nginx/sites-enabled/
 rm -f /etc/nginx/sites-enabled/default
-nginx -t && systemctl reload nginx
+nginx -t && systemctl restart nginx
 
 echo "=== Creating systemd services ==="
 
@@ -154,7 +206,8 @@ Type=simple
 User=${APP_USER}
 Group=${APP_GROUP}
 WorkingDirectory=${APP_DIR}
-ExecStart=/usr/bin/node --env-file=${APP_DIR}/.env src/server.ts
+ExecStart=${NODE_BIN} --env-file=${APP_DIR}/.env src/server.ts
+UMask=0077
 Restart=always
 RestartSec=5
 
@@ -172,9 +225,12 @@ Type=simple
 User=${APP_USER}
 Group=${APP_GROUP}
 WorkingDirectory=${APP_DIR}
-ExecStart=/usr/bin/node --env-file=${APP_DIR}/.env src/worker.ts
+ExecStart=${NODE_BIN} --env-file=${APP_DIR}/.env src/worker.ts
+UMask=0027
 Restart=always
 RestartSec=5
+KillMode=mixed
+TimeoutStopSec=30min
 
 [Install]
 WantedBy=multi-user.target
@@ -190,7 +246,8 @@ Type=oneshot
 User=${APP_USER}
 Group=${APP_GROUP}
 WorkingDirectory=${APP_DIR}
-ExecStart=/usr/bin/node --env-file=${APP_DIR}/.env scripts/check-proxy-status.ts
+ExecStart=${NODE_BIN} --env-file=${APP_DIR}/.env scripts/check-proxy-status.ts
+UMask=0077
 EOF
 
 cat > /etc/systemd/system/vidium-proxy-check.timer << EOF
@@ -209,7 +266,8 @@ EOF
 systemctl daemon-reload
 
 echo "=== Creating .env template ==="
-if [ ! -f ${APP_DIR}/.env ]; then
+if [ ! -f "${APP_DIR}/.env" ]; then
+INVITE_CODE="$("${NODE_BIN}" -e "console.log(require('node:crypto').randomBytes(24).toString('base64url'))")"
 cat > ${APP_DIR}/.env << EOF
 # Server
 PORT=3000
@@ -232,17 +290,18 @@ YTDLP_SLEEP=5
 CRAWL_INITIAL=15
 
 # Auth
-INVITE_CODE=changeme
+INVITE_CODE=${INVITE_CODE}
 SESSION_MAX_AGE=604800000
 
 # i18n
 DEFAULT_LANG=ru
 EOF
-chown ${APP_USER}:${APP_GROUP} ${APP_DIR}/.env
 echo ".env created — edit before starting services"
 else
 echo ".env already exists — skipping"
 fi
+chown ${APP_USER}:${APP_GROUP} "${APP_DIR}/.env"
+chmod 0600 "${APP_DIR}/.env"
 
 echo ""
 echo "=== Setup complete ==="

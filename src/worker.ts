@@ -35,6 +35,7 @@ import {
 const POLL_INTERVAL_MS = 2000;
 const RSS_INTERVAL_MS = 30 * 60 * 1000;
 const DISK_CHECK_INTERVAL_MS = 5 * 60 * 1000;
+let stopping = false;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -129,6 +130,7 @@ async function processJob(_id: number, type: string, payload: string): Promise<v
 
 async function pollRss(): Promise<void> {
   for (const channel of getRssChannels()) {
+    if (stopping) break;
     try {
       const entries = await fetchFeed(channel.youtubeChannelId);
       const insertedYoutubeIds = insertVideos(entries, channel.id, 'channel');
@@ -145,7 +147,7 @@ async function pollRss(): Promise<void> {
 // ── Job loop ──────────────────────────────────────────────────────────────────
 
 async function jobLoop(): Promise<void> {
-  while (true) {
+  while (!stopping) {
     const job = take();
     if (job) {
       try {
@@ -171,21 +173,52 @@ function sleep(ms: number): Promise<void> {
 resetStale();
 console.log('worker started');
 
-setInterval(() => {
-  pollRss().catch(console.error);
-}, RSS_INTERVAL_MS);
-setInterval(() => {
+let activePoll: Promise<void> | undefined;
+
+function startRssPoll(): void {
+  if (stopping || activePoll) return;
+  activePoll = pollRss()
+    .catch(console.error)
+    .finally(() => {
+      activePoll = undefined;
+    });
+}
+
+const rssTimer = setInterval(startRssPoll, RSS_INTERVAL_MS);
+const diskTimer = setInterval(() => {
   checkDisk(({ youtubeId, type }: DeletedFile) => {
     if (type === 'video') setVideoStatus(youtubeId, 'none');
     else setAudioStatus(youtubeId, 'none');
   }).catch(console.error);
 }, DISK_CHECK_INTERVAL_MS);
-setInterval(() => {
+const sessionTimer = setInterval(() => {
   purgeExpired();
 }, 3600_000);
 
-pollRss().catch(console.error);
-jobLoop().catch((err) => {
+startRssPoll();
+const jobLoopPromise = jobLoop();
+
+async function shutdown(signal: string): Promise<void> {
+  if (stopping) return;
+  stopping = true;
+  clearInterval(rssTimer);
+  clearInterval(diskTimer);
+  clearInterval(sessionTimer);
+  console.log(`${signal} received; waiting for active work to finish`);
+
+  await Promise.allSettled([jobLoopPromise, ...(activePoll ? [activePoll] : [])]);
+  console.log('worker stopped cleanly');
+  process.exit(0);
+}
+
+process.on('SIGTERM', () => {
+  void shutdown('SIGTERM');
+});
+process.on('SIGINT', () => {
+  void shutdown('SIGINT');
+});
+
+jobLoopPromise.catch((err) => {
   console.error('job loop crashed:', err);
   process.exit(1);
 });

@@ -56,10 +56,10 @@ Run as root on the VPS:
 
 ```bash
 ssh root@<VPS_IP>
-git clone https://github.com/aidarkdev/vidium /root/vidium
-cd /root/vidium
+git clone https://github.com/aidarkdev/vidium /opt/vidium
+cd /opt/vidium
 bash setup.sh your-domain.com
-nano /root/vidium/.env
+nano /opt/vidium/.env
 systemctl enable --now vidium-server vidium-worker
 ```
 
@@ -72,8 +72,8 @@ certbot --nginx -d your-domain.com
 Open the site and register with `INVITE_CODE` from `.env`. New accounts start as `user`; grant the first admin role from the VPS:
 
 ```bash
-cd /root/vidium
-node --env-file=.env -e "const { DatabaseSync } = require('node:sqlite'); const db = new DatabaseSync(process.env.DB_PATH); db.prepare('UPDATE users SET role = ? WHERE login = ?').run('admin', 'YOUR_LOGIN');"
+cd /opt/vidium
+./runtime/node/bin/node --env-file=.env -e "const { DatabaseSync } = require('node:sqlite'); const db = new DatabaseSync(process.env.DB_PATH); db.prepare('UPDATE users SET role = ? WHERE login = ?').run('admin', 'YOUR_LOGIN');"
 ```
 
 After one admin exists, manage roles from `/admin`. Continue with `SETUP.md` for usage details and `docs/deploy.md` for full deployment notes.
@@ -83,7 +83,7 @@ After one admin exists, manage roles from `/admin`. Continue with `SETUP.md` for
 Git-based deploy on the VPS:
 
 ```bash
-cd /root/vidium
+cd /opt/vidium
 git pull
 systemctl restart vidium-server vidium-worker
 ```

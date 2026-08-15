@@ -11,20 +11,27 @@ import {
   destroySession,
   updateSessionData,
 } from '../lib/auth/sessions.ts';
-import { checkLoginRateLimit, resetLoginRateLimit } from '../lib/auth/ratelimit.ts';
-import { authenticate, register, checkInviteCode } from '../lib/auth/auth.ts';
+import {
+  checkRegistrationRateLimit,
+  isLoginRateLimited,
+  recordLoginFailure,
+  resetLoginRateLimit,
+} from '../lib/auth/ratelimit.ts';
+import {
+  authenticate,
+  register,
+  checkInviteCode,
+  isValidRegistrationCredentials,
+} from '../lib/auth/auth.ts';
 import { renderLoginPage, renderRegisterPage } from '../pages/auth.ts';
 import { redirect, html, readBody, parseForm } from '../lib/http.ts';
+import { getTrustedClientIp } from '../lib/client-ip.ts';
 import { config } from '../config.ts';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function getLang(req: IncomingMessage): string {
   return parseCookies(req).lang ?? config.DEFAULT_LANG;
-}
-
-function getIp(req: IncomingMessage): string {
-  return req.socket.remoteAddress ?? 'unknown';
 }
 
 // ── Handlers ──────────────────────────────────────────────────────────────────
@@ -42,18 +49,19 @@ export async function handleLogin(req: IncomingMessage, res: ServerResponse): Pr
   const form = parseForm(body);
   const login = form.login ?? '';
   const password = form.password ?? '';
-  const ip = getIp(req);
+  const ip = getTrustedClientIp(req);
 
-  if (!checkLoginRateLimit(ip, login)) {
+  if (isLoginRateLimited(ip)) {
     return html(res, renderLoginPage(lang, 'auth.error.ratelimit'));
   }
 
-  const user = await authenticate(login, password);
+  const user = password.length <= 1024 ? await authenticate(login, password) : undefined;
   if (!user) {
+    recordLoginFailure(ip);
     return html(res, renderLoginPage(lang, 'auth.error.invalid'));
   }
 
-  resetLoginRateLimit(ip, login);
+  resetLoginRateLimit(ip);
   const sid = createSession(user.id, { lang });
   setCookie(res, 'sid', sid, config.SESSION_MAX_AGE);
   redirect(res, '/');
@@ -71,9 +79,18 @@ export async function handleRegister(req: IncomingMessage, res: ServerResponse):
   const invite = form.invite ?? '';
   const login = form.login ?? '';
   const password = form.password ?? '';
+  const ip = getTrustedClientIp(req);
+
+  if (!checkRegistrationRateLimit(ip)) {
+    return html(res, renderRegisterPage(lang, 'auth.error.ratelimit'));
+  }
 
   if (!checkInviteCode(invite)) {
     return html(res, renderRegisterPage(lang, 'auth.error.invite'));
+  }
+
+  if (!isValidRegistrationCredentials(login, password)) {
+    return html(res, renderRegisterPage(lang, 'auth.error.credentials'));
   }
 
   try {

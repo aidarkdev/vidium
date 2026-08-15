@@ -5,7 +5,7 @@ This document describes how vidium requests are served in production and how ngi
 ## Runtime Boundaries
 
 - nginx is the public HTTP entrypoint.
-- Node.js runs `src/server.ts` and listens on `config.HOST:config.PORT`.
+- The pinned Node.js runtime under `<app>/runtime/node` runs `src/server.ts` and listens on `config.HOST:config.PORT`.
 - nginx proxies application routes to Node.
 - nginx serves public static/browser modules directly.
 - Node authorizes protected media requests, then nginx serves media files via `X-Accel-Redirect`.
@@ -23,12 +23,15 @@ location /protected_media/ { internal; ... }
 
 Node owns application routes and API routes that are not matched by nginx static aliases.
 
+For application rate limits, Node trusts only `X-Real-IP`, and only when the socket peer is local nginx (`127.0.0.1`, `::1`, or `::ffff:127.0.0.1`). Direct requests to Node are keyed by the socket address and cannot spoof proxy headers. Do not fall back to the first `X-Forwarded-For` value: nginx may preserve a client-supplied value there.
+
 ## nginx Locations
 
 The active nginx site config must declare the download rate-limit zone in the `http` context. A site file included from nginx's `http` context may place it immediately before the `server {}` block:
 
 ```nginx
 limit_req_zone $binary_remote_addr zone=download_requests:10m rate=5r/m;
+limit_req_zone $binary_remote_addr zone=play_requests:10m rate=10r/m;
 ```
 
 The active site config must also contain these locations inside the `server {}` block. The exact download location applies the shared per-IP limit and takes precedence over the generic `location /` proxy.
@@ -41,7 +44,16 @@ location = /api/download {
     proxy_http_version 1.1;
     proxy_set_header Host $host;
     proxy_set_header X-Real-IP $remote_addr;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+}
+
+location = /api/play {
+    limit_req zone=play_requests burst=9 nodelay;
+    limit_req_status 429;
+    proxy_pass http://127.0.0.1:3000;
+    proxy_http_version 1.1;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
     proxy_set_header X-Forwarded-Proto $scheme;
 }
 
@@ -73,7 +85,6 @@ location / {
     proxy_http_version 1.1;
     proxy_set_header Host $host;
     proxy_set_header X-Real-IP $remote_addr;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     proxy_set_header X-Forwarded-Proto $scheme;
 }
 ```
@@ -81,6 +92,8 @@ location / {
 Replace `/path/to/vidium` with the deployed app directory. In `setup.sh`, shell escaping is required inside heredocs, so `try_files $uri =404;` appears as `try_files \$uri =404;` there.
 
 The download limit accepts an initial burst of five requests per IP, then replenishes capacity at five requests per minute. nginx returns `429 Too Many Requests` before the request reaches Node when the limit is exceeded. The limit applies to authenticated and guest callers alike; do not key it from a guest-controlled cookie.
+
+The play endpoint accepts a burst of ten requests per IP and then replenishes at ten per minute. Node additionally permits 30 play requests per actor per hour and records at most one play for the same user/IP, video, and media kind during that hour. Counts are stored as two bounded aggregate rows per video rather than an append-only event stream.
 
 ## Static Frontend Assets
 
@@ -234,9 +247,12 @@ Deployment commands and git/rsync workflows live in `docs/deploy.md`.
 `setup.sh` creates or updates:
 
 - runtime directories including `deploy/`
-- permissions for nginx traversal
-- nginx site config with the `/api/download` rate limit, `/static/`, `/engine/`, `/parts/` aliases to `deploy/`, plus `/protected_media/`
-- systemd service for `vidium-server`
+- the dedicated `vidium` service account, root-owned code/runtime, private `.env`/database, and group-readable media for nginx
+- nginx site config with `/api/download` and `/api/play` rate limits, `/static/`, `/engine/`, `/parts/` aliases to `deploy/`, plus `/protected_media/`
+- systemd services for `vidium-server` and `vidium-worker`
+- pinned Node.js and `yt-dlp`
+
+The worker handles `SIGTERM`/`SIGINT` by stopping its timers and waiting for the active job and RSS poll. Its unit uses `KillMode=mixed` with `TimeoutStopSec=30min`, so systemd signals the worker first and kills the whole control group only after the grace period. If a forced stop leaves a job in `processing`, startup returns it to `pending` without consuming a retry. Thumbnails are written to a `.part` file and atomically renamed.
 
 Do not rerun `setup.sh` just to add the download rate limit or fix a missing `/engine/` or `/parts/` alias on an existing server unless you intend to reapply all setup steps. For those cases, edit the active nginx site config directly, then run:
 

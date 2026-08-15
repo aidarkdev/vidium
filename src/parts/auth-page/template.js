@@ -4,13 +4,15 @@ function fieldHtml(field) {
   const autocomplete = field.autocomplete
     ? ` autocomplete="${htmlEscape(field.autocomplete)}"`
     : '';
+  const minLength = field.minLength ? ` minlength="${Number(field.minLength)}"` : '';
+  const maxLength = field.maxLength ? ` maxlength="${Number(field.maxLength)}"` : '';
 
   return `<label>
     ${htmlEscape(field.label)}
     <input
       type="${htmlEscape(field.type)}"
       name="${htmlEscape(field.name)}"
-      ${autocomplete}
+      ${autocomplete}${minLength}${maxLength}
       required
     >
   </label>`;

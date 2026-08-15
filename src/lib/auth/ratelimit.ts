@@ -1,6 +1,6 @@
 /**
- * ratelimit.ts — in-memory rate limiter for login attempts.
- * Tracks by IP and by login: 5 attempts per 15 minutes each.
+ * ratelimit.ts — in-memory rate limiters for authentication endpoints.
+ * Login failures and registration attempts are tracked by trusted client IP.
  */
 
 const WINDOW_MS = 15 * 60 * 1000;
@@ -20,10 +20,9 @@ function purgeStale(): void {
   }
 }
 
-setInterval(purgeStale, 60_000);
-
-function check(key: string): boolean {
+function consume(key: string): boolean {
   const now = Date.now();
+  purgeStale();
   const entry = store.get(key);
 
   if (!entry || now > entry.resetAt) {
@@ -37,15 +36,29 @@ function check(key: string): boolean {
   return true;
 }
 
-function reset(key: string): void {
-  store.delete(key);
+function isLimited(key: string): boolean {
+  purgeStale();
+  const entry = store.get(key);
+  if (!entry) return false;
+  if (Date.now() > entry.resetAt) {
+    store.delete(key);
+    return false;
+  }
+  return entry.count >= MAX_ATTEMPTS;
 }
 
-export function checkLoginRateLimit(ip: string, login: string): boolean {
-  return check(`ip:${ip}`) && check(`login:${login}`);
+export function isLoginRateLimited(ip: string): boolean {
+  return isLimited(`login:${ip}`);
 }
 
-export function resetLoginRateLimit(ip: string, login: string): void {
-  reset(`ip:${ip}`);
-  reset(`login:${login}`);
+export function recordLoginFailure(ip: string): void {
+  consume(`login:${ip}`);
+}
+
+export function resetLoginRateLimit(ip: string): void {
+  store.delete(`login:${ip}`);
+}
+
+export function checkRegistrationRateLimit(ip: string): boolean {
+  return consume(`register:${ip}`);
 }

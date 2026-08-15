@@ -36,6 +36,8 @@ declare function clearInterval(id: unknown): void;
 declare const process: {
   env: Record<string, string | undefined>;
   argv: string[];
+  cwd(): string;
+  on(event: 'SIGTERM' | 'SIGINT', listener: () => void): void;
   exit(code?: number): never;
 };
 
@@ -48,6 +50,10 @@ declare class Buffer {
 }
 
 declare namespace NodeJS {
+  interface ErrnoException extends Error {
+    code?: string;
+  }
+
   interface ReadableStream {
     on(event: 'data', listener: (chunk: Buffer) => void): this;
   }
@@ -55,6 +61,7 @@ declare namespace NodeJS {
 
 interface ImportMeta {
   url: string;
+  dirname: string;
 }
 
 // ── node:module ───────────────────────────────────────────────────────────────
@@ -121,6 +128,12 @@ declare module 'node:child_process' {
 // ── node:crypto ───────────────────────────────────────────────────────────────
 
 declare module 'node:crypto' {
+  interface Hash {
+    update(data: string | Buffer): Hash;
+    digest(encoding: 'hex'): string;
+  }
+
+  function createHash(algorithm: string): Hash;
   function randomBytes(size: number): Buffer;
   function timingSafeEqual(a: Buffer, b: Buffer): boolean;
   function scrypt(
@@ -130,7 +143,7 @@ declare module 'node:crypto' {
     callback: (err: Error | null, derivedKey: Buffer) => void,
   ): void;
 
-  export { randomBytes, timingSafeEqual, scrypt };
+  export { createHash, randomBytes, timingSafeEqual, scrypt };
 }
 
 // ── node:fs ───────────────────────────────────────────────────────────────────
@@ -139,8 +152,18 @@ declare module 'node:fs' {
   function existsSync(path: string): boolean;
   function mkdirSync(path: string, options?: { recursive?: boolean }): void;
   function unlinkSync(path: string): void;
-  function statfsSync(path: string): { bsize: number; blocks: number; bfree: number; bavail: number };
-  function statSync(path: string): { size: number; atimeMs: number; mtimeMs: number };
+  function statfsSync(path: string): {
+    bsize: number;
+    blocks: number;
+    bfree: number;
+    bavail: number;
+  };
+  function statSync(path: string): {
+    size: number;
+    atimeMs: number;
+    mtimeMs: number;
+    isFile(): boolean;
+  };
   function writeFileSync(path: string, data: string | Buffer): void;
   function readdirSync(path: string): string[];
   function renameSync(oldPath: string, newPath: string): void;
@@ -167,12 +190,19 @@ declare module 'node:fs' {
 declare module 'node:fs/promises' {
   function writeFile(path: string, data: string | Buffer | Uint8Array): Promise<void>;
   function readFile(path: string, encoding: 'utf8'): Promise<string>;
+  function readFile(path: string): Promise<Buffer>;
   function unlink(path: string): Promise<void>;
-  function stat(path: string): Promise<{ size: number; atimeMs: number }>;
+  function stat(path: string): Promise<{ size: number; atimeMs: number; isFile(): boolean }>;
   function readdir(path: string): Promise<string[]>;
+  function readdir(
+    path: string,
+    options: { withFileTypes: true },
+  ): Promise<Array<{ name: string; isDirectory(): boolean; isFile(): boolean }>>;
   function mkdir(path: string, options?: { recursive?: boolean }): Promise<void>;
+  function rename(oldPath: string, newPath: string): Promise<void>;
+  function rm(path: string, options?: { recursive?: boolean; force?: boolean }): Promise<void>;
 
-  export { writeFile, readFile, unlink, stat, readdir, mkdir };
+  export { writeFile, readFile, unlink, stat, readdir, mkdir, rename, rm };
 }
 
 // ── node:http ─────────────────────────────────────────────────────────────────
@@ -209,6 +239,14 @@ declare module 'node:http' {
   export { createServer, IncomingMessage, ServerResponse, Server };
 }
 
+// ── node:net ──────────────────────────────────────────────────────────────────
+
+declare module 'node:net' {
+  function isIP(input: string): 0 | 4 | 6;
+
+  export { isIP };
+}
+
 // ── node:path ─────────────────────────────────────────────────────────────────
 
 declare module 'node:path' {
@@ -216,9 +254,10 @@ declare module 'node:path' {
   function basename(path: string, ext?: string): string;
   function extname(path: string): string;
   function dirname(path: string): string;
+  function relative(from: string, to: string): string;
   function resolve(...paths: string[]): string;
 
-  export { join, basename, extname, dirname, resolve };
+  export { join, basename, extname, dirname, relative, resolve };
 }
 
 // ── node:stream ───────────────────────────────────────────────────────────────

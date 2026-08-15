@@ -8,7 +8,7 @@
  *   node --env-file=.env --experimental-sqlite scripts/check-zombie-media.ts
  */
 
-import { existsSync, readdirSync, statSync } from 'node:fs';
+import { readdirSync, statSync } from 'node:fs';
 import { basename, extname, join } from 'node:path';
 import { config } from '../src/config.ts';
 import { db } from '../src/lib/db.ts';
@@ -49,7 +49,7 @@ function scanDir(
 
   for (const name of names) {
     const path = join(dirPath, name);
-    let stat;
+    let stat: ReturnType<typeof statSync>;
     try {
       stat = statSync(path);
     } catch {

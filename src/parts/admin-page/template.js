@@ -429,7 +429,7 @@ export function playStatsHead(cols) {
   </tr>`;
 }
 
-function playStatsRow(row, state) {
+function playStatsRow(row) {
   return `<tr>
     <td>${htmlEscape(row.uid)}</td>
     <td>${htmlEscape(row.youtubeId)}</td>
@@ -440,7 +440,7 @@ function playStatsRow(row, state) {
 }
 
 export function renderPlayStats(state) {
-  return rows(state.playStats, (row) => playStatsRow(row, state), state.empty, 5);
+  return rows(state.playStats, playStatsRow, state.empty, 5);
 }
 
 export default function template(state) {
