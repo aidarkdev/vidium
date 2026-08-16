@@ -5,7 +5,7 @@ This document describes how vidium requests are served in production and how ngi
 ## Runtime Boundaries
 
 - nginx is the public HTTP entrypoint.
-- The pinned Node.js runtime under `<app>/runtime/node` runs `src/server.ts` and listens on `config.HOST:config.PORT`.
+- The pinned Node.js runtime under `<app>/runtime/node` runs `src/server.ts` on the fixed private endpoint `127.0.0.1:3000`.
 - nginx proxies application routes to Node.
 - nginx serves public static/browser modules directly.
 - Node authorizes protected media requests, then nginx serves media files via `X-Accel-Redirect`.
@@ -22,6 +22,10 @@ location /protected_media/ { internal; ... }
 ```
 
 Node owns application routes and API routes that are not matched by nginx static aliases.
+
+`HOST=127.0.0.1` and `PORT=3000` are required runtime invariants, not operator tuning
+knobs. Application startup rejects other values so the Node listener cannot silently diverge
+from nginx's `proxy_pass` targets.
 
 For application rate limits, Node trusts only `X-Real-IP`, and only when the socket peer is local nginx (`127.0.0.1`, `::1`, or `::ffff:127.0.0.1`). Direct requests to Node are keyed by the socket address and cannot spoof proxy headers. Do not fall back to the first `X-Forwarded-For` value: nginx may preserve a client-supplied value there.
 

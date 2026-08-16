@@ -9,12 +9,10 @@ const temporaryDirectory = await mkdtemp(join(tmpdir(), 'vidium-security-test-')
 Object.assign(process.env, {
   PORT: '3000',
   HOST: '127.0.0.1',
-  DOMAIN: 'localhost',
   DB_PATH: join(temporaryDirectory, 'vidium.db'),
   MEDIA_DIR: join(temporaryDirectory, 'media'),
   DISK_HIGH_WATERMARK: '0.8',
   DISK_LOW_WATERMARK: '0.6',
-  YTDLP_SLEEP: '1',
   CRAWL_INITIAL: '1',
   INVITE_CODE: 'test-secret-that-is-not-a-default',
   SESSION_MAX_AGE: '60000',

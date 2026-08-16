@@ -369,7 +369,6 @@ if [ ! -f "${APP_DIR}/.env" ]; then
 # Server
 PORT=3000
 HOST=127.0.0.1
-DOMAIN=${DOMAIN_VALUE}
 
 # Database
 DB_PATH=${DATA_DIR}/vidium.db
@@ -383,7 +382,6 @@ DISK_LOW_WATERMARK=0.60
 YTDLP_PROXY=
 PROXY_STATUS_PATH=${DATA_DIR}/proxy-status.json
 YTDLP_COOKIES=
-YTDLP_SLEEP=5
 CRAWL_INITIAL=15
 
 # Auth

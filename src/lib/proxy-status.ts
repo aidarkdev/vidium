@@ -32,6 +32,8 @@ function positiveInteger(value: unknown): number {
 }
 
 export function readProxyStatus(): ProxyStatus | null {
+  if (!config.YTDLP_PROXY) return null;
+
   const path = config.PROXY_STATUS_PATH;
   if (!path) return null;
 

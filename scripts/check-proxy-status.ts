@@ -51,7 +51,10 @@ function runCurl(proxy: string): Promise<{ body: string; latencyMs: number }> {
     proc.on('error', reject);
     proc.on('close', (code) => {
       if (code === 0) {
-        resolve({ body: Buffer.concat(stdout).toString('utf8'), latencyMs: Date.now() - startedAt });
+        resolve({
+          body: Buffer.concat(stdout).toString('utf8'),
+          latencyMs: Date.now() - startedAt,
+        });
         return;
       }
 
@@ -104,7 +107,10 @@ async function main(): Promise<void> {
   const proxy = process.env.YTDLP_PROXY ?? '';
   const statusPath = process.env.PROXY_STATUS_PATH ?? '';
 
-  if (!proxy || !statusPath) return;
+  if (!proxy) return;
+  if (!statusPath) {
+    throw new Error('PROXY_STATUS_PATH must be set when YTDLP_PROXY is configured');
+  }
 
   await writeStatus(statusPath, await checkProxy(proxy));
 }

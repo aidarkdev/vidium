@@ -14,6 +14,10 @@ The runtime dependency model is intentionally small:
 - `curl` is an optional runtime tool used only by the proxy-check service when a proxy check is configured.
 - `git` is deployment-only tooling for the supported git-based deployment workflow; application services do not use it.
 
+Reviewed version and checksum pins live in `scripts/setup/dependency-versions.sh`. Both the
+production dependency installer and `dev-env-setup.sh` read that file; do not duplicate pins in
+the installer scripts.
+
 nginx, certbot, `python3-certbot-nginx`, curl, and git come from the Ubuntu repositories without exact version pins. Ubuntu remains responsible for their updates. Record the versions actually installed on a VPS with `bash scripts/runtime-inventory.sh`; use that saved inventory as input to a separate CVE review.
 
 Do not add `dependencies` to `package.json` for application features unless there is a concrete reason that cannot be solved with Node/browser/system APIs already in use.
@@ -59,11 +63,11 @@ Default answer for convenience libraries is no.
 
 ## yt-dlp Updates
 
-Do not use yt-dlp self-update in production. Updates should be explicit: review the upstream release, update `YTDLP_VERSION` and `YTDLP_SHA256` in `scripts/setup/install-dependencies.sh`, deploy the helper, run it, and restart `vidium-worker`.
+Do not use yt-dlp self-update in production. Updates should be explicit: review the upstream release, update `YTDLP_VERSION` and `YTDLP_SHA256` in `scripts/setup/dependency-versions.sh`, deploy the setup files, run `scripts/setup/install-dependencies.sh`, and restart `vidium-worker`.
 
 ## Node.js Updates
 
-Do not use remote shell installers for Node.js in production. Updates should be explicit: review the upstream release, update `NODE_VERSION` and `NODE_SHA256` in `scripts/setup/install-dependencies.sh`, deploy the helper, run it, and restart `vidium-server` and `vidium-worker`.
+Do not use remote shell installers for Node.js in production. Updates should be explicit: review the upstream release, update `NODE_VERSION` and `NODE_SHA256` in `scripts/setup/dependency-versions.sh`, deploy the setup files, run `scripts/setup/install-dependencies.sh`, and restart `vidium-server` and `vidium-worker`.
 
 ## Deployment
 

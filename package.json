@@ -7,7 +7,6 @@
     "format": "biome format --write .",
     "lint": "biome lint .",
     "test": "node --test scripts/*.test.mjs",
-    "normalize:tags": "node --env-file=.env --experimental-sqlite scripts/normalize-tags.ts",
     "prepare:static": "node scripts/prepare-static.ts"
   }
 }

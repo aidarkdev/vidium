@@ -113,7 +113,7 @@ Do not rerun `setup.sh` only to apply this nginx change.
 
 ## Updating Node.js Or yt-dlp
 
-Runtime updates do not require reapplying host configuration. Review the upstream release, update the corresponding version and SHA256 in `scripts/setup/install-dependencies.sh`, deploy `scripts/setup/`, then run:
+Runtime updates do not require reapplying host configuration. Review the upstream release, update the corresponding version and SHA256 in `scripts/setup/dependency-versions.sh`, deploy `scripts/setup/`, then run:
 
 ```bash
 cd /opt/vidium
@@ -125,6 +125,10 @@ Restart `vidium-worker` after a yt-dlp update. Restart both `vidium-server` and 
 ## Migrating An Existing `/root/vidium` Install
 
 Do not rerun `setup.sh` or `scripts/setup/apply-host-config.sh`: an existing Certbot-managed nginx file must be preserved. The host configurator refuses to replace an existing site unless `--force-nginx` is passed, and its generated template does not retain Certbot TLS directives. Stage code and the pinned runtime under `/opt/vidium`, then use one maintenance window for the persistent-state move.
+
+This workflow supports databases that already use the normalized `tags` and `channel_tags`
+tables. Databases whose channel tags exist only in the legacy `channels.tags` column are outside
+the supported upgrade path; this repository does not provide a legacy tag migration.
 
 Before stopping anything:
 

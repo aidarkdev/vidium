@@ -11,16 +11,19 @@ if [ "${ARCH}" != "x86_64" ]; then
 fi
 
 APP_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
-NODE_VERSION=24.19.0
-NODE_SHA256=f625d97cd707df4ff96254916fbc5ff014f09c09effe5a1e0ca8f6d41a8789d4
+VERSION_FILE="${APP_DIR}/scripts/setup/dependency-versions.sh"
+if [ ! -f "${VERSION_FILE}" ]; then
+  echo "ERROR: dependency version file is missing: ${VERSION_FILE}" >&2
+  exit 1
+fi
+source "${VERSION_FILE}"
+
 NODE_TARBALL="node-v${NODE_VERSION}-linux-x64.tar.gz"
 NODE_DIR="${APP_DIR}/runtime/node-v${NODE_VERSION}-linux-x64"
 NODE_LINK="${APP_DIR}/runtime/node"
 NODE_LINK_TMP="${APP_DIR}/runtime/.node-link.$$"
 NODE_BIN="${NODE_LINK}/bin/node"
 NODE_TMP=
-YTDLP_VERSION=2026.07.04
-YTDLP_SHA256=495be29ff4d9d4e9be7eabdfef225221e5d5282e77f2f505abc6dca80349f3fd
 YTDLP_TMP=
 
 cleanup() {

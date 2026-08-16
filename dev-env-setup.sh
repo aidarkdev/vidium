@@ -13,8 +13,14 @@ if [ "${ARCH}" != "x86_64" ]; then
   exit 1
 fi
 
-NODE_VERSION=24.19.0
-NODE_SHA256=f625d97cd707df4ff96254916fbc5ff014f09c09effe5a1e0ca8f6d41a8789d4
+PROJECT_DIR="$(cd "$(dirname "$0")" && pwd)"
+VERSION_FILE="${PROJECT_DIR}/scripts/setup/dependency-versions.sh"
+if [ ! -f "${VERSION_FILE}" ]; then
+  echo "ERROR: dependency version file is missing: ${VERSION_FILE}" >&2
+  exit 1
+fi
+source "${VERSION_FILE}"
+
 NODE_TARBALL="node-v${NODE_VERSION}-linux-x64.tar.gz"
 NODE_BASE="${HOME}/.local/share/vidium-node"
 NODE_DIR="${NODE_BASE}/node-v${NODE_VERSION}-linux-x64"
@@ -24,8 +30,6 @@ NPM_BIN="${NODE_LINK}/bin/npm"
 NPM_PREFIX="${HOME}/.local/share/vidium-npm"
 USER_BIN="${HOME}/.local/bin"
 NODE_TMP=
-TYPESCRIPT_VERSION=6.0.3
-BIOME_VERSION=2.4.12
 
 cleanup() {
   if [ -n "${NODE_TMP}" ]; then
