@@ -91,25 +91,12 @@ const GUEST_VISIBLE_WHERE = `c.guest_visible = 1`;
 
 const stmtGetByYoutubeId = db.prepare(`${SEL_WITH_CHAPTERS} WHERE v.youtube_id = ?`);
 const stmtGetByUid = db.prepare(`${SEL_WITH_CHAPTERS} WHERE v.uid = ?`);
-const stmtGetAll = db.prepare(`${SEL} ORDER BY v.date DESC, v.created_at DESC LIMIT 200`);
 const stmtCountAll = db.prepare(`SELECT COUNT(*) AS count FROM videos`);
 const stmtGetAllPage = db.prepare(`${SEL} ORDER BY v.date DESC, v.created_at DESC LIMIT ? OFFSET ?`);
-const stmtGetByChannel = db.prepare(
-  `${SEL} WHERE v.channel_id = ? ORDER BY v.date DESC, v.created_at DESC LIMIT 100`,
-);
 const stmtCountByChannel = db.prepare(`SELECT COUNT(*) AS count FROM videos WHERE channel_id = ?`);
 const stmtGetByChannelPage = db.prepare(
   `${SEL} WHERE v.channel_id = ? ORDER BY v.date DESC, v.created_at DESC LIMIT ? OFFSET ?`,
 );
-const stmtGetByTag = db.prepare(`
-  SELECT v.uid, v.youtube_id, v.title, v.channel_id, v.date, v.duration, v.video_status, v.audio_status,
-         '[]' AS chapters_json,
-         COALESCE(NULLIF(c.display_name,''), c.name, '') AS channel_name
-  FROM videos v
-  JOIN channel_tags ct ON ct.channel_id = v.channel_id
-  JOIN channels c ON v.channel_id = c.id
-  WHERE ct.tag = ?
-  ORDER BY v.date DESC, v.created_at DESC LIMIT 200`);
 const stmtCountByTag = db.prepare(`
   SELECT COUNT(*) AS count
   FROM videos v
@@ -124,13 +111,6 @@ const stmtGetByTagPage = db.prepare(`
   JOIN channels c ON v.channel_id = c.id
   WHERE ct.tag = ?
   ORDER BY v.date DESC, v.created_at DESC LIMIT ? OFFSET ?`);
-const stmtGetByTagManual = db.prepare(`
-  SELECT v.uid, v.youtube_id, v.title, v.channel_id, v.date, v.duration, v.video_status, v.audio_status,
-         '[]' AS chapters_json,
-         COALESCE(NULLIF(c.display_name,''), c.name, '') AS channel_name
-  FROM videos v JOIN channels c ON v.channel_id = c.id
-  WHERE v.source_type = 'manual'
-  ORDER BY v.created_at DESC, v.date DESC LIMIT 200`);
 const stmtCountByTagManual = db.prepare(
   `SELECT COUNT(*) AS count FROM videos WHERE source_type = 'manual'`,
 );
@@ -165,9 +145,6 @@ const stmtGetSinceByTagManual = db.prepare(`
   ORDER BY v.created_at DESC, v.date DESC LIMIT 50`);
 const stmtGetSinceReady = db.prepare(
   `${SEL} WHERE (v.video_status = 'ready' OR v.audio_status = 'ready') AND v.ready_at > ? ORDER BY v.ready_at DESC LIMIT 50`,
-);
-const stmtGetReady = db.prepare(
-  `${SEL} WHERE v.video_status = 'ready' OR v.audio_status = 'ready' ORDER BY v.ready_at DESC LIMIT 200`,
 );
 const stmtCountReady = db.prepare(
   `SELECT COUNT(*) AS count FROM videos WHERE video_status = 'ready' OR audio_status = 'ready'`,
@@ -385,20 +362,6 @@ export function toPublicVideoRow(row: VideoRow): PublicVideoRow {
   };
 }
 
-export function getAllVideos(): VideoRow[] {
-  return (stmtGetAll.all() as RawRow[]).map(toRow);
-}
-
-export function getVideosByChannel(channelId: number): VideoRow[] {
-  return (stmtGetByChannel.all(channelId) as RawRow[]).map(toRow);
-}
-
-export function getVideosByTag(tag: string): VideoRow[] {
-  const rows =
-    tag === 'manual' ? (stmtGetByTagManual.all() as RawRow[]) : (stmtGetByTag.all(tag) as RawRow[]);
-  return rows.map(toRow);
-}
-
 export function getNewVideosSince(isoTimestamp: string): VideoRow[] {
   return (stmtGetSince.all(isoTimestamp) as RawRow[]).map(toRow);
 }
@@ -417,10 +380,6 @@ export function getNewVideosSinceByTag(isoTimestamp: string, tag: string): Video
 
 export function getNewReadyVideosSince(isoTimestamp: string): VideoRow[] {
   return (stmtGetSinceReady.all(isoTimestamp) as RawRow[]).map(toRow);
-}
-
-export function getReadyVideos(): VideoRow[] {
-  return (stmtGetReady.all() as RawRow[]).map(toRow);
 }
 
 export function getVideoPage(query: VideoPageQuery): VideoPage {

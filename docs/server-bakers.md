@@ -38,15 +38,20 @@ A baker is a server-side function colocated with a part. It may access DB/API/se
 
 ```ts
 export function bakeFeedPage(ctx) {
-  const cards = getAllVideos();
+  const page = getVideoPage({
+    page: ctx.page ?? 1,
+    pageSize: 21,
+    tag: ctx.tag ?? 'all',
+  });
 
   return {
     ok: true,
     id: 'feed-page',
     title: 'vidium',
     state: {
-      cards,
-      visibleCount: Math.min(21, cards.length),
+      cards: page.items,
+      page: page.page,
+      pageCount: page.pageCount,
       // fields expected by template.js and handlers.js
     },
   };
