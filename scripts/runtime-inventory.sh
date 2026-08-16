@@ -120,8 +120,7 @@ else
   STATUS=1
 fi
 
-package_row "curl" "curl" "optional-runtime-proxy-check" "optional"
-package_row "git" "git" "deployment-only" "optional"
+package_row "curl" "curl" "deployment-health-and-optional-proxy-check" "required"
 package_row "nginx" "nginx" "runtime" "required"
 package_row "certbot" "certbot" "certificate-management" "required"
 package_row "python3-certbot-nginx" "python3-certbot-nginx" "certificate-management" "required"

@@ -70,24 +70,41 @@ intended to be configured as a required status check for the protected branch.
 
 ## Deploying to a VPS
 
-The supported bootstrap platform is Ubuntu 24.04 x86_64. Full deployment documentation lives in `docs/deploy.md`.
+The supported bootstrap platform is Ubuntu 24.04 x86_64. Deployment is performed from a clean local checkout with rsync; the VPS does not need Git. Full deployment documentation lives in `docs/deploy.md`.
 
-Two deployment styles are supported:
+### First deploy
 
-- Git-based deployment on the VPS.
-- rsync deployment from a local checkout.
+Copy the bootstrap files from the local checkout:
 
-### Quick Git Deploy
+```bash
+ssh root@<VPS_IP> 'mkdir -p /opt/vidium'
+rsync -av \
+  --include='/setup.sh' \
+  --include='/src/***' \
+  --include='/scripts/' \
+  --include='/scripts/setup/***' \
+  --include='/scripts/check-proxy-status.ts' \
+  --include='/scripts/runtime-inventory.sh' \
+  --include='/package.json' \
+  --exclude='*' \
+  ./ root@<VPS_IP>:/opt/vidium/
+```
 
-Run as root on the VPS:
+Bootstrap the VPS:
 
 ```bash
 ssh root@<VPS_IP>
-git clone https://github.com/aidarkdev/vidium /opt/vidium
 cd /opt/vidium
 bash setup.sh your-domain.com
 nano /opt/vidium/.env
-systemctl enable --now vidium-server vidium-worker vidium-proxy-check.timer
+exit
+```
+
+Deploy the complete checked revision from the local checkout, then enable the services:
+
+```bash
+scripts/deploy.sh root@<VPS_IP>
+ssh root@<VPS_IP> 'systemctl enable --now vidium-server vidium-worker vidium-proxy-check.timer'
 ```
 
 For HTTPS, point DNS to the VPS and run:
@@ -107,15 +124,13 @@ After one admin exists, manage roles from `/admin`. Continue with `SETUP.md` for
 
 ### Subsequent deploys
 
-Git-based deploy on the VPS:
+Run from a clean local checkout at the current `origin/master`. The script verifies the required GitHub Actions `quality` check, builds the hashed browser assets, rsyncs server code and assets, restarts the services, performs an HTTP smoke check, and records the deployed commit in `/opt/vidium/.deployed-revision`.
 
 ```bash
-cd /opt/vidium
-git pull
-systemctl restart vidium-server vidium-worker
+scripts/deploy.sh root@<VPS_IP>
 ```
 
-For rsync deploys, first-machine setup, exact file lists, nginx reload rules, and runtime file policy, see `docs/deploy.md`.
+For first-machine setup, exact file lists, nginx reload rules, and runtime file policy, see `docs/deploy.md`.
 
 ### Logs
 

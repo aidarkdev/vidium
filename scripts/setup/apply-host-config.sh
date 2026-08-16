@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-# Ubuntu 24.04 x86_64. Run as root from the vidium checkout:
+# Ubuntu 24.04 x86_64. Run as root from the vidium project directory:
 #   sudo bash scripts/setup/apply-host-config.sh [--configure-firewall=<ssh-port>] [--force-nginx] <domain>
 
 usage() {
@@ -88,7 +88,7 @@ case "${APP_DIR}" in
 esac
 
 if [ ! -f "${APP_DIR}/package.json" ] || [ ! -d "${APP_DIR}/src" ]; then
-  echo "ERROR: apply-host-config.sh must run from a complete vidium project checkout." >&2
+  echo "ERROR: apply-host-config.sh must run from a complete vidium project tree." >&2
   exit 1
 fi
 

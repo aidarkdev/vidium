@@ -246,7 +246,7 @@ X-Accel-Redirect: /protected_media/thumbs/{youtube_id}.jpg
 
 ## Deployment Notes
 
-Deployment commands and git/rsync workflows live in `docs/deploy.md`.
+The rsync deployment workflow lives in `docs/deploy.md`.
 
 For a fresh host, `setup.sh` runs the dependency installer and then the host configurator. Together they create:
 
