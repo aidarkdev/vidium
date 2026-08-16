@@ -28,8 +28,18 @@ Development tools may exist outside the application runtime. Examples:
 
 - TypeScript for `npm run check` / `node --run check`.
 - Biome for formatting and linting.
+- `playwright-core` for the Chromium frontend regression suite. It is an exact
+  dev-only dependency in `package.json`/`package-lock.json`; the tests launch an
+  existing system Chromium-compatible browser and do not download or deploy a
+  browser bundle.
 
 These tools are allowed as development conveniences only. They must not become required by `src/server.ts`, `src/worker.ts`, browser parts, or production runtime behavior.
+
+The browser test harness checks `VIDIUM_CHROMIUM_PATH` first, then common system
+Chromium/Chrome locations. `playwright-core@1.62.1` package metadata was reviewed
+before pinning and has no `preinstall`, `install`, or `postinstall` lifecycle
+scripts. The committed lockfile is installed with `npm ci --ignore-scripts`; keep
+using that mode and repeat the metadata review before updating the pin.
 
 `dev-env-setup.sh` pins TypeScript and Biome and installs them without privileges under the current user's local directories. The currently pinned releases have no `preinstall`, `install`, or `postinstall` lifecycle scripts. Before every TypeScript or Biome version update, inspect the target release's npm package metadata and confirm those lifecycle fields remain absent; review and document any change before installing it.
 
@@ -41,6 +51,10 @@ Current expected shape:
 
 - scripts for check/lint/format are allowed.
 - `dependencies` should be absent unless explicitly justified.
+- exact `devDependencies` used only by repository checks are allowed when their
+  purpose and installation behavior are documented here.
+- `package-lock.json` is committed for reproducible development and CI installs;
+  changes to `package.json` and the lockfile must be reviewed together.
 - runtime code must not import npm packages.
 
 ## Adding New Dependencies

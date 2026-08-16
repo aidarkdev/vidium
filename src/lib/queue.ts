@@ -39,7 +39,7 @@ const stmtEnqueue = db.prepare(`
 const stmtTake = db.prepare(`
   UPDATE jobs
   SET status = 'processing', attempts = attempts + 1  WHERE id = (
-    SELECT id FROM jobs WHERE status = 'pending' ORDER BY created_at ASC LIMIT 1
+    SELECT id FROM jobs WHERE status = 'pending' ORDER BY created_at ASC, id ASC LIMIT 1
   )
   RETURNING id, type, payload
 `);
@@ -83,12 +83,12 @@ const stmtGetJobById = db.prepare(`
 const stmtDeleteJobById = db.prepare(`DELETE FROM jobs WHERE id = ?`);
 const stmtDeleteJobsByYoutubeId = db.prepare(`
   DELETE FROM jobs
-  WHERE json_extract(payload, '$.youtubeId') = ?
+  WHERE CASE WHEN json_valid(payload) THEN json_extract(payload, '$.youtubeId') END = ?
 `);
 const stmtDeleteDownloadJobsByYoutubeId = db.prepare(`
   DELETE FROM jobs
   WHERE type IN ('download_video', 'download_audio')
-    AND json_extract(payload, '$.youtubeId') = ?
+    AND CASE WHEN json_valid(payload) THEN json_extract(payload, '$.youtubeId') END = ?
 `);
 
 // ── Public API ────────────────────────────────────────────────────────────────

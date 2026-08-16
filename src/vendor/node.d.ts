@@ -62,6 +62,7 @@ declare namespace NodeJS {
 interface ImportMeta {
   url: string;
   dirname: string;
+  main: boolean;
 }
 
 // ── node:module ───────────────────────────────────────────────────────────────

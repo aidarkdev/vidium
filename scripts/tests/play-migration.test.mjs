@@ -26,7 +26,7 @@ test('legacy play events migrate once into aggregate counts', async () => {
     SESSION_MAX_AGE: '60000',
     DEFAULT_LANG: 'en',
   };
-  const dbModuleUrl = pathToFileURL(join(import.meta.dirname, '..', 'src/lib/db.ts')).href;
+  const dbModuleUrl = pathToFileURL(join(import.meta.dirname, '..', '..', 'src/lib/db.ts')).href;
 
   await run(process.execPath, ['-e', `const { db } = await import('${dbModuleUrl}'); db.close()`], {
     env,

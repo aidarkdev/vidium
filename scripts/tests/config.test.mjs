@@ -9,10 +9,10 @@ import { pathToFileURL } from 'node:url';
 
 const run = promisify(execFile);
 const temporaryDirectory = await mkdtemp(join(tmpdir(), 'vidium-config-test-'));
-const configModuleUrl = pathToFileURL(join(import.meta.dirname, '..', 'src/config.ts')).href;
-const proxyCheckUrl = pathToFileURL(join(import.meta.dirname, 'check-proxy-status.ts')).href;
+const configModuleUrl = pathToFileURL(join(import.meta.dirname, '..', '..', 'src/config.ts')).href;
+const proxyCheckUrl = pathToFileURL(join(import.meta.dirname, '..', 'check-proxy-status.ts')).href;
 const proxyStatusModuleUrl = pathToFileURL(
-  join(import.meta.dirname, '..', 'src/lib/proxy-status.ts'),
+  join(import.meta.dirname, '..', '..', 'src/lib/proxy-status.ts'),
 ).href;
 
 function validEnv(overrides = {}, removedKeys = []) {

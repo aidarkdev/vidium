@@ -88,6 +88,9 @@ After one admin exists, manage other admin roles from `/admin`.
 
 ## Subsequent Git Deploy
 
+Deploy only a commit that has passed the required `CI / quality` check on
+`master`. CI does not connect to the VPS and does not deploy automatically.
+
 On the VPS:
 
 ```bash
@@ -191,6 +194,10 @@ systemctl enable --now vidium-server vidium-worker vidium-proxy-check.timer
 After setup, deploy application source with rsync, then deploy hashed browser assets (see below).
 
 ### Subsequent rsync deploy
+
+Run rsync deployment only from a clean local checkout of the commit that passed
+the required `CI / quality` check on `master`. The deployment scripts do not
+independently verify GitHub status or reject uncommitted source changes.
 
 From the local machine:
 

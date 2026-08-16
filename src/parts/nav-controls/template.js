@@ -13,7 +13,7 @@ function sidebarEditHtml(state) {
 
 function addChannelHtml(state) {
   return `<details class="add-channel" data-ref="channelDetails">
-    <summary>${htmlEscape(state.addChannelLabel)}</summary>
+    <summary data-action="toggle-channel-details">${htmlEscape(state.addChannelLabel)}</summary>
     <div class="add-channel-panel">
       <form class="add-channel-form" data-action="add-channel">
         <input
@@ -41,7 +41,7 @@ function addChannelHtml(state) {
 
 function addVideoHtml(state) {
   return `<details class="add-channel" data-ref="videoDetails">
-    <summary>${htmlEscape(state.addVideoLabel)}</summary>
+    <summary data-action="toggle-video-details">${htmlEscape(state.addVideoLabel)}</summary>
     <div class="add-channel-panel">
       <form class="add-channel-form" data-action="add-video">
         <input

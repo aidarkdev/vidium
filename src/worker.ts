@@ -8,6 +8,7 @@
 import { existsSync } from 'node:fs';
 import { config } from './config.ts';
 import { enqueue, take, complete, fail, resetStale } from './lib/queue.ts';
+import type { JobType } from './lib/queue.ts';
 import {
   downloadVideo,
   downloadAudio,
@@ -34,191 +35,345 @@ import {
 
 const POLL_INTERVAL_MS = 2000;
 const RSS_INTERVAL_MS = 30 * 60 * 1000;
+const RSS_CHANNEL_DELAY_MS = 1500;
 const DISK_CHECK_INTERVAL_MS = 5 * 60 * 1000;
-let stopping = false;
+const SESSION_PURGE_INTERVAL_MS = 60 * 60 * 1000;
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+type WorkerJob = {
+  id: number;
+  type: string;
+  payload: string;
+};
 
-function enqueueThumbsFor(youtubeIds: string[]): void {
-  for (const youtubeId of youtubeIds) {
-    enqueue('download_thumbnail', { youtubeId });
-  }
+type VideoEntry = {
+  youtubeId: string;
+  title: string;
+  date: string;
+  duration?: number;
+};
+
+type VideoChapter = {
+  title: string;
+  start: number;
+  end: number;
+};
+
+type ChannelDownloadSettings = {
+  autoDownloadVideo: boolean;
+  autoDownloadAudio: boolean;
+};
+
+type RssChannel = ChannelDownloadSettings & {
+  id: number;
+  youtubeChannelId: string;
+};
+
+export interface WorkerRuntimeDependencies {
+  mediaDir: string;
+  crawlInitial: number;
+  enqueue(type: JobType, payload: Record<string, unknown>): void;
+  take(): WorkerJob | undefined;
+  complete(id: number): void;
+  fail(id: number, error: string): void;
+  resetStale(): void;
+  downloadVideo(youtubeId: string, destDir: string): Promise<number>;
+  downloadAudio(youtubeId: string, destDir: string): Promise<number>;
+  downloadThumb(youtubeId: string, destDir: string): Promise<void>;
+  crawlChannel(
+    channelUrl: string,
+    start: number,
+    end: number,
+  ): Promise<{ channelYoutubeId: string; entries: VideoEntry[] }>;
+  fetchChapters(youtubeId: string): Promise<VideoChapter[]>;
+  fetchFeed(youtubeChannelId: string): Promise<VideoEntry[]>;
+  existsSync(path: string): boolean;
+  checkDisk(onDeleted: (file: DeletedFile) => void): Promise<void>;
+  purgeExpired(): void;
+  setVideoStatus(youtubeId: string, status: string): void;
+  setAudioStatus(youtubeId: string, status: string): void;
+  setDurationIfZero(youtubeId: string, duration: number): void;
+  insertVideos(entries: VideoEntry[], channelId: number, sourceType: string): string[];
+  setVideoChapters(youtubeId: string, chapters: VideoChapter[]): void;
+  getChannelById(channelId: number): ChannelDownloadSettings | undefined;
+  getRssChannels(): RssChannel[];
+  updateChannelYoutubeId(channelId: number, youtubeChannelId: string): void;
+  updateLastCrawled(channelId: number): void;
+  setInterval(handler: () => void, timeout: number): unknown;
+  clearInterval(id: unknown): void;
+  sleep(ms: number): Promise<void>;
+  log(...args: unknown[]): void;
+  error(...args: unknown[]): void;
+  fatal(error: unknown): void;
 }
 
-function enqueueAutoDownloadsFor(
-  youtubeIds: string[],
-  settings: { autoDownloadVideo: boolean; autoDownloadAudio: boolean },
-): void {
-  for (const youtubeId of youtubeIds) {
-    if (settings.autoDownloadVideo) {
-      setVideoStatus(youtubeId, 'queued');
-      enqueue('download_video', { youtubeId });
-    }
-    if (settings.autoDownloadAudio) {
-      setAudioStatus(youtubeId, 'queued');
-      enqueue('download_audio', { youtubeId });
-    }
-  }
+export interface WorkerRuntime {
+  start(): void;
+  stop(signal: string): Promise<void>;
+  runNextJob(): Promise<boolean>;
+  startRssPoll(): Promise<void> | undefined;
 }
 
-async function refreshChaptersFor(youtubeId: string): Promise<void> {
-  try {
-    setVideoChapters(youtubeId, await fetchChapters(youtubeId));
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    console.error(`chapter fetch failed for ${youtubeId}:`, msg);
-  }
-}
+const productionDependencies: WorkerRuntimeDependencies = {
+  mediaDir: config.MEDIA_DIR,
+  crawlInitial: config.CRAWL_INITIAL,
+  enqueue,
+  take,
+  complete,
+  fail,
+  resetStale,
+  downloadVideo,
+  downloadAudio,
+  downloadThumb,
+  crawlChannel,
+  fetchChapters,
+  fetchFeed,
+  existsSync,
+  checkDisk,
+  purgeExpired,
+  setVideoStatus,
+  setAudioStatus,
+  setDurationIfZero,
+  insertVideos,
+  setVideoChapters,
+  getChannelById,
+  getRssChannels,
+  updateChannelYoutubeId,
+  updateLastCrawled,
+  setInterval: (handler, timeout) => setInterval(handler, timeout),
+  clearInterval: (id) => clearInterval(id),
+  sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+  log: (...args) => console.log(...args),
+  error: (...args) => console.error(...args),
+  fatal: (err) => {
+    console.error('job loop crashed:', err);
+    process.exit(1);
+  },
+};
 
-// ── Job handlers ──────────────────────────────────────────────────────────────
+export function createWorkerRuntime(
+  dependencies: WorkerRuntimeDependencies = productionDependencies,
+): WorkerRuntime {
+  let started = false;
+  let stopping = false;
+  let stopPromise: Promise<void> | undefined;
+  let activeJobDrain: Promise<void> | undefined;
+  let activePoll: Promise<void> | undefined;
+  const intervalIds: unknown[] = [];
 
-async function processJob(_id: number, type: string, payload: string): Promise<void> {
-  const data = JSON.parse(payload);
-
-  switch (type) {
-    case 'download_video': {
-      setVideoStatus(data.youtubeId, 'downloading');
-      try {
-        const duration = await downloadVideo(data.youtubeId, `${config.MEDIA_DIR}/videos`);
-        setVideoStatus(data.youtubeId, 'ready');
-        if (duration > 0) setDurationIfZero(data.youtubeId, duration);
-        await refreshChaptersFor(data.youtubeId);
-      } catch (err) {
-        setVideoStatus(data.youtubeId, 'none');
-        throw err;
-      }
-      break;
-    }
-
-    case 'download_audio': {
-      setAudioStatus(data.youtubeId, 'downloading');
-      try {
-        const duration = await downloadAudio(data.youtubeId, `${config.MEDIA_DIR}/audio`);
-        setAudioStatus(data.youtubeId, 'ready');
-        if (duration > 0) setDurationIfZero(data.youtubeId, duration);
-        await refreshChaptersFor(data.youtubeId);
-      } catch (err) {
-        setAudioStatus(data.youtubeId, 'none');
-        throw err;
-      }
-      break;
-    }
-
-    case 'crawl_channel': {
-      const result = await crawlChannel(data.url, 1, config.CRAWL_INITIAL);
-      const insertedYoutubeIds = insertVideos(result.entries, data.channelId, 'channel');
-      enqueueThumbsFor(insertedYoutubeIds);
-      const channel = getChannelById(data.channelId);
-      if (channel) enqueueAutoDownloadsFor(insertedYoutubeIds, channel);
-      if (result.channelYoutubeId) {
-        updateChannelYoutubeId(data.channelId, result.channelYoutubeId);
-      }
-      break;
-    }
-
-    case 'download_thumbnail': {
-      const destDir = `${config.MEDIA_DIR}/thumbs`;
-      if (!existsSync(`${destDir}/${data.youtubeId}.jpg`)) {
-        await downloadThumb(data.youtubeId, destDir);
-      }
-      break;
+  function enqueueThumbsFor(youtubeIds: string[]): void {
+    for (const youtubeId of youtubeIds) {
+      dependencies.enqueue('download_thumbnail', { youtubeId });
     }
   }
-}
 
-// ── RSS polling ───────────────────────────────────────────────────────────────
+  function enqueueAutoDownloadsFor(youtubeIds: string[], settings: ChannelDownloadSettings): void {
+    for (const youtubeId of youtubeIds) {
+      if (settings.autoDownloadVideo) {
+        dependencies.setVideoStatus(youtubeId, 'queued');
+        dependencies.enqueue('download_video', { youtubeId });
+      }
+      if (settings.autoDownloadAudio) {
+        dependencies.setAudioStatus(youtubeId, 'queued');
+        dependencies.enqueue('download_audio', { youtubeId });
+      }
+    }
+  }
 
-async function pollRss(): Promise<void> {
-  for (const channel of getRssChannels()) {
-    if (stopping) break;
+  async function refreshChaptersFor(youtubeId: string): Promise<void> {
     try {
-      const entries = await fetchFeed(channel.youtubeChannelId);
-      const insertedYoutubeIds = insertVideos(entries, channel.id, 'channel');
-      enqueueThumbsFor(insertedYoutubeIds);
-      enqueueAutoDownloadsFor(insertedYoutubeIds, channel);
-      updateLastCrawled(channel.id);
+      dependencies.setVideoChapters(youtubeId, await dependencies.fetchChapters(youtubeId));
     } catch (err) {
-      console.error(`RSS poll failed for channel ${channel.id}:`, err);
+      const msg = err instanceof Error ? err.message : String(err);
+      dependencies.error(`chapter fetch failed for ${youtubeId}:`, msg);
     }
-    await sleep(1500);
   }
-}
 
-// ── Job loop ──────────────────────────────────────────────────────────────────
+  async function processJob(type: string, payload: string): Promise<void> {
+    const data = JSON.parse(payload);
 
-async function jobLoop(): Promise<void> {
-  while (!stopping) {
-    const job = take();
-    if (job) {
-      try {
-        await processJob(job.id, job.type, job.payload);
-        complete(job.id);
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
-        fail(job.id, msg);
-        console.error(`job ${job.id} (${job.type}) failed:`, msg);
+    switch (type) {
+      case 'download_video': {
+        dependencies.setVideoStatus(data.youtubeId, 'downloading');
+        try {
+          const duration = await dependencies.downloadVideo(
+            data.youtubeId,
+            `${dependencies.mediaDir}/videos`,
+          );
+          dependencies.setVideoStatus(data.youtubeId, 'ready');
+          if (duration > 0) dependencies.setDurationIfZero(data.youtubeId, duration);
+          await refreshChaptersFor(data.youtubeId);
+        } catch (err) {
+          dependencies.setVideoStatus(data.youtubeId, 'none');
+          throw err;
+        }
+        break;
       }
-    } else {
-      await sleep(POLL_INTERVAL_MS);
+
+      case 'download_audio': {
+        dependencies.setAudioStatus(data.youtubeId, 'downloading');
+        try {
+          const duration = await dependencies.downloadAudio(
+            data.youtubeId,
+            `${dependencies.mediaDir}/audio`,
+          );
+          dependencies.setAudioStatus(data.youtubeId, 'ready');
+          if (duration > 0) dependencies.setDurationIfZero(data.youtubeId, duration);
+          await refreshChaptersFor(data.youtubeId);
+        } catch (err) {
+          dependencies.setAudioStatus(data.youtubeId, 'none');
+          throw err;
+        }
+        break;
+      }
+
+      case 'crawl_channel': {
+        const result = await dependencies.crawlChannel(data.url, 1, dependencies.crawlInitial);
+        const insertedYoutubeIds = dependencies.insertVideos(
+          result.entries,
+          data.channelId,
+          'channel',
+        );
+        enqueueThumbsFor(insertedYoutubeIds);
+        const channel = dependencies.getChannelById(data.channelId);
+        if (channel) enqueueAutoDownloadsFor(insertedYoutubeIds, channel);
+        if (result.channelYoutubeId) {
+          dependencies.updateChannelYoutubeId(data.channelId, result.channelYoutubeId);
+        }
+        break;
+      }
+
+      case 'download_thumbnail': {
+        const destDir = `${dependencies.mediaDir}/thumbs`;
+        if (!dependencies.existsSync(`${destDir}/${data.youtubeId}.jpg`)) {
+          await dependencies.downloadThumb(data.youtubeId, destDir);
+        }
+        break;
+      }
     }
   }
-}
 
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
+  async function runNextJob(): Promise<boolean> {
+    if (stopping) return false;
+    const job = dependencies.take();
+    if (!job) return false;
 
-// ── Entry point ───────────────────────────────────────────────────────────────
+    try {
+      await processJob(job.type, job.payload);
+      dependencies.complete(job.id);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      dependencies.fail(job.id, msg);
+      dependencies.error(`job ${job.id} (${job.type}) failed:`, msg);
+    }
+    return true;
+  }
 
-resetStale();
-console.log('worker started');
+  async function drainJobs(): Promise<void> {
+    while (!stopping && (await runNextJob())) {
+      // Drain pending jobs without waiting for the next idle poll interval.
+    }
+  }
 
-let activePoll: Promise<void> | undefined;
+  function startJobDrain(): void {
+    if (stopping || activeJobDrain) return;
+    activeJobDrain = drainJobs()
+      .catch((err) => {
+        dependencies.fatal(err);
+      })
+      .finally(() => {
+        activeJobDrain = undefined;
+      });
+  }
 
-function startRssPoll(): void {
-  if (stopping || activePoll) return;
-  activePoll = pollRss()
-    .catch(console.error)
-    .finally(() => {
-      activePoll = undefined;
+  async function pollRss(): Promise<void> {
+    const channels = dependencies.getRssChannels();
+    for (let index = 0; index < channels.length; index++) {
+      if (stopping) break;
+      const channel = channels[index];
+      try {
+        const entries = await dependencies.fetchFeed(channel.youtubeChannelId);
+        const insertedYoutubeIds = dependencies.insertVideos(entries, channel.id, 'channel');
+        enqueueThumbsFor(insertedYoutubeIds);
+        enqueueAutoDownloadsFor(insertedYoutubeIds, channel);
+        dependencies.updateLastCrawled(channel.id);
+      } catch (err) {
+        dependencies.error(`RSS poll failed for channel ${channel.id}:`, err);
+      }
+      if (!stopping && index < channels.length - 1) {
+        await dependencies.sleep(RSS_CHANNEL_DELAY_MS);
+      }
+    }
+  }
+
+  function startRssPoll(): Promise<void> | undefined {
+    if (stopping) return undefined;
+    if (activePoll) return activePoll;
+    activePoll = pollRss()
+      .catch((err) => {
+        dependencies.error(err);
+      })
+      .finally(() => {
+        activePoll = undefined;
+      });
+    return activePoll;
+  }
+
+  function start(): void {
+    if (started || stopping) return;
+    started = true;
+    dependencies.resetStale();
+
+    intervalIds.push(dependencies.setInterval(startJobDrain, POLL_INTERVAL_MS));
+    intervalIds.push(dependencies.setInterval(() => void startRssPoll(), RSS_INTERVAL_MS));
+    intervalIds.push(
+      dependencies.setInterval(() => {
+        if (stopping) return;
+        dependencies
+          .checkDisk(({ youtubeId, type }: DeletedFile) => {
+            if (type === 'video') dependencies.setVideoStatus(youtubeId, 'none');
+            else dependencies.setAudioStatus(youtubeId, 'none');
+          })
+          .catch((err) => dependencies.error(err));
+      }, DISK_CHECK_INTERVAL_MS),
+    );
+    intervalIds.push(
+      dependencies.setInterval(() => {
+        if (!stopping) dependencies.purgeExpired();
+      }, SESSION_PURGE_INTERVAL_MS),
+    );
+
+    startRssPoll();
+    startJobDrain();
+    dependencies.log('worker started');
+  }
+
+  function stop(signal: string): Promise<void> {
+    if (stopPromise) return stopPromise;
+    stopping = true;
+    for (const intervalId of intervalIds) dependencies.clearInterval(intervalId);
+    dependencies.log(`${signal} received; waiting for active work to finish`);
+
+    stopPromise = Promise.allSettled([
+      ...(activeJobDrain ? [activeJobDrain] : []),
+      ...(activePoll ? [activePoll] : []),
+    ]).then(() => {
+      dependencies.log('worker stopped cleanly');
     });
+    return stopPromise;
+  }
+
+  return { start, stop, runNextJob, startRssPoll };
 }
 
-const rssTimer = setInterval(startRssPoll, RSS_INTERVAL_MS);
-const diskTimer = setInterval(() => {
-  checkDisk(({ youtubeId, type }: DeletedFile) => {
-    if (type === 'video') setVideoStatus(youtubeId, 'none');
-    else setAudioStatus(youtubeId, 'none');
-  }).catch(console.error);
-}, DISK_CHECK_INTERVAL_MS);
-const sessionTimer = setInterval(() => {
-  purgeExpired();
-}, 3600_000);
+if (import.meta.main) {
+  const runtime = createWorkerRuntime();
 
-startRssPoll();
-const jobLoopPromise = jobLoop();
+  process.on('SIGTERM', () => {
+    void runtime.stop('SIGTERM').then(() => process.exit(0));
+  });
+  process.on('SIGINT', () => {
+    void runtime.stop('SIGINT').then(() => process.exit(0));
+  });
 
-async function shutdown(signal: string): Promise<void> {
-  if (stopping) return;
-  stopping = true;
-  clearInterval(rssTimer);
-  clearInterval(diskTimer);
-  clearInterval(sessionTimer);
-  console.log(`${signal} received; waiting for active work to finish`);
-
-  await Promise.allSettled([jobLoopPromise, ...(activePoll ? [activePoll] : [])]);
-  console.log('worker stopped cleanly');
-  process.exit(0);
+  runtime.start();
 }
-
-process.on('SIGTERM', () => {
-  void shutdown('SIGTERM');
-});
-process.on('SIGINT', () => {
-  void shutdown('SIGINT');
-});
-
-jobLoopPromise.catch((err) => {
-  console.error('job loop crashed:', err);
-  process.exit(1);
-});

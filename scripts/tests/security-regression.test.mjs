@@ -19,13 +19,13 @@ Object.assign(process.env, {
   DEFAULT_LANG: 'en',
 });
 
-const { db } = await import('../src/lib/db.ts');
-const { getTrustedClientIp } = await import('../src/lib/client-ip.ts');
-const { isValidRegistrationCredentials } = await import('../src/lib/auth/auth.ts');
+const { db } = await import('../../src/lib/db.ts');
+const { getTrustedClientIp } = await import('../../src/lib/client-ip.ts');
+const { isValidRegistrationCredentials } = await import('../../src/lib/auth/auth.ts');
 const { checkRegistrationRateLimit, isLoginRateLimited, recordLoginFailure, resetLoginRateLimit } =
-  await import('../src/lib/auth/ratelimit.ts');
-const { getPlayCountByUid, recordPlayEvent } = await import('../src/lib/play-stats.ts');
-const { resetStale } = await import('../src/lib/queue.ts');
+  await import('../../src/lib/auth/ratelimit.ts');
+const { getPlayCountByUid, recordPlayEvent } = await import('../../src/lib/play-stats.ts');
+const { resetStale } = await import('../../src/lib/queue.ts');
 
 test('only local nginx may supply X-Real-IP', () => {
   const proxied = {

@@ -5,3 +5,4 @@ media/
 .codex
 tmp/
 deploy/
+node_modules/

@@ -73,11 +73,17 @@ export default {
     'change [data-action="toggle-edit"]': (part, event) => {
       part.set('sidebarEdit', event.target.checked);
     },
-    'click [data-ref="summary"]': (part) => {
-      queueMicrotask(() => part.set('dropdownOpen', part.refs.dropdown.open));
+    'click [data-action="toggle-channel-details"]': (part, event) => {
+      event.preventDefault();
+      part.set('channelDetailsOpen', !part.state.channelDetailsOpen);
     },
-    'toggle [data-ref="dropdown"]': (part) => {
-      part.set('dropdownOpen', part.refs.dropdown.open);
+    'click [data-action="toggle-video-details"]': (part, event) => {
+      event.preventDefault();
+      part.set('videoDetailsOpen', !part.state.videoDetailsOpen);
+    },
+    'click [data-ref="summary"]': (part, event) => {
+      event.preventDefault();
+      part.set('dropdownOpen', !part.state.dropdownOpen);
     },
   },
   state: {

@@ -7,7 +7,12 @@
     "format": "biome format --write .",
     "format:check": "biome format .",
     "lint": "biome lint .",
-    "test": "node --test scripts/*.test.mjs",
+    "test": "node --test scripts/tests/*.test.mjs",
+    "test:browser": "node --test scripts/tests/frontend-browser.test.mjs",
+    "test:coverage:server": "node --experimental-test-coverage --test-coverage-include='src/**/*.ts' --test-coverage-lines=85 --test-coverage-branches=75 --test-coverage-functions=80 --test scripts/tests/config.test.mjs scripts/tests/play-migration.test.mjs scripts/tests/security-regression.test.mjs scripts/tests/http-*.test.mjs scripts/tests/worker-*.test.mjs",
     "prepare:static": "node scripts/prepare-static.ts"
+  },
+  "devDependencies": {
+    "playwright-core": "1.62.1"
   }
 }

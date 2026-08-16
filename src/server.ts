@@ -259,25 +259,28 @@ const routes: RouteConfig[] = [
   },
 ];
 
-const router = new Router();
-
-for (const route of routes) {
-  router[route.method](route.path, route.handler);
+export function createAppRouter(): Router {
+  const router = new Router();
+  for (const route of routes) router[route.method](route.path, route.handler);
+  return router;
 }
 
-// Server
-loadAssetManifest(config.ASSET_MANIFEST_PATH);
-
-const server = createServer((req, res) => {
-  router.dispatch(req, res).catch((err) => {
-    console.error(err);
-    if (!res.headersSent) {
-      res.writeHead(500, { 'Content-Type': 'text/plain', 'Cache-Control': NO_STORE });
-      res.end('Internal server error');
-    }
+export function createAppServer(router = createAppRouter()) {
+  loadAssetManifest(config.ASSET_MANIFEST_PATH);
+  return createServer((req, res) => {
+    router.dispatch(req, res).catch((err) => {
+      console.error(err);
+      if (!res.headersSent) {
+        res.writeHead(500, { 'Content-Type': 'text/plain', 'Cache-Control': NO_STORE });
+        res.end('Internal server error');
+      }
+    });
   });
-});
+}
 
-server.listen(config.PORT, config.HOST, () => {
-  console.log(`server listening on ${config.HOST}:${config.PORT}`);
-});
+if (import.meta.main) {
+  const server = createAppServer();
+  server.listen(config.PORT, config.HOST, () => {
+    console.log(`server listening on ${config.HOST}:${config.PORT}`);
+  });
+}

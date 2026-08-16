@@ -8,8 +8,8 @@ You may need a proxy or cookies to avoid upstream request blocking. On the first
 
 ## Development
 
-**Prerequisites:** Ubuntu 24.04 x86_64. Install the pinned Node.js and development tools as a
-regular user:
+**Prerequisites:** Ubuntu 24.04 x86_64 and a system Chromium-compatible browser.
+Install the pinned Node.js and development tools as a regular user:
 
 ```bash
 bash dev-env-setup.sh
@@ -51,7 +51,20 @@ node --run format        # rewrite files
 
 ```bash
 node --run test
+node --run test:browser
+node --run test:coverage:server
 ```
+
+The Chromium tests use the system browser. Set `VIDIUM_CHROMIUM_PATH` when it is
+not installed at a common Chromium/Chrome path.
+
+`test:coverage:server` covers the TypeScript server/runtime surface and enforces
+minimum line, branch, and function coverage. Browser behavior is enforced by the
+separate Chromium suite and is not included in the server coverage percentage.
+
+GitHub Actions runs type checking, linting, formatting checks, server coverage,
+and browser tests for pull requests and pushes to `master`. The `quality` job is
+intended to be configured as a required status check for the protected branch.
 
 ---
 
