@@ -65,7 +65,9 @@ for (const channelId of channelIds) {
   console.log('youtube_ids:', youtubeIds.length);
 
   const filesRemoved = removeMediaFiles(youtubeIds);
-  const videosRemoved = db.prepare('DELETE FROM videos WHERE channel_id = ?').run(channelId).changes;
+  const videosRemoved = db
+    .prepare('DELETE FROM videos WHERE channel_id = ?')
+    .run(channelId).changes;
 
   const jobsByYoutube = youtubeIds.length
     ? db
@@ -87,5 +89,12 @@ for (const channelId of channelIds) {
 
   const channelRemoved = db.prepare('DELETE FROM channels WHERE id = ?').run(channelId).changes;
 
-  console.log({ channelId, filesRemoved, videosRemoved, jobsByYoutube, crawlJobsRemoved, channelRemoved });
+  console.log({
+    channelId,
+    filesRemoved,
+    videosRemoved,
+    jobsByYoutube,
+    crawlJobsRemoved,
+    channelRemoved,
+  });
 }

@@ -92,7 +92,9 @@ const GUEST_VISIBLE_WHERE = `c.guest_visible = 1`;
 const stmtGetByYoutubeId = db.prepare(`${SEL_WITH_CHAPTERS} WHERE v.youtube_id = ?`);
 const stmtGetByUid = db.prepare(`${SEL_WITH_CHAPTERS} WHERE v.uid = ?`);
 const stmtCountAll = db.prepare(`SELECT COUNT(*) AS count FROM videos`);
-const stmtGetAllPage = db.prepare(`${SEL} ORDER BY v.date DESC, v.created_at DESC LIMIT ? OFFSET ?`);
+const stmtGetAllPage = db.prepare(
+  `${SEL} ORDER BY v.date DESC, v.created_at DESC LIMIT ? OFFSET ?`,
+);
 const stmtCountByChannel = db.prepare(`SELECT COUNT(*) AS count FROM videos WHERE channel_id = ?`);
 const stmtGetByChannelPage = db.prepare(
   `${SEL} WHERE v.channel_id = ? ORDER BY v.date DESC, v.created_at DESC LIMIT ? OFFSET ?`,
@@ -388,9 +390,7 @@ export function getVideoPage(query: VideoPageQuery): VideoPage {
   const pageSize = Number.isFinite(rawPageSize) && rawPageSize > 0 ? rawPageSize : 1;
   const requestedPage = Number.isFinite(rawPage) && rawPage > 0 ? rawPage : 1;
   const channelId =
-    typeof query.channelId === 'number' && Number.isInteger(query.channelId)
-      ? query.channelId
-      : 0;
+    typeof query.channelId === 'number' && Number.isInteger(query.channelId) ? query.channelId : 0;
   const tag = (query.tag ?? 'all').trim() || 'all';
 
   let total = 0;
@@ -436,9 +436,7 @@ export function getGuestVideoPage(query: VideoPageQuery): VideoPage {
   const pageSize = Number.isFinite(rawPageSize) && rawPageSize > 0 ? rawPageSize : 1;
   const requestedPage = Number.isFinite(rawPage) && rawPage > 0 ? rawPage : 1;
   const channelId =
-    typeof query.channelId === 'number' && Number.isInteger(query.channelId)
-      ? query.channelId
-      : 0;
+    typeof query.channelId === 'number' && Number.isInteger(query.channelId) ? query.channelId : 0;
   const tag = normalizeGuestFeedTag((query.tag ?? FEED_TAG_ALL).trim() || FEED_TAG_ALL);
 
   let total = 0;
@@ -447,7 +445,11 @@ export function getGuestVideoPage(query: VideoPageQuery): VideoPage {
   if (channelId > 0) {
     total = (stmtGuestCountByChannel.get(channelId) as RawCountRow).count;
     const page = clampPage(requestedPage, pageSize, total);
-    rows = stmtGuestGetByChannelPage.all(channelId, pageSize, offsetFor(page, pageSize)) as RawRow[];
+    rows = stmtGuestGetByChannelPage.all(
+      channelId,
+      pageSize,
+      offsetFor(page, pageSize),
+    ) as RawRow[];
     return pageResult(rows, page, pageSize, total);
   }
 

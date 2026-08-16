@@ -13,7 +13,12 @@ async function postJson(url, body) {
     body: JSON.stringify(body),
   });
   const data = await res.json().catch(() => ({}));
-  return { res, data };
+  if (!res.ok || !data.ok) {
+    const error = new Error('request failed');
+    error.userMessage = data.error;
+    throw error;
+  }
+  return data;
 }
 
 export default {
@@ -25,37 +30,45 @@ export default {
       event.preventDefault();
       const form = event.target;
       setMsg(part, 'channel', '', '');
-      const { res, data } = await postJson('/api/channel', {
-        url: form.elements.url.value.trim(),
-        displayName: form.elements.displayName.value.trim(),
-        tags: form.elements.tags.value.trim(),
-      });
-      if (!res.ok) return setMsg(part, 'channel', data.error || part.state.channelError, 'error');
-      if (data.status === 'exists') {
-        part.set('channelDetailsOpen', false);
-        return setMsg(part, 'channel', part.state.channelExists, 'warn');
+      try {
+        const data = await postJson('/api/channel', {
+          url: form.elements.url.value.trim(),
+          displayName: form.elements.displayName.value.trim(),
+          tags: form.elements.tags.value.trim(),
+        });
+        if (data.status === 'exists') {
+          part.set('channelDetailsOpen', false);
+          return setMsg(part, 'channel', part.state.channelExists, 'warn');
+        }
+        if (data.status !== 'added') throw new Error('invalid response');
+        part.set({
+          channelDetailsOpen: false,
+          eventChannelReset: part.state.eventChannelReset + 1,
+        });
+        setMsg(part, 'channel', part.state.channelAdded, 'ok');
+      } catch (error) {
+        setMsg(part, 'channel', error.userMessage || part.state.channelError, 'error');
       }
-      part.set({
-        channelDetailsOpen: false,
-        eventChannelReset: part.state.eventChannelReset + 1,
-      });
-      setMsg(part, 'channel', part.state.channelAdded, 'ok');
     },
     'submit [data-action="add-video"]': async (part, event) => {
       event.preventDefault();
       const form = event.target;
       setMsg(part, 'video', '', '');
-      const { res, data } = await postJson('/api/video', { url: form.elements.url.value.trim() });
-      if (!res.ok) return setMsg(part, 'video', data.error || part.state.videoError, 'error');
-      if (data.status === 'exists') {
-        part.set('videoDetailsOpen', false);
-        return setMsg(part, 'video', part.state.videoExists, 'warn');
+      try {
+        const data = await postJson('/api/video', { url: form.elements.url.value.trim() });
+        if (data.status === 'exists') {
+          part.set('videoDetailsOpen', false);
+          return setMsg(part, 'video', part.state.videoExists, 'warn');
+        }
+        if (data.status !== 'added') throw new Error('invalid response');
+        part.set({
+          videoDetailsOpen: false,
+          eventVideoReset: part.state.eventVideoReset + 1,
+        });
+        setMsg(part, 'video', part.state.videoAdded, 'ok');
+      } catch (error) {
+        setMsg(part, 'video', error.userMessage || part.state.videoError, 'error');
       }
-      part.set({
-        videoDetailsOpen: false,
-        eventVideoReset: part.state.eventVideoReset + 1,
-      });
-      setMsg(part, 'video', part.state.videoAdded, 'ok');
     },
     'change [data-action="toggle-edit"]': (part, event) => {
       part.set('sidebarEdit', event.target.checked);

@@ -221,7 +221,9 @@ export function getAllChannels(): Channel[] {
 }
 
 export function getGuestVisibleChannels(): Channel[] {
-  return getAllChannels().filter((channel) => channel.id !== MANUAL_CHANNEL_ID && channel.guestVisible);
+  return getAllChannels().filter(
+    (channel) => channel.id !== MANUAL_CHANNEL_ID && channel.guestVisible,
+  );
 }
 
 export function normalizeChannelTags(rawTags: string): string[] {

@@ -4,7 +4,11 @@ import { readProxyStatus } from '../../lib/proxy-status.ts';
 import { listUsers } from '../../lib/auth/auth.ts';
 import { getAllChannels } from '../../lib/channel.ts';
 import { getPlayStatsRows } from '../../lib/play-stats.ts';
-import { getDownloadedVideos, getProblemStatusRows, getVideoStatusSummary } from '../../lib/video.ts';
+import {
+  getDownloadedVideos,
+  getProblemStatusRows,
+  getVideoStatusSummary,
+} from '../../lib/video.ts';
 import { t } from '../../pages/lang.ts';
 
 interface AdminBakeContext {

@@ -214,7 +214,17 @@ export function sidebarHtml(state) {
       ${
         state.sidebarMode === 'tags'
           ? state.tags.map((tag) => sidebarTagItem(tag, state)).join('')
-          : regular.map((ch) => sidebarItem(ch, state.activeChannelId, state.labels, state.movingChannelId, state.savingChannelNameId)).join('')
+          : regular
+              .map((ch) =>
+                sidebarItem(
+                  ch,
+                  state.activeChannelId,
+                  state.labels,
+                  state.movingChannelId,
+                  state.savingChannelNameId,
+                ),
+              )
+              .join('')
       }
     </div>
   </div>`;
@@ -225,6 +235,12 @@ export default function template(state) {
     <div class="topbar">
       <button class="sidebar-toggle" data-action="toggle-sidebar">&#9776;</button>
       <span class="topbar-label" data-ref="title">${htmlEscape(state.title)}</span>
+      <span
+        class="feed-action-error"
+        data-ref="actionError"
+        role="alert"
+        ${state.actionError ? '' : 'hidden'}
+      >${htmlEscape(state.actionError || '')}</span>
     </div>
     ${sidebarHtml(state)}
   </section>`;

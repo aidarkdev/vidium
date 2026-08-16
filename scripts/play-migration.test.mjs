@@ -52,14 +52,18 @@ test('legacy play events migrate once into aggregate counts', async () => {
   });
 
   const migratedDb = new DatabaseSync(databasePath);
-  const row = migratedDb.prepare(`
+  const row = migratedDb
+    .prepare(`
     SELECT play_count AS count FROM video_play_counts
     WHERE video_id = 2 AND kind = 'video'
-  `).get();
+  `)
+    .get();
   assert.equal(row.count, 2);
   assert.equal(
     migratedDb
-      .prepare("SELECT COUNT(*) AS count FROM schema_migrations WHERE name = 'aggregate-play-counts-v1'")
+      .prepare(
+        "SELECT COUNT(*) AS count FROM schema_migrations WHERE name = 'aggregate-play-counts-v1'",
+      )
       .get().count,
     1,
   );

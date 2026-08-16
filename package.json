@@ -5,6 +5,7 @@
   "scripts": {
     "check": "tsc --noEmit",
     "format": "biome format --write .",
+    "format:check": "biome format .",
     "lint": "biome lint .",
     "test": "node --test scripts/*.test.mjs",
     "prepare:static": "node scripts/prepare-static.ts"

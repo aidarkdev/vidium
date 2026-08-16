@@ -84,9 +84,7 @@ function stopPolling(part) {
 function pendingIds(part) {
   return [
     ...new Set(
-      part.state.items
-        .filter((item) => pendingStatuses.has(item.status))
-        .map((item) => item.uid),
+      part.state.items.filter((item) => pendingStatuses.has(item.status)).map((item) => item.uid),
     ),
   ];
 }

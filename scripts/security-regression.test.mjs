@@ -22,12 +22,8 @@ Object.assign(process.env, {
 const { db } = await import('../src/lib/db.ts');
 const { getTrustedClientIp } = await import('../src/lib/client-ip.ts');
 const { isValidRegistrationCredentials } = await import('../src/lib/auth/auth.ts');
-const {
-  checkRegistrationRateLimit,
-  isLoginRateLimited,
-  recordLoginFailure,
-  resetLoginRateLimit,
-} = await import('../src/lib/auth/ratelimit.ts');
+const { checkRegistrationRateLimit, isLoginRateLimited, recordLoginFailure, resetLoginRateLimit } =
+  await import('../src/lib/auth/ratelimit.ts');
 const { getPlayCountByUid, recordPlayEvent } = await import('../src/lib/play-stats.ts');
 const { resetStale } = await import('../src/lib/queue.ts');
 
@@ -104,9 +100,11 @@ test('recovering an interrupted job does not consume a retry', () => {
     VALUES ('download_thumbnail', 'processing', 2, '{}')
   `).run();
   resetStale();
-  const row = db.prepare(`
+  const row = db
+    .prepare(`
     SELECT status, attempts FROM jobs ORDER BY id DESC LIMIT 1
-  `).get();
+  `)
+    .get();
   assert.equal(row.status, 'pending');
   assert.equal(row.attempts, 1);
 });

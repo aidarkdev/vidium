@@ -177,7 +177,8 @@ export function mount(partModule, params) {
     instance.__listeners.push({ type, listener });
   }
 
-  const anchor = document.querySelector(`[mount-dot="mount-dot-${params.id}"]`) || document.currentScript;
+  const anchor =
+    document.querySelector(`[mount-dot="mount-dot-${params.id}"]`) || document.currentScript;
   if (!anchor) throw new Error(`Cannot mount ${params.id}: document.currentScript is unavailable`);
   anchor.replaceWith(root);
   handlers.onMount?.(instance);

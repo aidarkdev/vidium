@@ -15,7 +15,10 @@ function activeChapterStart(chapters, currentTime) {
 }
 
 function syncActiveChapter(part) {
-  part.set('activeChapterStart', activeChapterStart(part.state.chapters, part.refs.media.currentTime));
+  part.set(
+    'activeChapterStart',
+    activeChapterStart(part.state.chapters, part.refs.media.currentTime),
+  );
 }
 
 const RESUME_MIN_SECONDS = 5;
@@ -153,8 +156,7 @@ export default {
         eventChapterSeek: part.state.eventChapterSeek + 1,
       });
     },
-    'click [data-action="toggle-play"]': (part) =>
-      part.set('eventPlay', part.state.eventPlay + 1),
+    'click [data-action="toggle-play"]': (part) => part.set('eventPlay', part.state.eventPlay + 1),
     'click [data-action="toggle-rate"]': (part) =>
       part.set('playbackRate', part.state.playbackRate === 1 ? 1.25 : 1),
     'click [data-action="share"]': async (part) => {
@@ -203,10 +205,7 @@ export default {
       else location.href = '/feed';
     },
     eventSeek: (part) => {
-      part.refs.media.currentTime = Math.max(
-        0,
-        part.refs.media.currentTime + part.state.seekDelta,
-      );
+      part.refs.media.currentTime = Math.max(0, part.refs.media.currentTime + part.state.seekDelta);
       syncPlayerProgress(part);
     },
     eventChapterSeek: (part) => {
@@ -274,7 +273,6 @@ export default {
     part.refs.media.addEventListener('loadedmetadata', part.private.restore, { once: true });
     part.refs.media.addEventListener('ended', part.private.clearResume);
     part.private.sync();
-    part.refs.media.playbackRate = part.state.playbackRate;
     setupMediaSession(part);
     syncPlayerProgress(part);
     part.private.chapterTimer = setInterval(() => syncPlayerProgress(part), 5000);

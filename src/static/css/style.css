@@ -453,6 +453,15 @@ a:hover { text-decoration: underline; }
   white-space: nowrap;
 }
 
+.feed-action-error {
+  margin-left: auto;
+  color: var(--danger-text);
+  font-size: 0.9rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .nav-edit {
   display: inline-flex;
   align-items: center;

@@ -1,5 +1,16 @@
 import { sidebarHtml } from './template.js';
 
+async function postJson(url, body) {
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || !data.ok) throw new Error(data.error || 'request failed');
+  return data;
+}
+
 function rerenderSidebar(part) {
   const fresh = document.createElement('template');
   fresh.innerHTML = sidebarHtml(part.state);
@@ -11,7 +22,9 @@ function rerenderSidebar(part) {
 
 function replaceSidebarRow(part, channelId) {
   const channel = part.state.channels.find((item) => item.id === channelId);
-  const row = part.refs.sidebar.querySelector(`[data-channel-id="${CSS.escape(String(channelId))}"]`);
+  const row = part.refs.sidebar.querySelector(
+    `[data-channel-id="${CSS.escape(String(channelId))}"]`,
+  );
   if (!channel || !row) return;
 
   const fresh = document.createElement('template');
@@ -33,7 +46,9 @@ function updateChannelDisplayName(channels, channelId, displayName) {
 
 function reorderChannels(channels, regularIds) {
   const manual = channels.filter((channel) => channel.id === 1);
-  const byId = new Map(channels.filter((channel) => channel.id !== 1).map((channel) => [channel.id, channel]));
+  const byId = new Map(
+    channels.filter((channel) => channel.id !== 1).map((channel) => [channel.id, channel]),
+  );
   return [...manual, ...regularIds.map((id) => byId.get(id)).filter(Boolean)];
 }
 
@@ -72,16 +87,16 @@ function applyPatchTagOrderTags(part, orderedTags) {
   part.state.tags = reorderTags(part.state.tags, orderedTags);
 
   for (const tag of orderedTags) {
-    const row = part.refs.sidebarChannels.querySelector(
-      `[data-tag="${CSS.escape(String(tag))}"]`,
-    );
+    const row = part.refs.sidebarChannels.querySelector(`[data-tag="${CSS.escape(String(tag))}"]`);
     if (row) part.refs.sidebarChannels.append(row);
   }
 }
 
 function setChannelControlsDisabled(part, channelId, disabled) {
   if (!channelId) return;
-  const row = part.refs.sidebar.querySelector(`[data-channel-id="${CSS.escape(String(channelId))}"]`);
+  const row = part.refs.sidebar.querySelector(
+    `[data-channel-id="${CSS.escape(String(channelId))}"]`,
+  );
   if (!row) return;
   for (const control of row.querySelectorAll('input, button')) {
     control.disabled = disabled;
@@ -128,18 +143,18 @@ export default {
       const index = regular.findIndex((ch) => ch.id === channelId);
       const nextIndex = direction === 'up' ? index - 1 : index + 1;
       if (index < 0 || nextIndex < 0 || nextIndex >= regular.length) return;
-      part.set('movingChannelId', channelId);
+      part.set({ movingChannelId: channelId, actionError: '' });
       try {
-        const res = await fetch('/api/channel/reorder', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ channelId, direction }),
-        });
-        const data = await res.json();
-        if (!res.ok || !data.ok || !data.moved) return;
+        const data = await postJson('/api/channel/reorder', { channelId, direction });
+        if (!data.moved) throw new Error('channel was not moved');
         const reordered = [...regular];
         [reordered[index], reordered[nextIndex]] = [reordered[nextIndex], reordered[index]];
-        part.set('patchChannelOrderIds', reordered.map((channel) => channel.id));
+        part.set(
+          'patchChannelOrderIds',
+          reordered.map((channel) => channel.id),
+        );
+      } catch {
+        part.set('actionError', part.state.labels.actionError);
       } finally {
         part.set('movingChannelId', 0);
       }
@@ -153,18 +168,18 @@ export default {
       const index = part.state.tags.findIndex((item) => item.tag === tag);
       const nextIndex = direction === 'up' ? index - 1 : index + 1;
       if (index < 0 || nextIndex < 0 || nextIndex >= part.state.tags.length) return;
-      part.set('movingTag', tag);
+      part.set({ movingTag: tag, actionError: '' });
       try {
-        const res = await fetch('/api/tag/reorder', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ tag, direction }),
-        });
-        const data = await res.json();
-        if (!res.ok || !data.ok || !data.moved) return;
+        const data = await postJson('/api/tag/reorder', { tag, direction });
+        if (!data.moved) throw new Error('tag was not moved');
         const reordered = [...part.state.tags];
         [reordered[index], reordered[nextIndex]] = [reordered[nextIndex], reordered[index]];
-        part.set('patchTagOrderTags', reordered.map((item) => item.tag));
+        part.set(
+          'patchTagOrderTags',
+          reordered.map((item) => item.tag),
+        );
+      } catch {
+        part.set('actionError', part.state.labels.actionError);
       } finally {
         part.set('movingTag', '');
       }
@@ -177,17 +192,19 @@ export default {
       if (!tag) return;
       if (!confirm(part.state.labels.confirmDeleteTag)) return;
 
-      part.set('movingTag', tag);
+      part.set({ movingTag: tag, actionError: '' });
       try {
-        const res = await fetch('/api/tag/delete', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ tag }),
-        });
-        const data = await res.json();
-        if (!res.ok || !data.ok || !data.deleted) return;
-        part.set('tags', part.state.tags.filter((item) => item.tag !== data.tag));
-        if (part.state.activeTag === data.tag) window.location.href = '/feed';
+        const data = await postJson('/api/tag/delete', { tag });
+        if (!data.deleted) throw new Error('tag was not deleted');
+        const updates = {
+          tags: part.state.tags.filter((item) => item.tag !== data.tag),
+        };
+        if (part.state.activeTag === data.tag) {
+          updates.eventNavigateFeed = part.state.eventNavigateFeed + 1;
+        }
+        part.set(updates);
+      } catch {
+        part.set('actionError', part.state.labels.actionError);
       } finally {
         part.set('movingTag', '');
       }
@@ -199,16 +216,13 @@ export default {
       const channelId = Number(btn.dataset.channelId);
       const displayName = form.elements.displayName.value.trim();
       if (!Number.isInteger(channelId) || channelId <= 1) return;
-      part.set('savingChannelNameId', channelId);
+      part.set({ savingChannelNameId: channelId, actionError: '' });
       try {
-        const res = await fetch('/api/channel/display-name', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ channelId, displayName }),
-        });
-        const data = await res.json();
-        if (!res.ok || !data.ok || !data.saved) return;
+        const data = await postJson('/api/channel/display-name', { channelId, displayName });
+        if (!data.saved) throw new Error('channel name was not saved');
         part.set('patchChannelDisplayNameUpdates', [{ id: channelId, displayName }]);
+      } catch {
+        part.set('actionError', part.state.labels.actionError);
       } finally {
         part.set('savingChannelNameId', 0);
       }
@@ -219,6 +233,11 @@ export default {
       part.refs.title.textContent = value;
       document.title = 'paguo';
     },
+    actionError: (part, value) => {
+      part.refs.actionError.textContent = value;
+      part.refs.actionError.hidden = !value;
+    },
+    eventNavigateFeed: () => window.location.assign('/feed'),
     channels: rerenderSidebar,
     tags: rerenderSidebar,
     sidebarMode: rerenderSidebar,

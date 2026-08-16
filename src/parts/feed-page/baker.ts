@@ -22,9 +22,7 @@ interface FeedBakeContext {
   viewerMode?: ViewerMode;
 }
 
-type PageBakeResult =
-  | { ok: true; id: string; state: Record<string, unknown> }
-  | { ok: false };
+type PageBakeResult = { ok: true; id: string; state: Record<string, unknown> } | { ok: false };
 
 type SuccessfulPageBake = Extract<PageBakeResult, { ok: true }>;
 
@@ -45,6 +43,7 @@ function labels(lang: string): Record<string, string> {
     tags: t(lang, 'sidebar.tags'),
     deleteTag: t(lang, 'sidebar.delete_tag'),
     confirmDeleteTag: t(lang, 'sidebar.confirm_delete_tag'),
+    actionError: t(lang, 'feed.action.error'),
   };
 }
 
@@ -54,9 +53,7 @@ function manualChannelLabel(): string {
 }
 
 function systemFeedLinks(lang: string, isGuest: boolean): SystemFeedLink[] {
-  const links: SystemFeedLink[] = [
-    { href: '/feed', tag: FEED_TAG_ALL, label: t(lang, 'tag.all') },
-  ];
+  const links: SystemFeedLink[] = [{ href: '/feed', tag: FEED_TAG_ALL, label: t(lang, 'tag.all') }];
   if (!isGuest) {
     links.push(
       { href: '/feed/ready', tag: FEED_TAG_READY, label: t(lang, 'tag.ready') },
@@ -99,6 +96,8 @@ function sharedFeedState(ctx: FeedBakeContext, activeTag: string, activeChannelI
     movingChannelId: 0,
     movingTag: '',
     savingChannelNameId: 0,
+    actionError: '',
+    eventNavigateFeed: 0,
     patchChannelDisplayNameUpdates: [],
     patchChannelOrderIds: [],
     patchTagOrderTags: [],

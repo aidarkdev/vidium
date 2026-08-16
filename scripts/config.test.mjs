@@ -10,9 +10,7 @@ import { pathToFileURL } from 'node:url';
 const run = promisify(execFile);
 const temporaryDirectory = await mkdtemp(join(tmpdir(), 'vidium-config-test-'));
 const configModuleUrl = pathToFileURL(join(import.meta.dirname, '..', 'src/config.ts')).href;
-const proxyCheckUrl = pathToFileURL(
-  join(import.meta.dirname, 'check-proxy-status.ts'),
-).href;
+const proxyCheckUrl = pathToFileURL(join(import.meta.dirname, 'check-proxy-status.ts')).href;
 const proxyStatusModuleUrl = pathToFileURL(
   join(import.meta.dirname, '..', 'src/lib/proxy-status.ts'),
 ).href;
@@ -73,10 +71,7 @@ test('config enforces disk watermark bounds and ordering', async () => {
   const expected = /0 <= DISK_LOW_WATERMARK < DISK_HIGH_WATERMARK <= 1/;
   await assertConfigFails({ DISK_LOW_WATERMARK: '-0.1' }, expected);
   await assertConfigFails({ DISK_HIGH_WATERMARK: '1.1' }, expected);
-  await assertConfigFails(
-    { DISK_LOW_WATERMARK: '0.8', DISK_HIGH_WATERMARK: '0.8' },
-    expected,
-  );
+  await assertConfigFails({ DISK_LOW_WATERMARK: '0.8', DISK_HIGH_WATERMARK: '0.8' }, expected);
 });
 
 test('proxy requires a status path before any network check', async () => {

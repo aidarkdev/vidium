@@ -99,16 +99,18 @@ async function discoverAssets(): Promise<string[]> {
   return existing;
 }
 
-function rewriteJsImports(content: string, sourceAbs: string, byAbs: Map<string, AssetFile>): string {
+function rewriteJsImports(
+  content: string,
+  sourceAbs: string,
+  byAbs: Map<string, AssetFile>,
+): string {
   return content.replace(JS_IMPORT_RE, (match, _quote: string, specifier: string) => {
     const targetAbs = resolve(dirname(sourceAbs), specifier);
     const target = byAbs.get(targetAbs);
     if (!target) return match;
     const relDir = relative(dirname(sourceAbs), dirname(targetAbs)).replaceAll('\\', '/');
     const rewritten =
-      relDir === '' || relDir === '.'
-        ? `./${target.hashedName}`
-        : `${relDir}/${target.hashedName}`;
+      relDir === '' || relDir === '.' ? `./${target.hashedName}` : `${relDir}/${target.hashedName}`;
     return match.replace(specifier, rewritten);
   });
 }

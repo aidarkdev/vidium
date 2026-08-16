@@ -8,7 +8,14 @@ You may need a proxy or cookies to avoid upstream request blocking. On the first
 
 ## Development
 
-**Prerequisites:** Node.js 24 and development tools for type checking/linting.
+**Prerequisites:** Ubuntu 24.04 x86_64. Install the pinned Node.js and development tools as a
+regular user:
+
+```bash
+bash dev-env-setup.sh
+```
+
+Add `~/.local/bin` to `PATH` if it is not already available in your shell.
 
 The project is built as zero-dependency runtime software: no application-level
 npm dependencies by default. Runtime code should rely on Node.js built-ins,
@@ -36,7 +43,14 @@ biome lint --write .  # check + autofix
 ### Formatting
 
 ```bash
-node --run format
+node --run format:check  # check only
+node --run format        # rewrite files
+```
+
+### Tests
+
+```bash
+node --run test
 ```
 
 ---

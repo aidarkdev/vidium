@@ -57,7 +57,11 @@ function writePageToUrl(part, page) {
   const mode = part.private.urlWriteMode || 'push';
   part.private.urlWriteMode = '';
   if (mode === 'skip') return;
-  history[mode === 'replace' ? 'replaceState' : 'pushState']({ [part.id]: { page } }, '', pageUrl(page));
+  history[mode === 'replace' ? 'replaceState' : 'pushState'](
+    { [part.id]: { page } },
+    '',
+    pageUrl(page),
+  );
 }
 
 function queryForPage(part, page) {
@@ -69,7 +73,9 @@ function queryForPage(part, page) {
 
 function pollingIdsForCards(cards) {
   return cards
-    .filter((card) => pendingStatuses.has(card.videoStatus) || pendingStatuses.has(card.audioStatus))
+    .filter(
+      (card) => pendingStatuses.has(card.videoStatus) || pendingStatuses.has(card.audioStatus),
+    )
     .map((card) => card.uid);
 }
 
@@ -113,44 +119,81 @@ function applyCardStatusUpdates(part, updates) {
   rerenderUpdatedCards(part, updates);
 }
 
-async function poll(part) {
-  if (!part.state.pollingIds.length) return;
-  const res = await fetch(`/api/status?ids=${part.state.pollingIds.join(',')}`);
-  const data = await res.json();
-  let pollingIds = part.state.pollingIds;
-  const patchCardStatusUpdates = [];
+function stopPolling(part) {
+  clearTimeout(part.private.pollTimer);
+  part.private.pollTimer = null;
+  part.private.pollAbort?.abort();
+  part.private.pollAbort = null;
+}
 
-  for (const [id, status] of Object.entries(data)) {
-    const current = part.state.cards.find((card) => card.uid === id);
-    if (
-      current &&
-      (current.videoStatus !== status.video || current.audioStatus !== status.audio)
-    ) {
-      patchCardStatusUpdates.push({
-        id,
-        videoStatus: status.video,
-        audioStatus: status.audio,
-      });
-    }
-    if (!pendingStatuses.has(status.video) && !pendingStatuses.has(status.audio)) {
-      pollingIds = pollingIds.filter((item) => item !== id);
-    }
-  }
-
-  part.set({ pollingIds, patchCardStatusUpdates });
-  if (pollingIds.length) {
-    part.private.pollTimer = setTimeout(() => poll(part).catch(() => {}), 5000);
-  } else {
+function schedulePoll(part, delay) {
+  if (part.private.destroyed || !part.state.pollingIds.length) return;
+  clearTimeout(part.private.pollTimer);
+  part.private.pollTimer = setTimeout(() => {
     part.private.pollTimer = null;
+    poll(part);
+  }, delay);
+}
+
+async function poll(part) {
+  if (part.private.destroyed || !part.state.pollingIds.length) return;
+
+  part.private.pollAbort?.abort();
+  const controller = new AbortController();
+  part.private.pollAbort = controller;
+
+  try {
+    const res = await fetch(`/api/status?ids=${part.state.pollingIds.join(',')}`, {
+      signal: controller.signal,
+    });
+    if (!res.ok) throw new Error(`status request failed: ${res.status}`);
+    const data = await res.json();
+    if (!data || typeof data !== 'object' || Array.isArray(data)) {
+      throw new Error('status response is invalid');
+    }
+
+    let pollingIds = part.state.pollingIds;
+    const patchCardStatusUpdates = [];
+
+    for (const [id, status] of Object.entries(data)) {
+      const current = part.state.cards.find((card) => card.uid === id);
+      if (
+        current &&
+        (current.videoStatus !== status.video || current.audioStatus !== status.audio)
+      ) {
+        patchCardStatusUpdates.push({
+          id,
+          videoStatus: status.video,
+          audioStatus: status.audio,
+        });
+      }
+      if (!pendingStatuses.has(status.video) && !pendingStatuses.has(status.audio)) {
+        pollingIds = pollingIds.filter((item) => item !== id);
+      }
+    }
+
+    part.private.pollErrorReported = false;
+    part.set({ pollingIds, patchCardStatusUpdates });
+  } catch (error) {
+    if (error?.name === 'AbortError') return;
+    if (!part.private.pollErrorReported) {
+      console.warn('Feed status polling failed; retrying', error);
+      part.private.pollErrorReported = true;
+    }
+  } finally {
+    if (part.private.pollAbort === controller) {
+      part.private.pollAbort = null;
+      if (!part.private.destroyed && part.state.pollingIds.length) schedulePoll(part, 5000);
+    }
   }
 }
 
 function restartPolling(part, cards) {
-  clearTimeout(part.private.pollTimer);
-  part.private.pollTimer = null;
+  stopPolling(part);
+  part.private.pollErrorReported = false;
   const pollingIds = [...new Set(pollingIdsForCards(cards))];
   part.set('pollingIds', pollingIds);
-  if (pollingIds.length) poll(part).catch(() => {});
+  if (pollingIds.length) schedulePoll(part, 0);
 }
 
 async function loadPage(part, page, options = {}) {
@@ -231,7 +274,9 @@ export default {
           patchCardStatusUpdates: [statusUpdate],
           localQueueItems,
         });
-        if (shouldPoll && !part.private.pollTimer) poll(part).catch(() => {});
+        if (shouldPoll && !part.private.pollTimer && !part.private.pollAbort) {
+          schedulePoll(part, 0);
+        }
       } catch {
         part.set('error', part.state.strings.error);
       }
@@ -272,8 +317,9 @@ export default {
     }
   },
   onDestroy: (part) => {
+    part.private.destroyed = true;
     window.removeEventListener('popstate', part.private.onPopState);
     part.private.pageAbort?.abort();
-    clearTimeout(part.private.pollTimer);
+    stopPolling(part);
   },
 };
