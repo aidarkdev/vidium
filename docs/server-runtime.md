@@ -89,7 +89,7 @@ location / {
 }
 ```
 
-Replace `/path/to/vidium` with the deployed app directory. In `setup.sh`, shell escaping is required inside heredocs, so `try_files $uri =404;` appears as `try_files \$uri =404;` there.
+Replace `/path/to/vidium` with the deployed app directory. In `scripts/setup/apply-host-config.sh`, shell escaping is required inside heredocs, so `try_files $uri =404;` appears as `try_files \$uri =404;` there.
 
 The download limit accepts an initial burst of five requests per IP, then replenishes capacity at five requests per minute. nginx returns `429 Too Many Requests` before the request reaches Node when the limit is exceeded. The limit applies to authenticated and guest callers alike; do not key it from a guest-controlled cookie.
 
@@ -108,7 +108,7 @@ nginx serves `deploy/` with `Cache-Control: public, max-age=31536000, immutable`
 
 **Local development:** without `deploy/asset-manifest.json`, the server falls back to unhashed logical paths (`/engine/core.js`, etc.). Point nginx at `src/` for local static serving, or use a one-off `prepare-static` + copy to `deploy/` to test production URLs.
 
-If a hashed asset returns 404, restarting Node will not fix it — run `deploy-static.sh` or check nginx aliases point to `deploy/`.
+If a hashed asset returns 404, restarting Node will not fix it — run `scripts/deploy-static.sh` or check nginx aliases point to `deploy/`.
 
 Verify static module delivery after nginx changes:
 
@@ -244,17 +244,17 @@ X-Accel-Redirect: /protected_media/thumbs/{youtube_id}.jpg
 
 Deployment commands and git/rsync workflows live in `docs/deploy.md`.
 
-`setup.sh` creates or updates:
+For a fresh host, `setup.sh` runs the dependency installer and then the host configurator. Together they create:
 
 - runtime directories including `deploy/`
 - the dedicated `vidium` service account, root-owned code/runtime, private `.env`/database, and group-readable media for nginx
 - nginx site config with `/api/download` and `/api/play` rate limits, `/static/`, `/engine/`, `/parts/` aliases to `deploy/`, plus `/protected_media/`
-- systemd services for `vidium-server` and `vidium-worker`
-- pinned Node.js and `yt-dlp`
+- systemd units for `vidium-server`, `vidium-worker`, and the `vidium-proxy-check` service/timer
+- pinned Node.js and `yt-dlp` through `scripts/setup/install-dependencies.sh`
 
 The worker handles `SIGTERM`/`SIGINT` by stopping its timers and waiting for the active job and RSS poll. Its unit uses `KillMode=mixed` with `TimeoutStopSec=30min`, so systemd signals the worker first and kills the whole control group only after the grace period. If a forced stop leaves a job in `processing`, startup returns it to `pending` without consuming a retry. Thumbnails are written to a `.part` file and atomically renamed.
 
-Do not rerun `setup.sh` just to add the download rate limit or fix a missing `/engine/` or `/parts/` alias on an existing server unless you intend to reapply all setup steps. For those cases, edit the active nginx site config directly, then run:
+Do not rerun `setup.sh` or `scripts/setup/apply-host-config.sh` just to add the download rate limit or fix a missing `/engine/` or `/parts/` alias on an existing server. In particular, the generated nginx template must not replace a Certbot-managed site unless that replacement is intentional and `--force-nginx` is supplied. For targeted nginx changes, edit the active site config directly, then run:
 
 ```bash
 sudo nginx -t

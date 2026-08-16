@@ -3,9 +3,15 @@ set -euo pipefail
 
 # ============================================
 # vidium dev environment setup
-# Ubuntu 24.04
+# Ubuntu 24.04 x86_64
 # Run as regular user: bash dev-env-setup.sh
 # ============================================
+
+ARCH="$(uname -m)"
+if [ "${ARCH}" != "x86_64" ]; then
+  echo "ERROR: dev-env-setup.sh supports only Ubuntu 24.04 x86_64; detected architecture: ${ARCH}." >&2
+  exit 1
+fi
 
 NODE_VERSION=24.19.0
 NODE_SHA256=f625d97cd707df4ff96254916fbc5ff014f09c09effe5a1e0ca8f6d41a8789d4

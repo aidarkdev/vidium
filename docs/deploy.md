@@ -7,21 +7,25 @@ vidium supports two deployment styles:
 
 Both are valid. Use git when the VPS should pull a known repository state. Use rsync when the local checkout is the source of truth and you want to copy only runtime-relevant files.
 
-## Runtime Files
+The supported bootstrap platform is Ubuntu 24.04 x86_64. Both `setup.sh` and `dev-env-setup.sh` reject other architectures before downloads or machine changes.
+
+## Runtime And Maintenance Files
 
 The production app directory is `/opt/vidium`. Application services run as the dedicated unprivileged `vidium` account; code and the pinned runtime remain root-owned.
 
-Files that should exist on the VPS for runtime:
+Files that should exist on the VPS for the application runtime and supported deployment/maintenance workflows:
 
 - `src/`
+- `setup.sh` and `scripts/setup/` for bootstrap and explicit runtime updates
 - `scripts/check-proxy-status.ts`
+- `scripts/runtime-inventory.sh`
 - one-time migration scripts from `scripts/` when a release note tells you to run them
 - `package.json`
 - `.env`
 - `data/`
 - `media/`
 - `cookies.txt` if `YTDLP_COOKIES` points to it
-- `runtime/node` — pinned Node.js runtime installed by `setup.sh`
+- `runtime/node` — pinned Node.js runtime installed by `scripts/setup/install-dependencies.sh` directly or through `setup.sh`
 - `deploy/` — content-hashed browser assets and `asset-manifest.json`, built locally by `scripts/prepare-static.ts` and rsynced by `scripts/deploy-static.sh`
 
 `package.json` is needed for Node module mode because it contains `"type": "module"`. It is not used as an npm dependency manifest.
@@ -53,7 +57,11 @@ nano .env
 systemctl enable --now vidium-server vidium-worker vidium-proxy-check.timer
 ```
 
-`setup.sh` installs the pinned Node.js and `yt-dlp` versions declared in the script. To update either tool, review the upstream release, bump the version and sha256 in `setup.sh`, deploy that change, run setup or install the verified binary manually, then restart the affected services.
+`setup.sh` is the fresh-host entrypoint. It runs `scripts/setup/install-dependencies.sh` and then `scripts/setup/apply-host-config.sh`. The wrapper and host configurator accept `--configure-firewall=<ssh-port>` when setup should allow that TCP port and `Nginx Full` before enabling UFW; without the option UFW is not changed. They also accept `--force-nginx` for an intentional, backed-up replacement of an existing site file.
+
+After dependencies are already present, the host-only entrypoint is `sudo bash scripts/setup/apply-host-config.sh [--configure-firewall=<ssh-port>] [--force-nginx] <domain>`. It is intended for initial bootstrap, not ordinary deploys, and must not be applied over a Certbot-managed site unless replacing that configuration with `--force-nginx` is intentional.
+
+For both the wrapper and host configurator, `DOMAIN=<domain>` may be used instead of the positional domain, for example `DOMAIN=example.com sudo -E bash setup.sh`.
 
 For HTTPS:
 
@@ -103,9 +111,20 @@ When deploying API rate limits to an existing VPS, update the active nginx site 
 
 Do not rerun `setup.sh` only to apply this nginx change.
 
+## Updating Node.js Or yt-dlp
+
+Runtime updates do not require reapplying host configuration. Review the upstream release, update the corresponding version and SHA256 in `scripts/setup/install-dependencies.sh`, deploy `scripts/setup/`, then run:
+
+```bash
+cd /opt/vidium
+sudo bash scripts/setup/install-dependencies.sh
+```
+
+Restart `vidium-worker` after a yt-dlp update. Restart both `vidium-server` and `vidium-worker` after a Node.js update. The dependency installer does not write the vidium nginx site or vidium systemd units and does not modify UFW, `.env`, or persistent data directories.
+
 ## Migrating An Existing `/root/vidium` Install
 
-Do not rerun `setup.sh`: an existing certbot-managed nginx file must be preserved. Stage code and the pinned runtime under `/opt/vidium`, then use one maintenance window for the persistent-state move.
+Do not rerun `setup.sh` or `scripts/setup/apply-host-config.sh`: an existing Certbot-managed nginx file must be preserved. The host configurator refuses to replace an existing site unless `--force-nginx` is passed, and its generated template does not retain Certbot TLS directives. Stage code and the pinned runtime under `/opt/vidium`, then use one maintenance window for the persistent-state move.
 
 Before stopping anything:
 
@@ -144,6 +163,8 @@ ssh root@<VPS_IP> 'mkdir -p /opt/vidium'
 rsync -av \
   --include='/setup.sh' \
   --include='/src/***' \
+  --include='/scripts/' \
+  --include='/scripts/setup/***' \
   --include='/scripts/***' \
   --include='/package.json' \
   --exclude='*' \
@@ -161,7 +182,7 @@ nano .env
 systemctl enable --now vidium-server vidium-worker vidium-proxy-check.timer
 ```
 
-`setup.sh` prepares the machine: installs system packages, creates `.env`, `data/`, `media/`, `deploy/`, nginx config, and systemd services. Do not use it as a normal code deploy command.
+`setup.sh` prepares the machine by running both helper scripts: it installs system/runtime dependencies, then creates `data/`, `media/`, `deploy/`, nginx config, systemd units, and `.env` when that file is absent. An existing `.env` is preserved. The first copy must contain `setup.sh`, `scripts/setup/install-dependencies.sh`, and `scripts/setup/apply-host-config.sh`. Do not use the wrapper or host configurator as a normal code deploy command.
 
 After setup, deploy application source with rsync, then deploy hashed browser assets (see below).
 
@@ -173,7 +194,9 @@ From the local machine:
 rsync -av --delete --chown=root:vidium --chmod=D750,F640 \
   --include='/src/***' \
   --include='/scripts/' \
+  --include='/scripts/setup/***' \
   --include='/scripts/check-proxy-status.ts' \
+  --include='/scripts/runtime-inventory.sh' \
   --include='/package.json' \
   --exclude='*' \
   ~/<project_path>/vidium/ \
@@ -194,17 +217,6 @@ rsync -av --delete --chown=root:vidium --chmod=D750,F640 \
   ~/<project_path>/vidium/tmp/vidium-static/ \
   root@<VPS_IP>:/opt/vidium/deploy/
 ssh root@<VPS_IP> 'systemctl restart vidium-server vidium-worker'
-```
-
-### One-time video chapters migration
-
-For the release that adds player chapters to existing VPS installs, deploy
-`scripts/migrate-video-chapters.ts` and run:
-
-```bash
-cd /opt/vidium
-./runtime/node/bin/node --env-file=.env --experimental-sqlite scripts/migrate-video-chapters.ts
-systemctl restart vidium-server vidium-worker
 ```
 
 This rsync command deletes stale files only inside the included deploy set. It does not delete excluded persistent directories such as `data/` and `media/`.
@@ -243,17 +255,17 @@ scripts/deploy-static.sh root@<VPS_IP>
 
 Full rsync deploy sequence:
 
-1. rsync `src/` and `package.json` (commands above)
+1. rsync `src/`, the allowlisted runtime scripts, and `package.json` (commands above)
 2. `scripts/deploy-static.sh root@<VPS_IP>`
 
-Git-based VPS deploys still need a local static deploy step — run `deploy-static.sh` from your checkout after `git pull` on the VPS updates server code.
+Git-based VPS deploys still need a local static deploy step — run `scripts/deploy-static.sh` from your checkout after `git pull` on the VPS updates server code.
 
 Optional env override: `ASSET_MANIFEST_PATH` in `.env` (default: `<app>/deploy/asset-manifest.json`).
 
 ### Migrating an existing VPS to hashed assets
 
 1. Deploy updated server code (`src/` rsync or `git pull`).
-2. Edit the nginx site config: point `/static/`, `/engine/`, and `/parts/` aliases to `${APP_DIR}/deploy/` and set `Cache-Control: public, max-age=31536000, immutable`. See `setup.sh` for the current template.
+2. Edit the nginx site config: point `/static/`, `/engine/`, and `/parts/` aliases to `${APP_DIR}/deploy/` and set `Cache-Control: public, max-age=31536000, immutable`. See `scripts/setup/apply-host-config.sh` for the current template.
 3. `nginx -t && systemctl reload nginx`
 4. Run `scripts/deploy-static.sh root@<VPS_IP>` from your local checkout.
 
@@ -283,4 +295,8 @@ If browser JS/CSS/images changed, also run `scripts/deploy-static.sh` locally �
 ssh root@<VPS_IP> 'systemctl status vidium-server vidium-worker --no-pager'
 ssh root@<VPS_IP> 'journalctl -u vidium-server -n 50 --no-pager'
 ssh root@<VPS_IP> 'journalctl -u vidium-worker -n 50 --no-pager'
+ssh root@<VPS_IP> 'cd /opt/vidium && bash scripts/runtime-inventory.sh' \
+  > "vidium-runtime-inventory-$(date -u +%Y%m%dT%H%M%SZ).tsv"
 ```
+
+The inventory command is read-only, performs no network requests, and does not read `.env`, cookies, or host identity. Run it through `bash` because rsync deploys apply file mode `F640` and do not preserve an executable bit. Keep the resulting TSV as input to a separate CVE check; the inventory script does not assess vulnerabilities or install a scanner. It exits nonzero when a required production component is absent or the platform is unsupported. Missing `curl` is reported but is required only when proxy-check is configured; missing `git` is reported but affects only git-based deployment.

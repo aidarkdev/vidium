@@ -2,6 +2,8 @@
 
 ## 1. System setup
 
+The supported bootstrap platform is a fresh Ubuntu 24.04 x86_64 system. The setup script exits before downloads or system changes on any other architecture.
+
 Clone the repo and run the setup script from the project directory:
 
 ```bash
@@ -10,12 +12,19 @@ cd /opt/vidium
 sudo bash setup.sh your-domain.com
 ```
 
-The script:
-- Installs pinned Node.js 24 from the official release tarball, plus nginx, certbot, and pinned yt-dlp
+To let setup configure UFW explicitly, pass the SSH port that must remain open, for example `--configure-firewall=2222`. Without that option setup does not change UFW. Use `--force-nginx` only when intentionally replacing an existing site; it creates timestamped backups, but the generated template does not preserve Certbot directives.
+
+The domain can alternatively be supplied through the environment: `DOMAIN=your-domain.com sudo -E bash setup.sh`.
+
+The wrapper:
+
+- Runs `apt update` without a full OS upgrade
+- Installs pinned Node.js 24 from the official release tarball, pinned yt-dlp, and Ubuntu-packaged nginx, certbot, curl, and git
 - Creates `data/` and `media/` directories with correct ownership
 - Sets up nginx config with static file serving and media proxy
-- Creates the unprivileged `vidium` system account and runs the application services as it
-- Generates `.env` template with paths matching the project location
+- Creates the unprivileged `vidium` system account and systemd units configured to run as it
+- Creates `.env` only when it is absent; an existing file is preserved and its owner/mode are corrected
+- Leaves the vidium services stopped until they are explicitly enabled below
 
 ## 2. Configure .env
 
@@ -38,13 +47,13 @@ If you configure a cookies file, make it readable only by the service account: `
 ## 3. Start services
 
 ```bash
-sudo systemctl enable --now vidium-server vidium-worker
+sudo systemctl enable --now vidium-server vidium-worker vidium-proxy-check.timer
 ```
 
 Check status:
 
 ```bash
-sudo systemctl status vidium-server vidium-worker
+sudo systemctl status vidium-server vidium-worker vidium-proxy-check.timer
 ```
 
 View logs:
@@ -119,9 +128,9 @@ sudo systemctl restart vidium-server
 
 **Services won't start** — check logs: `sudo journalctl -u vidium-server -n 50`
 
-**Crawling fails** — YouTube may block requests. Set `YTDLP_PROXY` in `.env`. If yt-dlp needs an update, review the upstream release, update `YTDLP_VERSION` and `YTDLP_SHA256` in `setup.sh`, deploy the change, then restart `vidium-worker`.
+**Crawling fails** — YouTube may block requests. Set `YTDLP_PROXY` in `.env`. If yt-dlp needs an update, review the upstream release, update `YTDLP_VERSION` and `YTDLP_SHA256` in `scripts/setup/install-dependencies.sh`, deploy the change, run that helper, then restart `vidium-worker`.
 
-**Node.js needs an update** — review the upstream release, update `NODE_VERSION` and `NODE_SHA256` in `setup.sh`, run setup on the VPS, then restart `vidium-server` and `vidium-worker`.
+**Node.js needs an update** — review the upstream release, update `NODE_VERSION` and `NODE_SHA256` in `scripts/setup/install-dependencies.sh`, deploy the change, run that helper on the VPS, then restart `vidium-server` and `vidium-worker`.
 
 **Downloads fail** — check disk space. vidium auto-cleans old media when disk usage exceeds `DISK_HIGH_WATERMARK`.
 

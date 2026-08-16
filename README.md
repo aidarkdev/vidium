@@ -2,7 +2,7 @@ for some specific reasons, one popular content hosting is not available in one c
 this project gives the way to get content from your own service.
 
 for some specific reasons, one popular content hosting does not like, that some projects try to "crawl" and mirror contents of his own.
-So maybe you will need make some movements to not be banned by this popular hosting: `.env` file (will be created after `setup.sh` gets called) already has some "config rows" that can be filled to avoid ban.
+You may need a proxy or cookies to avoid upstream request blocking. On the first bootstrap, `setup.sh` creates an `.env` template with the relevant yt-dlp settings; the host configurator never overwrites an existing file.
 
 ---
 
@@ -43,7 +43,7 @@ node --run format
 
 ## Deploying to a VPS
 
-Tested on Ubuntu 24.04. Full deployment documentation lives in `docs/deploy.md`.
+The supported bootstrap platform is Ubuntu 24.04 x86_64. Full deployment documentation lives in `docs/deploy.md`.
 
 Two deployment styles are supported:
 
@@ -60,7 +60,7 @@ git clone https://github.com/aidarkdev/vidium /opt/vidium
 cd /opt/vidium
 bash setup.sh your-domain.com
 nano /opt/vidium/.env
-systemctl enable --now vidium-server vidium-worker
+systemctl enable --now vidium-server vidium-worker vidium-proxy-check.timer
 ```
 
 For HTTPS, point DNS to the VPS and run:

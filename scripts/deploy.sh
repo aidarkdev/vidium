@@ -9,7 +9,9 @@ echo "=== Syncing server code ==="
 rsync -av --delete --chown=root:vidium --chmod=D750,F640 \
   --include='/src/***' \
   --include='/scripts/' \
+  --include='/scripts/setup/***' \
   --include='/scripts/check-proxy-status.ts' \
+  --include='/scripts/runtime-inventory.sh' \
   --include='/package.json' \
   --exclude='*' \
   "${ROOT}/" \
