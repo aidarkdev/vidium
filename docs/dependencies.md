@@ -11,14 +11,13 @@ The runtime dependency model is intentionally small:
 - SQLite is accessed through the Node runtime API used by this project.
 - `yt-dlp` is a pinned system binary installed outside npm by `scripts/setup/install-dependencies.sh`.
 - nginx, certbot, and systemd are system-level runtime tools.
-- `curl` is an optional runtime tool used only by the proxy-check service when a proxy check is configured.
-- `git` is deployment-only tooling for the supported git-based deployment workflow; application services do not use it.
+- `curl` is a deployment-health tool and is also used by the proxy-check service when a proxy check is configured.
 
 Reviewed version and checksum pins live in `scripts/setup/dependency-versions.sh`. Both the
 production dependency installer and `dev-env-setup.sh` read that file; do not duplicate pins in
 the installer scripts.
 
-nginx, certbot, `python3-certbot-nginx`, curl, and git come from the Ubuntu repositories without exact version pins. Ubuntu remains responsible for their updates. Record the versions actually installed on a VPS with `bash scripts/runtime-inventory.sh`; use that saved inventory as input to a separate CVE review.
+nginx, certbot, `python3-certbot-nginx`, and curl come from the Ubuntu repositories without exact version pins. Ubuntu remains responsible for their updates. Record the versions actually installed on a VPS with `bash scripts/runtime-inventory.sh`; use that saved inventory as input to a separate CVE review.
 
 Do not add `dependencies` to `package.json` for application features unless there is a concrete reason that cannot be solved with Node/browser/system APIs already in use.
 
@@ -85,6 +84,6 @@ Do not use remote shell installers for Node.js in production. Updates should be 
 
 ## Deployment
 
-A minimal VPS deploy should copy application source and required runtime data/config only. Do not deploy `node_modules`; the service should not need it.
+A minimal VPS deploy should rsync application source and required runtime data/config only. Do not deploy `.git` or `node_modules`; the service should not need either.
 
 Keep persistent files such as `.env`, `data/`, `media/`, and cookies on the server. Application source can be updated independently.

@@ -4,10 +4,9 @@
 
 The supported bootstrap platform is a fresh Ubuntu 24.04 x86_64 system. The setup script exits before downloads or system changes on any other architecture.
 
-Clone the repo and run the setup script from the project directory:
+Copy the bootstrap files with the first-deploy rsync command from `docs/deploy.md`, then run the setup script on the VPS:
 
 ```bash
-sudo git clone <repo> /opt/vidium
 cd /opt/vidium
 sudo bash setup.sh your-domain.com
 ```
@@ -19,7 +18,7 @@ The domain can alternatively be supplied through the environment: `DOMAIN=your-d
 The wrapper:
 
 - Runs `apt update` without a full OS upgrade
-- Installs pinned Node.js 24 from the official release tarball, pinned yt-dlp, and Ubuntu-packaged nginx, certbot, curl, and git
+- Installs pinned Node.js 24 from the official release tarball, pinned yt-dlp, and Ubuntu-packaged nginx, certbot, and curl
 - Creates `data/` and `media/` directories with correct ownership
 - Sets up nginx config with static file serving and media proxy
 - Creates the unprivileged `vidium` system account and systemd units configured to run as it

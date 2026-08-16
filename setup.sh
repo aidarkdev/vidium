@@ -79,7 +79,7 @@ case "${APP_DIR}" in
 esac
 
 if [ ! -f "${APP_DIR}/package.json" ] || [ ! -d "${APP_DIR}/src" ]; then
-  echo "ERROR: setup.sh must run from a complete vidium project checkout." >&2
+  echo "ERROR: setup.sh must run from a complete vidium project tree." >&2
   exit 1
 fi
 

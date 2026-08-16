@@ -1,11 +1,6 @@
 # Deployment
 
-vidium supports two deployment styles:
-
-- Git-based deployment on the VPS.
-- rsync deployment from a local working tree.
-
-Both are valid. Use git when the VPS should pull a known repository state. Use rsync when the local checkout is the source of truth and you want to copy only runtime-relevant files.
+vidium is deployed with rsync from a clean local checkout. The local machine builds the content-hashed browser assets and sends both server code and assets from the same verified commit. The VPS is not a Git checkout and does not need Git.
 
 The supported bootstrap platform is Ubuntu 24.04 x86_64. Both `setup.sh` and `dev-env-setup.sh` reject other architectures before downloads or machine changes.
 
@@ -26,14 +21,15 @@ Files that should exist on the VPS for the application runtime and supported dep
 - `media/`
 - `cookies.txt` if `YTDLP_COOKIES` points to it
 - `runtime/node` — pinned Node.js runtime installed by `scripts/setup/install-dependencies.sh` directly or through `setup.sh`
-- `deploy/` — content-hashed browser assets and `asset-manifest.json`, built locally by `scripts/prepare-static.ts` and rsynced by `scripts/deploy-static.sh`
+- `deploy/` — content-hashed browser assets and `asset-manifest.json`, built locally by `scripts/prepare-static.ts` and delivered by the deploy scripts
+- `.deployed-revision` — commit SHA written after successful service and HTTP checks
 
 `package.json` is needed for Node module mode because it contains `"type": "module"`. It is not used as an npm dependency manifest.
 
 Files that are not needed for runtime:
 
 - `node_modules/`
-- `.git/` if you use rsync deployment
+- `.git/`
 - docs and development scripts, unless you want them available on the VPS
 - TypeScript/Biome configs, unless you run checks on the VPS
 
@@ -43,31 +39,6 @@ Persistent files must not be overwritten or deleted by application deploys:
 - `data/`
 - `media/`
 - cookies file used by `YTDLP_COOKIES`
-
-## First Deploy With Git
-
-Use this for a clean VPS or when you want the server to manage code through git.
-
-```bash
-ssh root@<VPS_IP>
-git clone https://github.com/aidarkdev/vidium /opt/vidium
-cd /opt/vidium
-bash setup.sh your-domain.com
-nano .env
-systemctl enable --now vidium-server vidium-worker vidium-proxy-check.timer
-```
-
-`setup.sh` is the fresh-host entrypoint. It runs `scripts/setup/install-dependencies.sh` and then `scripts/setup/apply-host-config.sh`. The wrapper and host configurator accept `--configure-firewall=<ssh-port>` when setup should allow that TCP port and `Nginx Full` before enabling UFW; without the option UFW is not changed. They also accept `--force-nginx` for an intentional, backed-up replacement of an existing site file.
-
-After dependencies are already present, the host-only entrypoint is `sudo bash scripts/setup/apply-host-config.sh [--configure-firewall=<ssh-port>] [--force-nginx] <domain>`. It is intended for initial bootstrap, not ordinary deploys, and must not be applied over a Certbot-managed site unless replacing that configuration with `--force-nginx` is intentional.
-
-For both the wrapper and host configurator, `DOMAIN=<domain>` may be used instead of the positional domain, for example `DOMAIN=example.com sudo -E bash setup.sh`.
-
-For HTTPS:
-
-```bash
-certbot --nginx -d your-domain.com
-```
 
 ## First Admin
 
@@ -86,20 +57,9 @@ Replace `YOUR_LOGIN` with the login used in vidium. Check roles:
 
 After one admin exists, manage other admin roles from `/admin`.
 
-## Subsequent Git Deploy
+## nginx Configuration Updates
 
-Deploy only a commit that has passed the required `CI / quality` check on
-`master`. CI does not connect to the VPS and does not deploy automatically.
-
-On the VPS:
-
-```bash
-cd /opt/vidium
-git pull
-systemctl restart vidium-server vidium-worker
-```
-
-Reload nginx only if nginx config changed:
+Reload nginx only if its configuration changed:
 
 ```bash
 nginx -t && systemctl reload nginx
@@ -157,11 +117,13 @@ Production permissions:
 - `data/`: `vidium:vidium`, directories `0700`, files `0600`.
 - `media/`: `vidium:vidium`, directories `2750`, files `0640`; nginx's `www-data` account belongs to the `vidium` group.
 
-## rsync Deploy From Local Checkout
+## Deploy From A Local Checkout
 
-Use this when local files are the source of truth and the VPS should receive only runtime-relevant files.
+The local checkout is the source of truth. Ordinary deployment uses `scripts/deploy.sh`, which refuses a dirty checkout, requires `HEAD` to match `origin/master`, verifies the successful GitHub Actions `quality` check for that commit, builds browser assets locally, and sends only runtime-relevant files.
 
-### First rsync-based deploy
+Local deployment prerequisites are Git, the pinned development Node.js, rsync, and SSH. Git is required only on the local machine; it is not installed on the VPS.
+
+### First deploy
 
 On a fresh VPS, create the application directory and copy the runtime source plus the bootstrap script:
 
@@ -172,7 +134,8 @@ rsync -av \
   --include='/src/***' \
   --include='/scripts/' \
   --include='/scripts/setup/***' \
-  --include='/scripts/***' \
+  --include='/scripts/check-proxy-status.ts' \
+  --include='/scripts/runtime-inventory.sh' \
   --include='/package.json' \
   --exclude='*' \
   ~/<project_path>/vidium/ \
@@ -186,99 +149,67 @@ ssh root@<VPS_IP>
 cd /opt/vidium
 bash setup.sh your-domain.com
 nano .env
-systemctl enable --now vidium-server vidium-worker vidium-proxy-check.timer
+exit
 ```
 
 `setup.sh` prepares the machine by running both helper scripts: it installs system/runtime dependencies, then creates `data/`, `media/`, `deploy/`, nginx config, systemd units, and `.env` when that file is absent. An existing `.env` is preserved. The first copy must contain `setup.sh`, `scripts/setup/install-dependencies.sh`, and `scripts/setup/apply-host-config.sh`. Do not use the wrapper or host configurator as a normal code deploy command.
 
-After setup, deploy application source with rsync, then deploy hashed browser assets (see below).
-
-### Subsequent rsync deploy
-
-Run rsync deployment only from a clean local checkout of the commit that passed
-the required `CI / quality` check on `master`. The deployment scripts do not
-independently verify GitHub status or reject uncommitted source changes.
-
-From the local machine:
+After setup, leave the SSH session and deploy the complete verified revision from the local checkout:
 
 ```bash
-rsync -av --delete --chown=root:vidium --chmod=D750,F640 \
-  --include='/src/***' \
-  --include='/scripts/' \
-  --include='/scripts/setup/***' \
-  --include='/scripts/check-proxy-status.ts' \
-  --include='/scripts/runtime-inventory.sh' \
-  --include='/package.json' \
-  --exclude='*' \
-  ~/<project_path>/vidium/ \
-  root@<VPS_IP>:/opt/vidium/
+scripts/deploy.sh root@<VPS_IP>
+ssh root@<VPS_IP> 'systemctl enable --now vidium-server vidium-worker vidium-proxy-check.timer'
 ```
 
-Then deploy hashed browser assets and restart Node services:
+For HTTPS, point DNS to the VPS and run `certbot --nginx -d your-domain.com` on the VPS.
+
+### Subsequent deploy
+
+Run from the local project root:
 
 ```bash
-~/<project_path>/vidium/scripts/deploy-static.sh root@<VPS_IP>
+scripts/deploy.sh root@<VPS_IP>
 ```
 
-Or run the steps separately:
+The script builds static assets before changing the VPS, rsyncs server code and the prepared assets, restarts `vidium-server` and `vidium-worker`, verifies both units and the local HTTP endpoint, then writes the deployed commit to `/opt/vidium/.deployed-revision`. The source rsync deletes stale files only inside the allowlisted deploy set; excluded persistent files and directories such as `.env`, `data/`, and `media/` are not deleted.
+
+## Optional Maintenance Script Copy
+
+This is not an application deploy. If you specifically need `scripts/import-channels.ts` and `scripts/channels.txt` on the VPS for maintenance, copy them separately:
 
 ```bash
-node ~/<project_path>/vidium/scripts/prepare-static.ts
-rsync -av --delete --chown=root:vidium --chmod=D750,F640 \
-  ~/<project_path>/vidium/tmp/vidium-static/ \
-  root@<VPS_IP>:/opt/vidium/deploy/
-ssh root@<VPS_IP> 'systemctl restart vidium-server vidium-worker'
+rsync -av --chown=root:vidium --chmod=F640 \
+  scripts/import-channels.ts scripts/channels.txt \
+  root@<VPS_IP>:/opt/vidium/scripts/
 ```
 
-This rsync command deletes stale files only inside the included deploy set. It does not delete excluded persistent directories such as `data/` and `media/`.
-
-## Optional rsync With Import Scripts
-
-If you want `scripts/import-channels.ts` and `scripts/channels.txt` available on the VPS, include those scripts too:
-
-```bash
-rsync -av --delete \
-  --include='/src/***' \
-  --include='/scripts/' \
-  --include='/scripts/***' \
-  --include='/package.json' \
-  --exclude='*' \
-  ~/<project_path>/vidium/ \
-  root@<VPS_IP>:/opt/vidium/
-```
-
-## Static Asset Deploy
+## Static-only Deploy
 
 Browser assets (`/engine/`, `/parts/`, `/static/`) are content-hashed at deploy time so nginx can serve them with long-lived immutable caching. The Node server reads `deploy/asset-manifest.json` and emits hashed URLs in HTML.
 
-Prepare locally (writes to `tmp/vidium-static/`):
-
-```bash
-node scripts/prepare-static.ts
-# or: npm run prepare:static
-```
-
-Deploy prepared assets to the VPS:
+When only browser files changed, use the static-only wrapper:
 
 ```bash
 scripts/deploy-static.sh root@<VPS_IP>
 ```
 
-Full rsync deploy sequence:
-
-1. rsync `src/`, the allowlisted runtime scripts, and `package.json` (commands above)
-2. `scripts/deploy-static.sh root@<VPS_IP>`
-
-Git-based VPS deploys still need a local static deploy step — run `scripts/deploy-static.sh` from your checkout after `git pull` on the VPS updates server code.
+It runs the same clean-checkout, `origin/master`, required-CI, restart, smoke-check, and revision-recording steps as the full deploy, but skips the server-source rsync. Do not use it when server code or runtime scripts changed.
 
 Optional env override: `ASSET_MANIFEST_PATH` in `.env` (default: `<app>/deploy/asset-manifest.json`).
 
 ### Migrating an existing VPS to hashed assets
 
-1. Deploy updated server code (`src/` rsync or `git pull`).
+1. Prepare and stage assets without restarting Node:
+
+   ```bash
+   node scripts/prepare-static.ts
+   rsync -av --delete --chown=root:vidium --chmod=D750,F640 \
+     tmp/vidium-static/ root@<VPS_IP>:/opt/vidium/deploy/
+   ```
+
 2. Edit the nginx site config: point `/static/`, `/engine/`, and `/parts/` aliases to `${APP_DIR}/deploy/` and set `Cache-Control: public, max-age=31536000, immutable`. See `scripts/setup/apply-host-config.sh` for the current template.
-3. `nginx -t && systemctl reload nginx`
-4. Run `scripts/deploy-static.sh root@<VPS_IP>` from your local checkout.
+3. Run `nginx -t && systemctl reload nginx`.
+4. Run `scripts/deploy.sh root@<VPS_IP>` from the clean local checkout to deploy and verify the complete revision.
 
 Remove any old `static` → `src/static` symlink; it is no longer used.
 
@@ -292,13 +223,13 @@ If nginx config changed:
 ssh root@<VPS_IP> 'nginx -t && systemctl reload nginx'
 ```
 
-If only `src/` changed:
+For every server-code change, use the complete deployment command:
 
 ```bash
-ssh root@<VPS_IP> 'systemctl restart vidium-server vidium-worker'
+scripts/deploy.sh root@<VPS_IP>
 ```
 
-If browser JS/CSS/images changed, also run `scripts/deploy-static.sh` locally — restarting Node alone does not update hashed files under `deploy/`.
+For a browser-only change, use `scripts/deploy-static.sh` as described above. Restarting Node alone does not update hashed files under `deploy/`.
 
 ## Checks After Deploy
 
@@ -310,4 +241,4 @@ ssh root@<VPS_IP> 'cd /opt/vidium && bash scripts/runtime-inventory.sh' \
   > "vidium-runtime-inventory-$(date -u +%Y%m%dT%H%M%SZ).tsv"
 ```
 
-The inventory command is read-only, performs no network requests, and does not read `.env`, cookies, or host identity. Run it through `bash` because rsync deploys apply file mode `F640` and do not preserve an executable bit. Keep the resulting TSV as input to a separate CVE check; the inventory script does not assess vulnerabilities or install a scanner. It exits nonzero when a required production component is absent or the platform is unsupported. Missing `curl` is reported but is required only when proxy-check is configured; missing `git` is reported but affects only git-based deployment.
+`scripts/deploy.sh` already verifies the systemd units and local HTTP endpoint. The commands above provide additional diagnostics and a runtime inventory. The inventory command is read-only, performs no network requests, and does not read `.env`, cookies, or host identity. Run it through `bash` because rsync deploys apply file mode `F640` and do not preserve an executable bit. Keep the resulting TSV as input to a separate CVE check; the inventory script does not assess vulnerabilities or install a scanner. It exits nonzero when a required production component is absent or the platform is unsupported.

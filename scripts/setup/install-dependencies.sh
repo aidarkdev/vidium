@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-# Ubuntu 24.04 x86_64. Run as root from the vidium checkout:
+# Ubuntu 24.04 x86_64. Run as root from the vidium project directory:
 #   sudo bash scripts/setup/install-dependencies.sh
 
 ARCH="$(uname -m)"
@@ -55,7 +55,7 @@ case "${APP_DIR}" in
 esac
 
 if [ ! -f "${APP_DIR}/package.json" ] || [ ! -d "${APP_DIR}/src" ]; then
-  echo "ERROR: install-dependencies.sh must run from a complete vidium project checkout." >&2
+  echo "ERROR: install-dependencies.sh must run from a complete vidium project tree." >&2
   exit 1
 fi
 
@@ -65,7 +65,7 @@ echo "=== Updating package index ==="
 apt update
 
 echo "=== Installing base packages ==="
-apt install -y curl git
+apt install -y curl
 
 echo "=== Installing nginx ==="
 apt install -y nginx
