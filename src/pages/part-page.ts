@@ -97,7 +97,6 @@ function mediaQueueState(lang: string): Record<string, unknown> {
 
 interface PartPageOptions {
   lang: string;
-  title: string;
   baked: Record<string, unknown>;
   body: string;
   isAdmin: boolean;

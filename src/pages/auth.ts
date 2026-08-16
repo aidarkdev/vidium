@@ -10,7 +10,6 @@ export function renderLoginPage(lang: string, error?: string): string {
 
   return renderPartPage({
     lang,
-    title: page.title,
     isAdmin: false,
     baked: { [page.id]: page.state },
     body: mountScript('/parts/auth-page/index.js', page.id),
@@ -22,7 +21,6 @@ export function renderRegisterPage(lang: string, error?: string): string {
 
   return renderPartPage({
     lang,
-    title: page.title,
     isAdmin: false,
     baked: { [page.id]: page.state },
     body: mountScript('/parts/auth-page/index.js', page.id),

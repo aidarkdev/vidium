@@ -13,13 +13,7 @@ interface FeedCardPagerBakeContext {
   page?: number;
   activeTag?: string;
   activeChannelId?: number;
-  syncUrl?: boolean;
-  pageParam?: string;
   viewerMode?: ViewerMode;
-  downloadPermissions?: {
-    video: boolean;
-    audio: boolean;
-  };
 }
 
 function strings(lang: string): Record<string, string> {
@@ -64,9 +58,6 @@ export function bakeFeedCardPager(ctx: FeedCardPagerBakeContext): {
       total: page.total,
       activeTag,
       activeChannelId,
-      downloadPermissions: ctx.downloadPermissions ?? { video: true, audio: true },
-      pageParam: ctx.pageParam ?? 'page',
-      syncUrl: ctx.syncUrl ?? true,
       loading: false,
       error: '',
       pollingIds: [],

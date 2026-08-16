@@ -23,8 +23,8 @@ interface FeedBakeContext {
 }
 
 type PageBakeResult =
-  | { ok: true; id: string; title: string; state: Record<string, unknown> }
-  | { ok: false; message: string };
+  | { ok: true; id: string; state: Record<string, unknown> }
+  | { ok: false };
 
 type SuccessfulPageBake = Extract<PageBakeResult, { ok: true }>;
 
@@ -32,17 +32,6 @@ interface SystemFeedLink {
   href: string;
   tag: string;
   label: string;
-}
-
-function cardStrings(lang: string): Record<string, string> {
-  return {
-    watch: t(lang, 'card.watch'),
-    listen: t(lang, 'card.listen'),
-    downloadVideo: t(lang, 'card.download.video'),
-    downloadAudio: t(lang, 'card.download.audio'),
-    queued: t(lang, 'card.queued'),
-    downloading: t(lang, 'card.downloading'),
-  };
 }
 
 function labels(lang: string): Record<string, string> {
@@ -98,7 +87,6 @@ function sharedFeedState(ctx: FeedBakeContext, activeTag: string, activeChannelI
   const isGuest = ctx.viewerMode === 'guest';
 
   return {
-    strings: cardStrings(ctx.lang),
     channels: isGuest ? getGuestVisibleChannels() : getAllChannels(),
     tags: isGuest ? getGuestVisibleTags() : getAllTags(),
     activeTag,
@@ -106,7 +94,6 @@ function sharedFeedState(ctx: FeedBakeContext, activeTag: string, activeChannelI
     sidebarOpen: false,
     sidebarMode: resolveSidebarMode(ctx, activeTag, activeChannelId),
     systemFeedLinks: systemFeedLinks(ctx.lang, isGuest),
-    showSidebarModeTabs: true,
     persistSidebarMode: !isGuest,
     editMode: false,
     movingChannelId: 0,
@@ -125,7 +112,6 @@ export function bakeFeedPage(ctx: FeedBakeContext): SuccessfulPageBake {
   return {
     ok: true,
     id: 'feed-page',
-    title: 'vidium',
     state: {
       title: feedTitle(ctx.lang, activeTag),
       ...sharedFeedState(ctx, activeTag, 0),
@@ -137,15 +123,14 @@ export function bakeChannelPage(ctx: FeedBakeContext): PageBakeResult {
   const isGuest = ctx.viewerMode === 'guest';
   const channelId = parseInt(ctx.params.id, 10);
   const channel = getChannelById(channelId);
-  if (!channel) return { ok: false, message: 'Channel not found' };
-  if (isGuest && !channel.guestVisible) return { ok: false, message: 'Channel not found' };
+  if (!channel) return { ok: false };
+  if (isGuest && !channel.guestVisible) return { ok: false };
 
   const title = channel.displayName || channel.name;
 
   return {
     ok: true,
     id: `channel-page-${channel.id}`,
-    title,
     state: {
       title,
       ...sharedFeedState(ctx, '', channel.id),

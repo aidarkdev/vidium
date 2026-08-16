@@ -14,7 +14,6 @@ interface AdminBakeContext {
 
 export function bakeAdminPage(ctx: AdminBakeContext): {
   id: string;
-  title: string;
   state: Record<string, unknown>;
 } {
   const { lang } = ctx;
@@ -22,7 +21,6 @@ export function bakeAdminPage(ctx: AdminBakeContext): {
 
   return {
     id: 'admin-page',
-    title,
     state: {
       title,
       jobs: getRecentJobs(200),

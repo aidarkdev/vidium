@@ -27,7 +27,6 @@ export function renderChannelPage(ctx: ChannelRenderContext): string | undefined
 
   return renderPartPage({
     lang: ctx.lang,
-    title: page.title,
     isAdmin: ctx.isAdmin,
     isGuest: ctx.viewerMode === 'guest',
     baked: { [page.id]: page.state, [pager.id]: pager.state },
@@ -35,11 +34,9 @@ export function renderChannelPage(ctx: ChannelRenderContext): string | undefined
     bodyClass: 'feed-layout',
     /**
      * MacroState contract:
-     * - owns: {page.id}.title
      * - mirrors: editMode <- nav-controls.sidebarEdit
      */
     body: `${mountScript('/parts/feed-page/index.js', page.id, {
-      expose: ['title'],
       subscribe: { editMode: 'nav-controls.sidebarEdit' },
     })}
       ${mountScript('/parts/feed-card-pager/index.js', pager.id)}`,

@@ -14,7 +14,6 @@ export function renderPlayerPage(ctx: PlayerRenderContext): string | undefined {
   if (!page.ok) return undefined;
 
   return renderPartPage({
-    title: page.title,
     lang: ctx.lang,
     isAdmin: ctx.isAdmin,
     isGuest: ctx.isGuest ?? false,

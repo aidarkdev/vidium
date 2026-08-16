@@ -15,7 +15,6 @@ export function renderAdminPage(ctx: AdminRenderContext): string {
 
   return renderPartPage({
     lang: ctx.lang,
-    title: page.title,
     isAdmin: ctx.isAdmin,
     baked: { [page.id]: page.state },
     body: mountScript('/parts/admin-page/index.js', page.id),

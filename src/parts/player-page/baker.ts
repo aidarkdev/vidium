@@ -10,12 +10,12 @@ interface PlayerBakeContext {
 
 export function bakePlayerPage(
   ctx: PlayerBakeContext,
-): { ok: true; id: string; title: string; state: Record<string, unknown> } | { ok: false; message: string } {
+): { ok: true; id: string; state: Record<string, unknown> } | { ok: false } {
   const uid = ctx.params.id;
-  if (!uid) return { ok: false, message: 'Not found' };
+  if (!uid) return { ok: false };
 
   const video = getVideoByUid(uid);
-  if (!video) return { ok: false, message: 'Not found' };
+  if (!video) return { ok: false };
 
   const id = `player-${ctx.kind}-${uid}`;
   const mediaStatus = ctx.kind === 'video' ? video.videoStatus : video.audioStatus;
@@ -23,7 +23,6 @@ export function bakePlayerPage(
   return {
     ok: true,
     id,
-    title: video.title,
     state: {
       kind: ctx.kind,
       uid,

@@ -47,7 +47,6 @@ export function bakeFeedPage(ctx) {
   return {
     ok: true,
     id: 'feed-page',
-    title: 'vidium',
     state: {
       cards: page.items,
       page: page.page,
@@ -61,8 +60,8 @@ export function bakeFeedPage(ctx) {
 For not-found or other page-level absence, bakers MAY return a small result union:
 
 ```ts
-{ ok: true, id, title, state }
-{ ok: false, message }
+{ ok: true, id, state }
+{ ok: false }
 ```
 
 The page renderer decides how to convert that result to HTML or `undefined`; the handler decides the HTTP response (`404`, redirect, etc.).
@@ -113,5 +112,5 @@ If multiple instances need related data, batching is plain server JavaScript:
 ## Baker Errors
 
 - Baker throws → server-side page renderer/handler receives the exception. The application decides: render an error page, return a 500, retry, etc. Server-level decision, not engine-level behavior.
-- Baker returns `{ ok: false, message }` → page renderer may return `undefined` or another typed result; handler maps that to `404`, redirect, etc.
+- Baker returns `{ ok: false }` → page renderer may return `undefined` or another typed result; handler maps that to `404`, redirect, etc.
 - Baked JSON missing a slice for an id → client falls back to `params.microState` or `{}`. For page roots, this is an author/server bug, but not a special engine baker error because the client has no baker concept.

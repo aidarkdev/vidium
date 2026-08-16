@@ -55,7 +55,7 @@ function baseArgs(): string[] {
 }
 
 function youtubeLangArgs(): string[] {
-  return config.DEFAULT_LANG ? ['--extractor-args', `youtube:lang=${config.DEFAULT_LANG}`] : [];
+  return ['--extractor-args', `youtube:lang=${config.DEFAULT_LANG}`];
 }
 
 function run(args: string[], opts: { tolerant?: boolean } = {}): Promise<string> {

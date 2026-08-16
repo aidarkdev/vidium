@@ -42,26 +42,22 @@ function normalizePage(value, fallback) {
   return Number.isInteger(page) && page > 0 ? page : fallback;
 }
 
-function pageFromUrl(part) {
-  return normalizePage(
-    new URL(window.location.href).searchParams.get(part.state.pageParam),
-    1,
-  );
+function pageFromUrl() {
+  return normalizePage(new URL(window.location.href).searchParams.get('page'), 1);
 }
 
-function pageUrl(part, page) {
+function pageUrl(page) {
   const url = new URL(window.location.href);
-  if (page > 1) url.searchParams.set(part.state.pageParam, String(page));
-  else url.searchParams.delete(part.state.pageParam);
+  if (page > 1) url.searchParams.set('page', String(page));
+  else url.searchParams.delete('page');
   return url;
 }
 
 function writePageToUrl(part, page) {
-  if (!part.state.syncUrl) return;
   const mode = part.private.urlWriteMode || 'push';
   part.private.urlWriteMode = '';
   if (mode === 'skip') return;
-  history[mode === 'replace' ? 'replaceState' : 'pushState']({ [part.id]: { page } }, '', pageUrl(part, page));
+  history[mode === 'replace' ? 'replaceState' : 'pushState']({ [part.id]: { page } }, '', pageUrl(page));
 }
 
 function queryForPage(part, page) {
@@ -98,9 +94,7 @@ function rerenderUpdatedCards(part, updates) {
     if (!card || !node) continue;
 
     const fresh = document.createElement('template');
-    fresh.innerHTML = cardHtml(card, part.state.strings, {
-      downloadPermissions: part.state.downloadPermissions,
-    });
+    fresh.innerHTML = cardHtml(card, part.state.strings);
     node.replaceWith(fresh.content.firstElementChild);
   }
 }
@@ -202,7 +196,6 @@ export default {
       const id = btn.dataset.id;
       const type = btn.dataset.type;
       if (!['video', 'audio'].includes(type)) return;
-      if (part.state.downloadPermissions?.[type] === false) return;
 
       try {
         const res = await fetch('/api/download', {
@@ -268,11 +261,11 @@ export default {
   },
   onMount: (part) => {
     part.private.onPopState = () => {
-      loadPage(part, pageFromUrl(part), { updateUrl: false }).catch(() => {});
+      loadPage(part, pageFromUrl(), { updateUrl: false }).catch(() => {});
     };
     window.addEventListener('popstate', part.private.onPopState);
-    const initialUrlPage = pageFromUrl(part);
-    if (part.state.syncUrl && initialUrlPage !== part.state.page) {
+    const initialUrlPage = pageFromUrl();
+    if (initialUrlPage !== part.state.page) {
       loadPage(part, initialUrlPage, { updateUrl: false }).catch(() => {});
     } else {
       restartPolling(part, part.state.cards);

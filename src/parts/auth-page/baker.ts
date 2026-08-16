@@ -3,10 +3,9 @@ import { t } from '../../pages/lang.ts';
 export function bakeLoginPage(
   lang: string,
   error?: string,
-): { id: string; title: string; state: Record<string, unknown> } {
+): { id: string; state: Record<string, unknown> } {
   return {
     id: 'login-page',
-    title: t(lang, 'auth.login.title'),
     state: {
       heading: t(lang, 'auth.login'),
       error: error ? t(lang, error) : '',
@@ -35,10 +34,9 @@ export function bakeLoginPage(
 export function bakeRegisterPage(
   lang: string,
   error?: string,
-): { id: string; title: string; state: Record<string, unknown> } {
+): { id: string; state: Record<string, unknown> } {
   return {
     id: 'register-page',
-    title: t(lang, 'auth.register.title'),
     state: {
       heading: t(lang, 'auth.register'),
       error: error ? t(lang, error) : '',

@@ -18,7 +18,7 @@ function formatDuration(seconds) {
     : `${m}:${String(s).padStart(2, '0')}`;
 }
 
-function actionButton(id, type, status, strings, options = {}) {
+function actionButton(id, type, status, strings) {
   if (status === 'ready') {
     const href = type === 'video' ? `/v/${htmlEscape(id)}` : `/a/${htmlEscape(id)}`;
     const label = type === 'video' ? strings.watch : strings.listen;
@@ -33,8 +33,6 @@ function actionButton(id, type, status, strings, options = {}) {
       data-type="${type}"
     >${htmlEscape(label)}</span>`;
   }
-
-  if (options.downloadPermissions?.[type] === false) return '';
 
   const label = type === 'video' ? strings.downloadVideo : strings.downloadAudio;
   return `<button
@@ -57,7 +55,7 @@ function durationHtml(card) {
   return `<span class="card-duration">${formatDuration(card.duration)}</span>`;
 }
 
-export function cardHtml(card, strings, options = {}) {
+export function cardHtml(card, strings) {
   return `<article class="card" data-id="${htmlEscape(card.uid)}">
     <img
       class="card-thumb"
@@ -75,8 +73,8 @@ export function cardHtml(card, strings, options = {}) {
         ${durationHtml(card)}
       </div>
       <div class="card-actions">
-        ${actionButton(card.uid, 'video', card.videoStatus, strings, options)}
-        ${actionButton(card.uid, 'audio', card.audioStatus, strings, options)}
+        ${actionButton(card.uid, 'video', card.videoStatus, strings)}
+        ${actionButton(card.uid, 'audio', card.audioStatus, strings)}
       </div>
     </div>
   </article>`;
@@ -205,14 +203,13 @@ function systemLinksHtml(state) {
 export function sidebarHtml(state) {
   const regular = state.channels.filter((ch) => ch.id !== 1);
   const systemLinks = systemLinksHtml(state);
-  const modeTabs = state.showSidebarModeTabs === false ? '' : sidebarModeTabs(state);
 
   return `<div
     class="sidebar-panel${state.sidebarOpen ? ' open' : ''}${state.editMode ? ' edit-mode' : ''}"
     data-ref="sidebar"
   >
     ${systemLinks}
-    ${modeTabs}
+    ${sidebarModeTabs(state)}
     <div class="sidebar-channels" data-ref="sidebarChannels">
       ${
         state.sidebarMode === 'tags'
