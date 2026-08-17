@@ -24,12 +24,14 @@ import {
   handleMediaAudio,
   handleThumb,
 } from './handlers/video.ts';
+import { handleDownload, handlePlay } from './handlers/api-media.ts';
 import {
-  handleDownload,
-  handlePlay,
   handleSidebarMode,
   handleStatus,
   handleSince,
+  handleFeedCards,
+} from './handlers/api-feed.ts';
+import {
   handleAddChannel,
   handleAddVideo,
   handleSetChannelDisplayName,
@@ -45,8 +47,7 @@ import {
   handleAdminDeleteJob,
   handleAdminResetVideoStatus,
   handleAdminSetUserRole,
-  handleFeedCards,
-} from './handlers/api.ts';
+} from './handlers/api-admin.ts';
 
 type RouteMethod = 'get' | 'post';
 

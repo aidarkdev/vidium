@@ -6,3 +6,13 @@ media/
 tmp/
 deploy/
 node_modules/
+
+# Local and test-only artifacts
+.DS_Store
+.idea/
+.vscode/
+*.log
+coverage/
+.cache/
+test-results/
+playwright-report/

@@ -1567,6 +1567,52 @@ browserTest(
   },
 );
 
+browserTest(
+  'media queue polling reports one warning per failure streak and retries',
+  async (page) => {
+    await page.clock.install({ time: new Date('2026-08-16T12:00:00Z') });
+    const warnings = [];
+    page.on('console', (message) => {
+      if (message.type() === 'warning') warnings.push(message.text());
+    });
+    await page.evaluate((uid) => {
+      localStorage.setItem(
+        'vidium:media-queue:v1',
+        JSON.stringify([{ uid, type: 'video', title: 'Queued', status: 'queued', addedAt: 1 }]),
+      );
+    }, UID_ONE);
+    let calls = 0;
+    await page.route('**/api/status?*', async (route) => {
+      calls += 1;
+      await page.evaluate((value) => {
+        window.__statusPollCalls = value;
+      }, calls);
+      await route.fulfill({ status: 503, json: { error: 'temporary' } });
+    });
+    await mountRealPart(page, {
+      partName: 'media-queue',
+      id: 'media-queue',
+      state: mediaQueueState(),
+    });
+    await page.locator('[data-action="open"]').click();
+    await page.clock.runFor(0);
+    await page.waitForFunction(
+      () => window.__VIDIUM_TEST__.instances['media-queue'].private.pollErrorReported,
+    );
+    await page.waitForFunction(
+      () => window.__VIDIUM_TEST__.instances['media-queue'].private.pollTimer !== null,
+    );
+    await page.clock.runFor(5000);
+    await page.waitForFunction(() => window.__statusPollCalls === 2);
+
+    assert.equal(calls, 2);
+    assert.equal(
+      warnings.filter((value) => value.includes('Media queue polling failed')).length,
+      1,
+    );
+  },
+);
+
 async function mockPlayerMedia(page, id, values = {}) {
   await page.evaluate(
     ({ instanceId, initial }) => {
@@ -1811,6 +1857,89 @@ browserTest('player records the first play event only once', async (page) => {
     () => window.__VIDIUM_TEST__.instances['player-page'].private.playRecorded,
   );
   assert.equal(playRequests, 1);
+});
+
+browserTest(
+  'player handles browser play rejection and reports failed play recording',
+  async (page) => {
+    await page.clock.install({ time: new Date('2026-08-16T12:00:00Z') });
+    const warnings = [];
+    const pageErrors = [];
+    page.on('console', (message) => {
+      if (message.type() === 'warning') warnings.push(message.text());
+    });
+    page.on('pageerror', (error) => pageErrors.push(error.message));
+    await page.route('**/api/play', (route) =>
+      route.fulfill({ status: 503, json: { error: 'temporary' } }),
+    );
+    await mountRealPart(page, {
+      partName: 'player-page',
+      id: 'player-page',
+      state: playerState(),
+    });
+    await mockPlayerMedia(page, 'player-page', { paused: true });
+    await page.evaluate(() => {
+      const media = window.__VIDIUM_TEST__.instances['player-page'].refs.media;
+      media.play = () =>
+        Promise.reject(Object.assign(new Error('autoplay blocked'), { name: 'NotAllowedError' }));
+    });
+
+    await page.locator('[data-action="toggle-play"]').click();
+    await page.evaluate(() => {
+      window.__VIDIUM_TEST__.instances['player-page'].refs.media.dispatchEvent(new Event('play'));
+    });
+    await page.waitForFunction(
+      () => window.__VIDIUM_TEST__.instances['player-page'].private.playRecordErrorReported,
+    );
+
+    assert.deepEqual(pageErrors, []);
+    assert.equal(
+      warnings.filter((value) => value.includes('play event recording failed')).length,
+      1,
+    );
+    assert.equal(warnings.filter((value) => value.includes('media play failed')).length, 0);
+  },
+);
+
+browserTest('player reports resume storage failure without breaking controls', async (page) => {
+  await page.clock.install({ time: new Date('2026-08-16T12:00:00Z') });
+  const warnings = [];
+  const pageErrors = [];
+  page.on('console', (message) => {
+    if (message.type() === 'warning') warnings.push(message.text());
+  });
+  page.on('pageerror', (error) => pageErrors.push(error.message));
+  await mountRealPart(page, {
+    partName: 'player-page',
+    id: 'player-page',
+    state: playerState(),
+  });
+  await mockPlayerMedia(page, 'player-page', { currentTime: 100, paused: true });
+  await page.evaluate(() => {
+    Object.defineProperty(Storage.prototype, 'setItem', {
+      configurable: true,
+      value() {
+        throw new DOMException('denied');
+      },
+    });
+  });
+
+  await page.locator('[data-action="seek"][data-seek="15"]').click();
+  await page.waitForFunction(
+    () => window.__VIDIUM_TEST__.instances['player-page'].private.resumeStorageErrorReported,
+  );
+
+  assert.deepEqual(pageErrors, []);
+  assert.equal(
+    warnings.filter((value) => value.includes('resume storage is unavailable')).length,
+    1,
+  );
+  assert.equal(
+    await page.evaluate(
+      () => window.__VIDIUM_TEST__.instances['player-page'].refs.media.currentTime,
+    ),
+    115,
+  );
 });
 
 browserTest(

@@ -232,7 +232,7 @@ export default {
       const btn = event.target.closest('[data-action="page"]');
       const page = normalizePage(btn.dataset.page, part.state.page);
       if (page === part.state.page || part.state.loading) return;
-      loadPage(part, page).catch(() => {});
+      void loadPage(part, page);
     },
     'click [data-action="download"]': async (part, event) => {
       const btn = event.target.closest('[data-action="download"]');
@@ -306,12 +306,12 @@ export default {
   },
   onMount: (part) => {
     part.private.onPopState = () => {
-      loadPage(part, pageFromUrl(), { updateUrl: false }).catch(() => {});
+      void loadPage(part, pageFromUrl(), { updateUrl: false });
     };
     window.addEventListener('popstate', part.private.onPopState);
     const initialUrlPage = pageFromUrl();
     if (initialUrlPage !== part.state.page) {
-      loadPage(part, initialUrlPage, { updateUrl: false }).catch(() => {});
+      void loadPage(part, initialUrlPage, { updateUrl: false });
     } else {
       restartPolling(part, part.state.cards);
     }

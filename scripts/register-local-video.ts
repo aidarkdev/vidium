@@ -11,7 +11,7 @@
 import { existsSync } from 'node:fs';
 import { config } from '../src/config.ts';
 import { db } from '../src/lib/db.ts';
-import { generateVideoUid } from '../src/lib/video.ts';
+import { generateVideoUid } from '../src/lib/video-mutations.ts';
 
 const MEDIA_ID_RE = /^[a-zA-Z0-9_-]+$/;
 const MANUAL_CHANNEL_ID = 1;

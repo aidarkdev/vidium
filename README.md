@@ -63,8 +63,9 @@ minimum line, branch, and function coverage. Browser behavior is enforced by the
 separate Chromium suite and is not included in the server coverage percentage.
 
 GitHub Actions runs type checking, linting, formatting checks, server coverage,
-and browser tests for pull requests and pushes to `master`. The `quality` job is
-intended to be configured as a required status check for the protected branch.
+and browser tests for pull requests targeting `master` and pushes to `master`.
+`master` is the current primary CI/CD branch, and the `quality` job is intended
+to be configured as a required status check for it.
 
 ---
 
@@ -124,7 +125,13 @@ After one admin exists, manage roles from `/admin`. Continue with `SETUP.md` for
 
 ### Subsequent deploys
 
-Run from a clean local checkout at the current `origin/master`. The script verifies the required GitHub Actions `quality` check, builds the hashed browser assets, rsyncs server code and assets, restarts the services, performs an HTTP smoke check, and records the deployed commit in `/opt/vidium/.deployed-revision`.
+Run from a clean local checkout at the current `origin/master`. The deployment
+scripts intentionally deploy only the current `master` revision: they verify
+that `HEAD` matches `origin/master` and that the required GitHub Actions
+`quality` check succeeded for that commit. They then build the hashed browser
+assets, rsync server code and assets, restart the services, perform an HTTP
+smoke check, and record the deployed commit in
+`/opt/vidium/.deployed-revision`.
 
 ```bash
 scripts/deploy.sh root@<VPS_IP>
