@@ -4,6 +4,20 @@ vidium is deployed with rsync from a clean local checkout. The local machine bui
 
 The supported bootstrap platform is Ubuntu 24.04 x86_64. Both `setup.sh` and `dev-env-setup.sh` reject other architectures before downloads or machine changes.
 
+## CI/CD Branch Policy
+
+`master` is the current primary CI/CD branch. GitHub Actions runs the `quality`
+workflow for pull requests targeting `master` and for pushes to `master`.
+
+Production deployment is also tied to `master`: `scripts/deploy.sh` and
+`scripts/deploy-static.sh` require a clean checkout whose `HEAD` matches the
+current `origin/master`, then require a successful GitHub Actions `quality`
+check for that exact commit before changing the VPS. A different local branch
+or revision must not be deployed through the supported scripts.
+
+If the primary branch changes in the future, update the GitHub Actions workflow,
+deployment scripts, and this documentation together.
+
 ## Runtime And Maintenance Files
 
 The production app directory is `/opt/vidium`. Application services run as the dedicated unprivileged `vidium` account; code and the pinned runtime remain root-owned.

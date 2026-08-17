@@ -1,4 +1,4 @@
-import { getVideoByUid } from '../../lib/video.ts';
+import { getVideoByUid } from '../../lib/video-queries.ts';
 import { isGuestVisibleChannel } from '../../lib/guest-access.ts';
 import { t } from '../../pages/lang.ts';
 

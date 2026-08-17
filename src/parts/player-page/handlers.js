@@ -25,6 +25,16 @@ const RESUME_MIN_SECONDS = 5;
 const RESUME_END_MARGIN_SECONDS = 10;
 const RESUME_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
 
+function reportAsyncError(part, flag, message, error) {
+  if (part.private[flag]) return;
+  part.private[flag] = true;
+  console.warn(`[player-page] ${message}`, error);
+}
+
+function isExpectedBrowserError(error) {
+  return error?.name === 'AbortError' || error?.name === 'NotAllowedError';
+}
+
 function readResumeTime(part) {
   try {
     const raw = localStorage.getItem(part.state.resumeKey);
@@ -39,7 +49,8 @@ function readResumeTime(part) {
       return 0;
     }
     return time;
-  } catch {
+  } catch (error) {
+    reportAsyncError(part, 'resumeStorageErrorReported', 'resume storage is unavailable', error);
     return 0;
   }
 }
@@ -60,13 +71,17 @@ function saveResumeTime(part) {
       part.state.resumeKey,
       JSON.stringify({ time: part.refs.media.currentTime, updatedAt: Date.now() }),
     );
-  } catch {}
+  } catch (error) {
+    reportAsyncError(part, 'resumeStorageErrorReported', 'resume storage is unavailable', error);
+  }
 }
 
 function clearResumeTime(part) {
   try {
     localStorage.removeItem(part.state.resumeKey);
-  } catch {}
+  } catch (error) {
+    reportAsyncError(part, 'resumeStorageErrorReported', 'resume storage is unavailable', error);
+  }
 }
 
 function restoreResumeTime(part) {
@@ -92,11 +107,34 @@ function syncPlayerProgress(part) {
 function recordFirstPlay(part) {
   if (part.private.playRecorded) return;
   part.private.playRecorded = true;
-  fetch('/api/play', {
+  void fetch('/api/play', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ uid: part.state.uid, kind: part.state.kind }),
-  }).catch(() => {});
+  })
+    .then((res) => {
+      if (!res.ok) throw new Error(`play event request failed: ${res.status}`);
+      part.private.playRecordErrorReported = false;
+    })
+    .catch((error) => {
+      reportAsyncError(part, 'playRecordErrorReported', 'play event recording failed', error);
+    });
+}
+
+function tryPlay(part) {
+  try {
+    Promise.resolve(part.refs.media.play()).catch((error) => {
+      if (!part.private.destroyed) part.set('paused', part.refs.media.paused);
+      if (!isExpectedBrowserError(error)) {
+        reportAsyncError(part, 'mediaPlayErrorReported', 'media play failed', error);
+      }
+    });
+  } catch (error) {
+    if (!part.private.destroyed) part.set('paused', part.refs.media.paused);
+    if (!isExpectedBrowserError(error)) {
+      reportAsyncError(part, 'mediaPlayErrorReported', 'media play failed', error);
+    }
+  }
 }
 
 function syncSleepTimer(part) {
@@ -164,7 +202,10 @@ export default {
         part.set('shareStatus', 'sharing');
         try {
           await navigator.share({ title: part.state.title, url: location.href });
-        } catch {
+        } catch (error) {
+          if (!isExpectedBrowserError(error)) {
+            reportAsyncError(part, 'shareErrorReported', 'native sharing failed', error);
+          }
           // Closing the native share menu is not an error that needs UI feedback.
         }
         if (!part.private.destroyed) part.set('shareStatus', 'idle');
@@ -176,9 +217,12 @@ export default {
         await navigator.clipboard.writeText(location.href);
         if (part.private.destroyed) return;
         part.set('shareStatus', 'copied');
-      } catch {
+      } catch (error) {
         if (part.private.destroyed) return;
         part.set('shareStatus', 'idle');
+        if (!isExpectedBrowserError(error)) {
+          reportAsyncError(part, 'clipboardErrorReported', 'clipboard sharing failed', error);
+        }
         return;
       }
       clearTimeout(part.private.shareStatusTimer);
@@ -211,14 +255,14 @@ export default {
     eventChapterSeek: (part) => {
       part.refs.media.currentTime = Math.max(0, part.state.chapterSeekTime);
       syncPlayerProgress(part);
-      part.refs.media.play().catch(() => {});
+      tryPlay(part);
     },
     eventResume: (part) => {
       part.refs.media.currentTime = Math.max(0, part.state.resumeTime);
       syncActiveChapter(part);
     },
     eventPlay: (part) => {
-      if (part.refs.media.paused) part.refs.media.play();
+      if (part.refs.media.paused) tryPlay(part);
       else part.refs.media.pause();
     },
     paused: (part, value) => {

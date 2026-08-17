@@ -94,7 +94,7 @@ function schedulePoll(part, delay) {
   clearTimeout(part.private.pollTimer);
   part.private.pollTimer = setTimeout(() => {
     part.private.pollTimer = null;
-    poll(part).catch(() => {});
+    void poll(part);
   }, delay);
 }
 
@@ -118,9 +118,14 @@ async function poll(part) {
       changed = true;
       return { ...item, status };
     });
+    part.private.pollErrorReported = false;
     if (changed) part.set('items', items);
   } catch (error) {
     if (error?.name === 'AbortError') return;
+    if (!part.private.pollErrorReported) {
+      console.warn('Media queue polling failed; retrying', error);
+      part.private.pollErrorReported = true;
+    }
   } finally {
     part.private.pollAbort = null;
     if (!part.private.destroyed && part.state.open && pendingIds(part).length) {

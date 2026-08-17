@@ -6,7 +6,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import { config } from '../config.ts';
 import { parseCookies } from '../lib/auth/cookies.ts';
 import { canGuestAccessVideo, getGuestVisibleVideo } from '../lib/guest-access.ts';
-import { getVideoByUid } from '../lib/video.ts';
+import { getVideoByUid } from '../lib/video-queries.ts';
 import { getOptionalSession, notFound, html, NO_STORE } from '../lib/http.ts';
 import { renderPlayerPage } from '../pages/player.ts';
 

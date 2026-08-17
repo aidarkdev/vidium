@@ -8,7 +8,7 @@ import {
   getDownloadedVideos,
   getProblemStatusRows,
   getVideoStatusSummary,
-} from '../../lib/video.ts';
+} from '../../lib/video-queries.ts';
 import { t } from '../../pages/lang.ts';
 
 interface AdminBakeContext {

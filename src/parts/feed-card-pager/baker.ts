@@ -3,7 +3,7 @@ import {
   getGuestVideoPage,
   getVideoPage,
   toPublicVideoRow,
-} from '../../lib/video.ts';
+} from '../../lib/video-queries.ts';
 import type { ViewerMode } from '../../lib/guest-access.ts';
 import { t } from '../../pages/lang.ts';
 
