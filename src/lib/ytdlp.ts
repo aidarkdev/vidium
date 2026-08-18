@@ -48,7 +48,7 @@ export interface CrawlResult {
 // ── Internal ──────────────────────────────────────────────────────────────────
 
 function baseArgs(): string[] {
-  const args: string[] = [];
+  const args: string[] = ['--js-runtimes', `node:${process.execPath}`];
   if (config.YTDLP_PROXY) args.push('--proxy', config.YTDLP_PROXY);
   if (config.YTDLP_COOKIES) args.push('--cookies', config.YTDLP_COOKIES);
   return args;
