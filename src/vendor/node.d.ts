@@ -36,6 +36,7 @@ declare function clearInterval(id: unknown): void;
 declare const process: {
   env: Record<string, string | undefined>;
   argv: string[];
+  execPath: string;
   cwd(): string;
   on(event: 'SIGTERM' | 'SIGINT', listener: () => void): void;
   exit(code?: number): never;

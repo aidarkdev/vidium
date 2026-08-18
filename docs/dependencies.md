@@ -9,7 +9,7 @@ The runtime dependency model is intentionally small:
 - Node.js 24 provides the application runtime and built-in APIs. Production uses the pinned official Linux x64 release tarball installed by `scripts/setup/install-dependencies.sh` under `runtime/node`.
 - Browser code uses native ES modules and DOM APIs.
 - SQLite is accessed through the Node runtime API used by this project.
-- `yt-dlp` is a pinned system binary installed outside npm by `scripts/setup/install-dependencies.sh`.
+- `yt-dlp` is the pinned official Linux x64 bundled binary installed outside npm by `scripts/setup/install-dependencies.sh`. The server-side wrapper explicitly supplies the pinned Node runtime for YouTube JavaScript challenges.
 - nginx, certbot, and systemd are system-level runtime tools.
 - `curl` is a deployment-health tool and is also used by the proxy-check service when a proxy check is configured.
 

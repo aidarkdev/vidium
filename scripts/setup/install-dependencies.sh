@@ -89,7 +89,7 @@ echo "Node.js version: $(${NODE_BIN} --version)"
 
 echo "=== Installing yt-dlp ${YTDLP_VERSION} ==="
 YTDLP_TMP="$(mktemp)"
-curl -fsSL "https://github.com/yt-dlp/yt-dlp/releases/download/${YTDLP_VERSION}/yt-dlp" -o "${YTDLP_TMP}"
+curl -fsSL "https://github.com/yt-dlp/yt-dlp/releases/download/${YTDLP_VERSION}/yt-dlp_linux" -o "${YTDLP_TMP}"
 echo "${YTDLP_SHA256}  ${YTDLP_TMP}" | sha256sum -c -
 install -o root -g root -m 0755 "${YTDLP_TMP}" /usr/local/bin/yt-dlp
 rm -f "${YTDLP_TMP}"

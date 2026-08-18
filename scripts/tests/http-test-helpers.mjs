@@ -19,6 +19,10 @@ export async function createHttpHarness(name) {
     fakeYtDlp,
     `#!/bin/sh
 case "$*" in
+  *--js-runtimes\\ node:*) ;;
+  *) echo "yt-dlp must receive the Node.js runtime" >&2; exit 1 ;;
+esac
+case "$*" in
   *failmeta001*) echo "metadata failed" >&2; exit 1 ;;
 esac
 printf '%s\n' '{"id":"goodmeta001","title":"Fake metadata title","upload_date":"20260815","duration":321}'
