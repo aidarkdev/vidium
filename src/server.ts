@@ -16,6 +16,13 @@ import { handleLogin, handleRegister, handleLogout, handleLang } from './handler
 import { handleFeed } from './handlers/feed.ts';
 import { handleChannel } from './handlers/channel.ts';
 import { handleAdmin } from './handlers/admin.ts';
+import {
+  handleCinema,
+  handleCinemaPlayer,
+  handleCinemaMedia,
+  handleCinemaCreate,
+  handleCinemaDelete,
+} from './handlers/cinema.ts';
 import { handleManifest, handleServiceWorker } from './handlers/pwa.ts';
 import {
   handleVideo,
@@ -58,6 +65,11 @@ interface RouteConfig {
 }
 
 const routes: RouteConfig[] = [
+  { method: 'get', path: '/cinema', handler: handleCinema },
+  { method: 'get', path: '/cinema/v/:id', handler: handleCinemaPlayer },
+  { method: 'get', path: '/cinema/media/:id', handler: handleCinemaMedia },
+  { method: 'post', path: '/api/admin/cinema/video', handler: handleCinemaCreate },
+  { method: 'post', path: '/api/admin/cinema/video/delete', handler: handleCinemaDelete },
   // PWA
   { method: 'get', path: '/manifest.webmanifest', handler: handleManifest },
   { method: 'get', path: '/sw.js', handler: handleServiceWorker },

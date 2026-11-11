@@ -7,6 +7,20 @@ type Lang = 'en' | 'ru';
 
 const strings: Record<Lang, Record<string, string>> = {
   en: {
+    'cinema.title': 'Cinema',
+    'cinema.empty': 'No films yet',
+    'cinema.name': 'Title',
+    'cinema.add': 'Add film',
+    'cinema.waiting': 'Waiting for file',
+    'cinema.watch': 'Watch',
+    'cinema.delete': 'Delete record and file',
+    'cinema.confirm':
+      'Permanently delete this record and both files? Stop its SSH transfer first. This cannot be undone.',
+    'cinema.instructions':
+      'Prepare a browser-compatible MP4 (H.264/AAC, faststart). Replace SSH_TARGET and ./film.mp4. Run rsync locally; only after success run the remaining commands on the VPS (sudo if needed). The .part file must disappear after mv -n; an existing final file is never overwritten. Refresh this page after rename. Stop the transfer before deleting the record.',
+    'cinema.error': 'Could not complete the action. Check the title or retry.',
+    'cinema.previous': 'Previous',
+    'cinema.next': 'Next',
     // Nav
     'nav.logout': 'Log out',
     'nav.manage': 'Manage',
@@ -158,6 +172,20 @@ const strings: Record<Lang, Record<string, string>> = {
   },
 
   ru: {
+    'cinema.title': 'Кинозал',
+    'cinema.empty': 'Фильмов пока нет',
+    'cinema.name': 'Название',
+    'cinema.add': 'Добавить фильм',
+    'cinema.waiting': 'Ожидает файл',
+    'cinema.watch': 'Смотреть',
+    'cinema.delete': 'Удалить запись и файл',
+    'cinema.confirm':
+      'Удалить запись и оба файла навсегда? Сначала остановите её SSH-передачу. Это действие необратимо.',
+    'cinema.instructions':
+      'Подготовьте MP4 для браузера (H.264/AAC, faststart). Замените SSH_TARGET и ./film.mp4. Запустите rsync локально; только после успеха выполните остальные команды на VPS (при необходимости с sudo). После mv -n файл .part должен исчезнуть; существующий конечный файл не перезаписывается. После переименования обновите страницу. Перед удалением записи остановите передачу.',
+    'cinema.error': 'Не удалось выполнить действие. Проверьте название или повторите попытку.',
+    'cinema.previous': 'Назад',
+    'cinema.next': 'Вперёд',
     // Nav
     'nav.logout': 'Выйти',
     'nav.manage': 'Управление',

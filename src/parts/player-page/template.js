@@ -34,6 +34,8 @@ function mediaHtml(state) {
 
 function channelHtml(state) {
   if (!state.channelName) return '';
+  if (state.channelHref)
+    return `<a class="player-channel" href="${htmlEscape(state.channelHref)}">${htmlEscape(state.channelName)}</a>`;
   if (!state.channelId) return `<div class="player-channel">${htmlEscape(state.channelName)}</div>`;
 
   return `<a class="player-channel" href="/channel/${htmlEscape(String(state.channelId))}">${htmlEscape(state.channelName)}</a>`;

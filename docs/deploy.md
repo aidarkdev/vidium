@@ -187,6 +187,66 @@ scripts/deploy.sh root@<VPS_IP>
 
 The script builds static assets before changing the VPS, rsyncs server code and the prepared assets, restarts `vidium-server` and `vidium-worker`, verifies both units and the local HTTP endpoint, then writes the deployed commit to `/opt/vidium/.deployed-revision`. The source rsync deletes stale files only inside the allowlisted deploy set; excluded persistent files and directories such as `.env`, `data/`, and `media/` are not deleted.
 
+## Cinema Storage And Manual Transfer
+
+Fresh setup creates `media/cinema/`. For an existing VPS, after backing up SQLite
+and deploying the checked release, create only this directory (do **not** rerun
+setup or replace a Certbot-managed nginx site). Substitute the actual `MEDIA_DIR`
+from your deployment if it differs:
+
+```bash
+sudo install -d -o vidium -g vidium -m 2750 /opt/vidium/media/cinema
+```
+
+This step is idempotent. First verify that the media root and its parents are
+trusted real directories, not symlinks. nginx's `www-data` must already belong to
+`vidium`; the app/root directories must allow group traversal but not group writes
+by nginx. Final files use `vidium:vidium`, mode `0640`. The SQLite bootstrap adds
+only an independent table and index; it does not rewrite existing videos.
+Ordinary deploy excludes all of `media/`, including Cinema and `.part` files.
+Cleanup scans only `videos/` and `audio/`, never Cinema.
+
+Create an entry in `/cinema` as admin. Substitute its generated `UID`, your SSH
+target and local browser-ready MP4. From the local machine:
+
+```bash
+rsync -avP './film.mp4' root@VPS:/opt/vidium/media/cinema/UID.mp4.part
+```
+
+Only after rsync succeeds, on the VPS:
+
+```bash
+chown vidium:vidium /opt/vidium/media/cinema/UID.mp4.part
+chmod 0640 /opt/vidium/media/cinema/UID.mp4.part
+mv -n /opt/vidium/media/cinema/UID.mp4.part /opt/vidium/media/cinema/UID.mp4
+test ! -e /opt/vidium/media/cinema/UID.mp4.part
+```
+
+`mv -n` must not overwrite an existing final file. Verify that `.part` disappeared:
+its exit status alone is insufficient. A same-directory rename is atomic, does
+not transcode, and does not create a second full copy. Refresh the catalog after
+rename. A `.part` is never playable; repeat rsync after an interrupted transfer.
+
+Root SSH is only an example of the existing workflow, not a requirement. For a
+regular SSH operator, an administrator must arrange narrowly authorized sudo or
+directory write permissions without giving `www-data` write access. For example,
+transfer to the operator's private staging directory, then use authorized sudo to
+rsync into the expected `.mp4.part`, chown/chmod and rename there. Staging may need
+extra disk space; do not grant a shell to the `vidium` service account. Do not store
+SSH hosts, keys or passwords in the app.
+
+Films and unfinished transfers are not auto-cleaned and may fill the disk. Monitor
+the existing disk indicator; delete a record through its Cinema UI or remove stale
+`.part` files manually. **Stop rsync/mv before deleting its entry**: an external
+transfer can otherwise recreate orphan files after deletion. Orphans are not
+served and are not automatically swept. A real deletion error preserves the row
+for retry; already-open nginx playback is not guaranteed to stop immediately.
+
+After an authorized production deploy, perform the smoke test in
+`docs/cinema-implementation-plan.md`: real MP4 playback/seeking and Range through
+nginx, guest denial, direct internal-path denial, private cache headers and delete.
+No nginx reload is needed unless its configuration actually changes.
+
 ## Optional Maintenance Script Copy
 
 This is not an application deploy. If you specifically need `scripts/import-channels.ts` and `scripts/channels.txt` on the VPS for maintenance, copy them separately:

@@ -223,6 +223,41 @@ Examples:
 
 ## Protected Media Flow
 
+### Private Cinema
+
+Cinema has its own `cinema_videos` table (`uid`, `title`, `created_at`) and no
+channel row, worker job, play statistics or guest visibility. Existing YouTube
+queries and cleanup remain unchanged. Readiness is not stored in SQLite.
+
+- `GET /cinema?page=N`: authenticated catalog, 42 entries per page, sorted by
+  `created_at DESC, uid DESC`. Out-of-range pages clamp to the last page.
+- `GET /cinema/v/:uid`: authenticated existing player, 404 unless the file is ready.
+- `GET /cinema/media/:uid`: 404 for guests, unknown records or unavailable files;
+  otherwise `video/mp4`, `Cache-Control: no-store`, and
+  `X-Accel-Redirect: /protected_media/cinema/<uid>.mp4`.
+- `POST /api/admin/cinema/video`: admin + existing same-origin CSRF guard,
+  `{ "title": "..." }`, trimmed nonempty title up to 300 characters, returns 201
+  with UID and expected path. Duplicate titles are allowed.
+- `POST /api/admin/cinema/video/delete`: same guard, `{ "uid": "..." }`;
+  removes precisely `<uid>.mp4` and `<uid>.mp4.part`, then the DB row. Missing
+  files/record are successful retries; real filesystem failures return JSON 500
+  and retain the row, including after a partial deletion. This is not a
+  filesystem/SQLite transaction.
+
+Both APIs reject malformed input and unexpected fields with 400, use the current
+8 KiB body limit, and never accept file bytes or paths. Paths are shown only to
+admins, including in baked JSON. Each catalog read checks only its bounded page;
+the media endpoint checks again before redirecting. Only nonempty readable regular
+final files count: symlinks, directories, empty files and `.part` do not.
+
+The existing **internal** nginx alias covers Cinema; never add a public file alias
+at `/cinema/`. Parent directories must be trusted, non-symlinked and not writable
+by nginx/untrusted users. Node rejects file and cinema-directory symlinks, but
+does not coordinate trusted SSH operators with nginx's later open. Removal after
+the check can produce nginx 404; already-open transfers may finish. Orphan files
+without a row cannot be served. No public sharing, thumbnail, audio, or `/api/play`
+requests are made by the Cinema player; resume storage has its own namespace.
+
 Raw media files are not public through `/media/` paths. The flow is:
 
 ```text

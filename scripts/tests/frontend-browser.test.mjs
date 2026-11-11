@@ -55,6 +55,169 @@ async function mountCustomPart(page, { id, state = {}, params = {}, source }) {
   );
 }
 
+function cinemaState(isAdmin = true) {
+  return {
+    isAdmin,
+    page: 1,
+    pageCount: 1,
+    pending: false,
+    error: '',
+    locationHref: '',
+    labels: {
+      title: 'Cinema',
+      name: 'Title',
+      add: 'Add film',
+      waiting: 'Waiting for file',
+      watch: 'Watch',
+      delete: 'Delete record and file',
+      confirm: 'Irreversible. Stop SSH transfer first.',
+      instructions: 'Transfer then rename',
+      error: 'Action failed',
+      empty: 'No films',
+      previous: 'Previous',
+      next: 'Next',
+    },
+    items: [
+      {
+        uid: UID_ONE,
+        title: '<b>Film</b>',
+        ready: false,
+        expectedPath: '/private/cinema/film.mp4',
+        commands: 'rsync then rename',
+      },
+    ],
+  };
+}
+
+browserTest(
+  'cinema creates with one field, escapes titles and reports API errors',
+  async (page) => {
+    const bodies = [];
+    await page.route('**/api/admin/cinema/video', (route) => {
+      bodies.push(route.request().postDataJSON());
+      return route.fulfill({ status: bodies.length === 1 ? 500 : 201, json: {} });
+    });
+    await page.route('**/cinema', (route) =>
+      route.fulfill({ contentType: 'text/html', body: '<html><body>Reloaded</body></html>' }),
+    );
+    await mountRealPart(page, { partName: 'cinema-page', id: 'cinema-page', state: cinemaState() });
+    assert.equal(await page.locator('form input').count(), 1);
+    assert.equal(await page.locator('h2 b').count(), 0);
+    assert.equal(await page.locator('h2').textContent(), '<b>Film</b>');
+    assert.equal(await page.locator('a[href*="/cinema/v/"]').count(), 0);
+    assert.match(await page.locator('.cinema-item').textContent(), /Waiting for file/);
+    await page.locator('input[name="title"]').fill(' New film ');
+    await page.locator('button[type="submit"]').click();
+    await page.waitForFunction(
+      () => document.querySelector('[role="alert"]').textContent === 'Action failed',
+    );
+    assert.deepEqual(bodies[0], { title: 'New film' });
+    await page.locator('button[type="submit"]').click();
+    await page.waitForURL('**/cinema');
+    assert.equal(bodies.length, 2);
+  },
+);
+
+browserTest(
+  'cinema ready view hides admin instructions from user and confirms deletion for admin',
+  async (page) => {
+    const state = cinemaState(false);
+    state.items[0].ready = true;
+    delete state.items[0].expectedPath;
+    delete state.items[0].commands;
+    await mountRealPart(page, { partName: 'cinema-page', id: 'cinema-page', state });
+    assert.equal(await page.locator(`a[href="/cinema/v/${UID_ONE}"]`).textContent(), 'Watch');
+    assert.equal(await page.locator('form, details, button').count(), 0);
+    await destroyPart(page, 'cinema-page');
+    await preparePage(page, { 'cinema-page': cinemaState() });
+    await mountRealPart(page, {
+      partName: 'cinema-page',
+      id: 'cinema-admin',
+      params: { microState: cinemaState() },
+    });
+    let deletes = 0;
+    await page.route('**/api/admin/cinema/video/delete', (route) => {
+      deletes++;
+      assert.deepEqual(route.request().postDataJSON(), { uid: UID_ONE });
+      return route.fulfill({ status: deletes === 1 ? 500 : 200, json: {} });
+    });
+    await page.route('**/cinema?page=1', (route) =>
+      route.fulfill({ contentType: 'text/html', body: '<html><body>Deleted</body></html>' }),
+    );
+    page.once('dialog', (dialog) => dialog.dismiss());
+    await page.locator('[data-action="delete"]').click();
+    assert.equal(deletes, 0);
+    page.once('dialog', (dialog) => {
+      assert.match(dialog.message(), /<b>Film<\/b>[\s\S]*Irreversible/);
+      return dialog.accept();
+    });
+    await page.locator('[data-action="delete"]').click();
+    await page.waitForFunction(
+      () => document.querySelector('[role="alert"]').textContent === 'Action failed',
+    );
+    assert.equal(deletes, 1);
+    page.once('dialog', (dialog) => dialog.accept());
+    await page.locator('[data-action="delete"]').click();
+    await page.waitForURL('**/cinema?page=1');
+    assert.equal(deletes, 2);
+  },
+);
+
+browserTest('cinema navigation is present for user but absent for guest', async (page) => {
+  await mountRealPart(page, {
+    partName: 'nav-controls',
+    id: 'guest-nav',
+    state: navState({ isGuest: true, isAdmin: false, cinemaLabel: 'Cinema' }),
+  });
+  assert.equal(await page.locator('a[href="/cinema"]').count(), 0);
+  await destroyPart(page, 'guest-nav');
+  await mountRealPart(page, {
+    partName: 'nav-controls',
+    id: 'user-nav',
+    params: { microState: navState({ isGuest: false, isAdmin: false, cinemaLabel: 'Cinema' }) },
+  });
+  assert.equal(await page.locator('a[href="/cinema"]').textContent(), 'Cinema');
+});
+
+browserTest(
+  'cinema player reuses controls and resume without YouTube-only requests or sharing',
+  async (page) => {
+    const requests = [];
+    page.on('request', (request) => requests.push(new URL(request.url()).pathname));
+    const state = {
+      ...playerState(),
+      kind: 'video',
+      recordPlay: false,
+      shareAvailable: false,
+      thumbSrc: '',
+      channelName: 'Cinema',
+      channelHref: '/cinema',
+      chapters: [],
+      mediaSrc: `/cinema/media/${UID_ONE}`,
+      resumeKey: `vidium:player-position:cinema:${UID_ONE}`,
+    };
+    await page.clock.install({ time: new Date('2026-08-16T12:00:00Z') });
+    await mountRealPart(page, { partName: 'player-page', id: 'player-cinema', state });
+    await mockPlayerMedia(page, 'player-cinema', { duration: 1800, currentTime: 100 });
+    await page.locator('[data-ref="media"]').dispatchEvent('loadedmetadata');
+    await page.locator('[data-action="toggle-play"]').click();
+    await page.locator('[data-action="seek"][data-seek="15"]').click();
+    await page.locator('[data-action="toggle-rate"]').click();
+    await page.clock.runFor(5000);
+    assert.equal(await page.locator('.player-channel').getAttribute('href'), '/cinema');
+    assert.equal(await page.locator('[data-action="share"], img, .player-chapters').count(), 0);
+    assert.equal((await partState(page, 'player-cinema')).paused, false);
+    assert.equal((await partState(page, 'player-cinema')).playbackRate, 1.25);
+    assert.equal(
+      await page.evaluate((key) => JSON.parse(localStorage.getItem(key)).time, state.resumeKey),
+      115,
+    );
+    assert.ok(
+      !requests.some((path) => /^\/(api\/play|t\/|media\/[av]\/|api\/download)/.test(path)),
+    );
+  },
+);
+
 test('frontend fixture serves only safe browser modules with JavaScript MIME', async () => {
   const engine = await fetch(`${harness.origin}/engine/core.js`);
   assert.equal(engine.status, 200);

@@ -1,5 +1,26 @@
 /* vidium — minimal styles */
 
+.cinema-item {
+  padding: 1rem 0;
+  border-bottom: 1px solid var(--border-default);
+}
+
+.cinema-item pre {
+  overflow-x: auto;
+  padding: 1rem;
+  background: var(--surface-panel-bg);
+}
+
+.cinema-item code {
+  overflow-wrap: anywhere;
+}
+
+.cinema-pagination {
+  display: flex;
+  gap: 1rem;
+  margin: 1rem 0;
+}
+
 :root {
   /* Surfaces */
   --page-bg: rgb(23, 23, 23);

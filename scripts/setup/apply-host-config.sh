@@ -216,7 +216,7 @@ fi
 usermod -a -G "${APP_GROUP}" www-data
 
 echo "=== Creating runtime directories ==="
-mkdir -p "${MEDIA_DIR}/videos" "${MEDIA_DIR}/audio" "${MEDIA_DIR}/thumbs"
+mkdir -p "${MEDIA_DIR}/videos" "${MEDIA_DIR}/audio" "${MEDIA_DIR}/thumbs" "${MEDIA_DIR}/cinema"
 mkdir -p "${DATA_DIR}"
 mkdir -p "${APP_DIR}/deploy"
 chown "root:${APP_GROUP}" "${APP_DIR}" "${APP_DIR}/package.json" "${APP_DIR}/setup.sh"

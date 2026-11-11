@@ -1,11 +1,13 @@
 import { getVideoByUid } from '../../lib/video-queries.ts';
 import { isGuestVisibleChannel } from '../../lib/guest-access.ts';
 import { t } from '../../pages/lang.ts';
+import { getCinemaVideo, cinemaFileReady } from '../../lib/cinema.ts';
 
 interface PlayerBakeContext {
   kind: 'video' | 'audio';
   lang: string;
   params: Record<string, string>;
+  cinema?: boolean;
 }
 
 export function bakePlayerPage(
@@ -14,10 +16,22 @@ export function bakePlayerPage(
   const uid = ctx.params.id;
   if (!uid) return { ok: false };
 
-  const video = getVideoByUid(uid);
+  const movie = ctx.cinema ? getCinemaVideo(uid) : undefined;
+  if (ctx.cinema && (!movie || !cinemaFileReady(uid))) return { ok: false };
+  const video = ctx.cinema
+    ? movie && {
+        title: movie.title,
+        channelId: 0,
+        channelName: t(ctx.lang, 'cinema.title'),
+        duration: 0,
+        chapters: [],
+        videoStatus: 'ready',
+        audioStatus: 'none',
+      }
+    : getVideoByUid(uid);
   if (!video) return { ok: false };
 
-  const id = `player-${ctx.kind}-${uid}`;
+  const id = `player-${ctx.cinema ? 'cinema' : ctx.kind}-${uid}`;
   const mediaStatus = ctx.kind === 'video' ? video.videoStatus : video.audioStatus;
 
   return {
@@ -29,14 +43,21 @@ export function bakePlayerPage(
       title: video.title,
       channelId: video.channelId,
       channelName: video.channelName,
+      channelHref: ctx.cinema ? '/cinema' : video.channelId ? `/channel/${video.channelId}` : '',
+      recordPlay: !ctx.cinema,
       mediaDurationSeconds: video.duration,
       chapters: video.chapters,
-      resumeKey: `vidium:player-position:${ctx.kind}:${uid}`,
-      mediaSrc: ctx.kind === 'video' ? `/media/v/${uid}` : `/media/a/${uid}`,
-      thumbSrc: `/t/${uid}`,
+      resumeKey: `vidium:player-position:${ctx.cinema ? 'cinema' : ctx.kind}:${uid}`,
+      mediaSrc: ctx.cinema
+        ? `/cinema/media/${uid}`
+        : ctx.kind === 'video'
+          ? `/media/v/${uid}`
+          : `/media/a/${uid}`,
+      thumbSrc: ctx.cinema ? '' : `/t/${uid}`,
       backLabel: t(ctx.lang, 'player.back'),
       shareLabel: t(ctx.lang, 'player.share'),
-      shareAvailable: isGuestVisibleChannel(video.channelId) && mediaStatus === 'ready',
+      shareAvailable:
+        !ctx.cinema && isGuestVisibleChannel(video.channelId) && mediaStatus === 'ready',
       sleepLabel: t(ctx.lang, 'player.sleep'),
       eventBack: 0,
       seekDelta: 0,

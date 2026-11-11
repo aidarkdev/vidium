@@ -35,6 +35,7 @@ function navState(lang: string, isAdmin: boolean, isGuest: boolean): Record<stri
   return {
     isAdmin,
     isGuest,
+    cinemaLabel: t(lang, 'cinema.title'),
     controlsLabel: t(lang, 'nav.controls'),
     manageLabel: t(lang, 'nav.manage'),
     editLabel: t(lang, 'sidebar.edit'),
