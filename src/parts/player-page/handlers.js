@@ -105,6 +105,7 @@ function syncPlayerProgress(part) {
 }
 
 function recordFirstPlay(part) {
+  if (part.state.recordPlay === false) return;
   if (part.private.playRecorded) return;
   part.private.playRecorded = true;
   void fetch('/api/play', {
@@ -159,7 +160,7 @@ function setupMediaSession(part) {
       navigator.mediaSession.metadata = new MediaMetadata({
         title: part.state.title,
         artist: part.state.channelName,
-        artwork: [{ src: part.state.thumbSrc }],
+        artwork: part.state.thumbSrc ? [{ src: part.state.thumbSrc }] : [],
       });
     }
     navigator.mediaSession.playbackState = part.refs.media.paused ? 'paused' : 'playing';

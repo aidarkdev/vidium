@@ -124,6 +124,23 @@ After crawling finishes (1-3 minutes per channel), refresh the page — video ca
 - **Watch/Listen** — once downloaded, buttons change to "Watch" / "Listen" for streaming through the browser
 - **Auto-update** — RSS polling runs every 30 minutes to pick up new uploads
 
+### Cinema: manually prepared local films
+
+After login, open **Cinema** (`/cinema`). Only admins create/delete entries;
+other users can watch. The only creation field is the title. Each entry shows
+the admin its UID, expected path under `MEDIA_DIR/cinema/`, and transfer commands.
+Films never appear in YouTube feeds, RSS, downloads, or automatic disk cleanup.
+
+Prepare a browser-compatible MP4 yourself (recommended H.264/AAC with faststart).
+The app does not inspect codecs, transcode, upload, or generate posters. Follow
+the `.part` → final-file workflow in [deployment documentation](docs/deploy.md#cinema-storage-and-manual-transfer).
+Refresh the catalog after the rename; no attach/import action is needed.
+
+Cinema files and unfinished transfers can fill the disk: monitor the existing
+disk indicator and remove films explicitly. Stop an entry's SSH transfer before
+deleting it. Deletion removes its record, final file and `.part`; it is irreversible.
+Already-open playback may continue until nginx closes the file.
+
 ## 7. HTTPS (production)
 
 Point DNS to your server, then:

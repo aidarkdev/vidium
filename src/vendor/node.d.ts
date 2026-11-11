@@ -151,6 +151,16 @@ declare module 'node:crypto' {
 // ── node:fs ───────────────────────────────────────────────────────────────────
 
 declare module 'node:fs' {
+  interface FileStats {
+    size: number;
+    isFile(): boolean;
+    isDirectory(): boolean;
+  }
+  export const constants: { O_RDONLY: number; O_NOFOLLOW: number; O_NONBLOCK: number };
+  export function openSync(path: string, flags: number): number;
+  export function closeSync(fd: number): void;
+  export function fstatSync(fd: number): FileStats;
+  export function lstatSync(path: string): FileStats;
   function existsSync(path: string): boolean;
   function mkdirSync(path: string, options?: { recursive?: boolean }): void;
   function unlinkSync(path: string): void;

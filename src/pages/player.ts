@@ -7,6 +7,7 @@ interface PlayerRenderContext {
   params: Record<string, string>;
   isAdmin: boolean;
   isGuest?: boolean;
+  cinema?: boolean;
 }
 
 export function renderPlayerPage(ctx: PlayerRenderContext): string | undefined {
