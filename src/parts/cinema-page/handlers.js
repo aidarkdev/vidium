@@ -40,6 +40,7 @@ export default {
   state: {
     error: (part, value) => {
       part.refs.error.textContent = value;
+      part.refs.error.hidden = !value;
     },
     pending: (part, value) => {
       for (const button of part.root.querySelectorAll('button')) button.disabled = value;

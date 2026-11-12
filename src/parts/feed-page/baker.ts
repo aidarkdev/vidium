@@ -28,7 +28,7 @@ type SuccessfulPageBake = Extract<PageBakeResult, { ok: true }>;
 
 interface SystemFeedLink {
   href: string;
-  tag: string;
+  tag?: string;
   label: string;
 }
 
@@ -58,6 +58,7 @@ function systemFeedLinks(lang: string, isGuest: boolean): SystemFeedLink[] {
     links.push(
       { href: '/feed/ready', tag: FEED_TAG_READY, label: t(lang, 'tag.ready') },
       { href: '/feed/manual', tag: FEED_TAG_MANUAL, label: manualChannelLabel() },
+      { href: '/cinema', label: t(lang, 'cinema.title') },
     );
   }
   return links;

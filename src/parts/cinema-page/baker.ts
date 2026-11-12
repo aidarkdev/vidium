@@ -16,6 +16,9 @@ export function bakeCinemaPage(ctx: CinemaContext) {
   const labels = Object.fromEntries(
     [
       'title',
+      'create',
+      'create_hint',
+      'library',
       'empty',
       'name',
       'add',
