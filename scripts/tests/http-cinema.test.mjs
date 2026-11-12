@@ -27,7 +27,10 @@ test('cinema is pinned below uploads only for authenticated viewers', async () =
   for (const cookie of [undefined, user, admin]) {
     const baked = h.parseBaked(await h.readHtml(await h.request('/feed', { cookie })));
     const links = baked['feed-page'].systemFeedLinks;
-    assert.equal(links.some((link) => link.href === '/cinema'), Boolean(cookie));
+    assert.equal(
+      links.some((link) => link.href === '/cinema'),
+      Boolean(cookie),
+    );
     if (cookie) {
       const uploads = links.findIndex((link) => link.href === '/feed/manual');
       assert.ok(uploads >= 0);

@@ -201,29 +201,35 @@ browserTest('cinema navigation moves from header to pinned sidebar below uploads
   assert.equal(await page.locator('.sidebar-system a[href="/cinema"]').count(), 1);
 });
 
-browserTest('cinema form is separate from library and fits wide and narrow screens', async (page) => {
-  await mountRealPart(page, { partName: 'cinema-page', id: 'cinema-page', state: cinemaState() });
-  await page.addStyleTag({
-    content: await readFile(new URL('../../src/static/css/style.css', import.meta.url), 'utf8'),
-  });
-  assert.equal(await page.locator('.cinema-create form').count(), 1);
-  assert.equal(await page.locator('.cinema-create .cinema-item').count(), 0);
-  assert.equal(await page.locator('.cinema-library .cinema-item').count(), 1);
-  assert.equal(await page.locator('.cinema-create [role="alert"]').isHidden(), true);
-  for (const width of [1920, 375]) {
-    await page.setViewportSize({ width, height: 900 });
-    const panel = await page.locator('.cinema-create').boundingBox();
-    const input = await page.locator('input[name="title"]').boundingBox();
-    const button = await page.locator('button[type="submit"]').boundingBox();
-    const library = await page.locator('.cinema-library').boundingBox();
-    assert.ok(panel.width <= 640);
-    assert.ok(input.x >= panel.x && input.x + input.width <= panel.x + panel.width);
-    assert.ok(button.width < input.width * 0.6);
-    assert.ok(button.y >= input.y + input.height);
-    assert.ok(library.y > panel.y + panel.height);
-    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
-  }
-});
+browserTest(
+  'cinema form is separate from library and fits wide and narrow screens',
+  async (page) => {
+    await mountRealPart(page, { partName: 'cinema-page', id: 'cinema-page', state: cinemaState() });
+    await page.addStyleTag({
+      content: await readFile(new URL('../../src/static/css/style.css', import.meta.url), 'utf8'),
+    });
+    assert.equal(await page.locator('.cinema-create form').count(), 1);
+    assert.equal(await page.locator('.cinema-create .cinema-item').count(), 0);
+    assert.equal(await page.locator('.cinema-library .cinema-item').count(), 1);
+    assert.equal(await page.locator('.cinema-create [role="alert"]').isHidden(), true);
+    for (const width of [1920, 375]) {
+      await page.setViewportSize({ width, height: 900 });
+      const panel = await page.locator('.cinema-create').boundingBox();
+      const input = await page.locator('input[name="title"]').boundingBox();
+      const button = await page.locator('button[type="submit"]').boundingBox();
+      const library = await page.locator('.cinema-library').boundingBox();
+      assert.ok(panel.width <= 640);
+      assert.ok(input.x >= panel.x && input.x + input.width <= panel.x + panel.width);
+      assert.ok(button.width < input.width * 0.6);
+      assert.ok(button.y >= input.y + input.height);
+      assert.ok(library.y > panel.y + panel.height);
+      assert.equal(
+        await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+        true,
+      );
+    }
+  },
+);
 
 browserTest(
   'cinema player reuses controls and resume without YouTube-only requests or sharing',

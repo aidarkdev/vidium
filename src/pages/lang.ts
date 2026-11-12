@@ -9,7 +9,8 @@ const strings: Record<Lang, Record<string, string>> = {
   en: {
     'cinema.title': 'Cinema',
     'cinema.create': 'Add video',
-    'cinema.create_hint': 'Create a record first. File transfer instructions will appear in the list below.',
+    'cinema.create_hint':
+      'Create a record first. File transfer instructions will appear in the list below.',
     'cinema.library': 'Videos in cinema',
     'cinema.empty': 'No films yet',
     'cinema.name': 'Title',
@@ -177,7 +178,8 @@ const strings: Record<Lang, Record<string, string>> = {
   ru: {
     'cinema.title': 'Кинозал',
     'cinema.create': 'Добавить видео',
-    'cinema.create_hint': 'Сначала создайте запись. Инструкции по переносу файла появятся в списке ниже.',
+    'cinema.create_hint':
+      'Сначала создайте запись. Инструкции по переносу файла появятся в списке ниже.',
     'cinema.library': 'Видео в кинозале',
     'cinema.empty': 'Фильмов пока нет',
     'cinema.name': 'Название',
