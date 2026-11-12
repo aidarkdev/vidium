@@ -23,6 +23,24 @@ const create = (title = 'Cinema only') =>
   post(createUrl, { title }).then((r) => h.readJson(r, 201));
 const row = (uid) => h.db.prepare('SELECT * FROM cinema_videos WHERE uid = ?').get(uid);
 
+test('cinema is pinned below uploads only for authenticated viewers', async () => {
+  for (const cookie of [undefined, user, admin]) {
+    const baked = h.parseBaked(await h.readHtml(await h.request('/feed', { cookie })));
+    const links = baked['feed-page'].systemFeedLinks;
+    assert.equal(
+      links.some((link) => link.href === '/cinema'),
+      Boolean(cookie),
+    );
+    if (cookie) {
+      const uploads = links.findIndex((link) => link.href === '/feed/manual');
+      assert.ok(uploads >= 0);
+      assert.equal(links[uploads + 1].href, '/cinema');
+      assert.ok(links[uploads + 1].label);
+    }
+    assert.equal(baked['nav-controls'].cinemaLabel, undefined);
+  }
+});
+
 test('cinema authorization, validation, XSS, independent schema and pagination', async () => {
   await h.readRedirect(await h.request('/cinema'), '/login');
   assert.equal(

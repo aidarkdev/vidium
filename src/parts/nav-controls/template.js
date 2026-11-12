@@ -81,7 +81,6 @@ export default function template(state) {
     </form>`;
 
   return `<div class="nav-controls" data-ref="root">
-    ${state.isGuest ? '' : `<a href="/cinema" class="nav-lang">${htmlEscape(state.cinemaLabel)}</a>`}
     ${adminControls}
     <a href="${htmlEscape(state.langHref)}" class="nav-lang">
       ${htmlEscape(state.langLabel)}

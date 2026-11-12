@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import { request } from 'node:http';
 import { after, before, test } from 'node:test';
 import {
@@ -65,6 +66,9 @@ function cinemaState(isAdmin = true) {
     locationHref: '',
     labels: {
       title: 'Cinema',
+      create: 'Add video',
+      create_hint: 'Create a record first. Transfer instructions will appear below.',
+      library: 'Videos in cinema',
       name: 'Title',
       add: 'Add film',
       waiting: 'Waiting for file',
@@ -102,8 +106,8 @@ browserTest(
     );
     await mountRealPart(page, { partName: 'cinema-page', id: 'cinema-page', state: cinemaState() });
     assert.equal(await page.locator('form input').count(), 1);
-    assert.equal(await page.locator('h2 b').count(), 0);
-    assert.equal(await page.locator('h2').textContent(), '<b>Film</b>');
+    assert.equal(await page.locator('.cinema-item h3 b').count(), 0);
+    assert.equal(await page.locator('.cinema-item h3').textContent(), '<b>Film</b>');
     assert.equal(await page.locator('a[href*="/cinema/v/"]').count(), 0);
     assert.match(await page.locator('.cinema-item').textContent(), /Waiting for file/);
     await page.locator('input[name="title"]').fill(' New film ');
@@ -163,7 +167,7 @@ browserTest(
   },
 );
 
-browserTest('cinema navigation is present for user but absent for guest', async (page) => {
+browserTest('cinema navigation moves from header to pinned sidebar below uploads', async (page) => {
   await mountRealPart(page, {
     partName: 'nav-controls',
     id: 'guest-nav',
@@ -176,8 +180,56 @@ browserTest('cinema navigation is present for user but absent for guest', async 
     id: 'user-nav',
     params: { microState: navState({ isGuest: false, isAdmin: false, cinemaLabel: 'Cinema' }) },
   });
-  assert.equal(await page.locator('a[href="/cinema"]').textContent(), 'Cinema');
+  assert.equal(await page.locator('a[href="/cinema"]').count(), 0);
+  await destroyPart(page, 'user-nav');
+  await mountRealPart(page, {
+    partName: 'feed-page',
+    id: 'feed-page',
+    params: {
+      microState: feedPageState({
+        systemFeedLinks: [
+          { href: '/feed', tag: 'all', label: 'All' },
+          { href: '/feed/manual', tag: 'manual', label: 'Uploads' },
+          { href: '/cinema', label: 'Cinema' },
+        ],
+      }),
+    },
+  });
+  assert.equal(await page.locator('.sidebar-system a').last().textContent(), 'Cinema');
+  assert.equal(await page.locator('a[href="/feed/manual"] + a').getAttribute('href'), '/cinema');
+  await page.locator('[data-action="sidebar-mode"][data-mode="tags"]').click();
+  assert.equal(await page.locator('.sidebar-system a[href="/cinema"]').count(), 1);
 });
+
+browserTest(
+  'cinema form is separate from library and fits wide and narrow screens',
+  async (page) => {
+    await mountRealPart(page, { partName: 'cinema-page', id: 'cinema-page', state: cinemaState() });
+    await page.addStyleTag({
+      content: await readFile(new URL('../../src/static/css/style.css', import.meta.url), 'utf8'),
+    });
+    assert.equal(await page.locator('.cinema-create form').count(), 1);
+    assert.equal(await page.locator('.cinema-create .cinema-item').count(), 0);
+    assert.equal(await page.locator('.cinema-library .cinema-item').count(), 1);
+    assert.equal(await page.locator('.cinema-create [role="alert"]').isHidden(), true);
+    for (const width of [1920, 375]) {
+      await page.setViewportSize({ width, height: 900 });
+      const panel = await page.locator('.cinema-create').boundingBox();
+      const input = await page.locator('input[name="title"]').boundingBox();
+      const button = await page.locator('button[type="submit"]').boundingBox();
+      const library = await page.locator('.cinema-library').boundingBox();
+      assert.ok(panel.width <= 640);
+      assert.ok(input.x >= panel.x && input.x + input.width <= panel.x + panel.width);
+      assert.ok(button.width < input.width * 0.6);
+      assert.ok(button.y >= input.y + input.height);
+      assert.ok(library.y > panel.y + panel.height);
+      assert.equal(
+        await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+        true,
+      );
+    }
+  },
+);
 
 browserTest(
   'cinema player reuses controls and resume without YouTube-only requests or sharing',

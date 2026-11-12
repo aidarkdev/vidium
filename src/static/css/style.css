@@ -1,5 +1,81 @@
 /* vidium — minimal styles */
 
+.cinema-page {
+  min-width: 0;
+}
+
+.cinema-create {
+  max-width: 40rem;
+  margin: 1.5rem 0 2rem;
+  padding: 1.25rem;
+  border: var(--border-width) solid var(--border-default);
+  border-radius: var(--radius-lg);
+  background: var(--surface-panel-bg);
+}
+
+.cinema-create h2,
+.cinema-library > h2 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.cinema-create-hint {
+  margin: 0.5rem 0 1.25rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.cinema-create-form,
+.cinema-create-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.cinema-create-form {
+  gap: 1rem;
+}
+
+.cinema-create-form input,
+.cinema-create-form button {
+  padding: 0.65rem 0.85rem;
+  border: var(--border-width) solid var(--border-control);
+  border-radius: var(--radius-sm);
+  font: inherit;
+}
+
+.cinema-create-form input {
+  width: 100%;
+  min-width: 0;
+  background: var(--surface-control-bg);
+  color: var(--text-primary);
+}
+
+.cinema-create-form button {
+  align-self: flex-start;
+  max-width: 100%;
+  border-color: transparent;
+  background: var(--primary-action-bg);
+  color: var(--text-strong);
+  cursor: pointer;
+}
+
+.cinema-create-form button:disabled {
+  opacity: var(--opacity-control-disabled);
+  cursor: wait;
+}
+
+.cinema-error {
+  margin: 1rem 0 0;
+  color: var(--danger-text);
+}
+
+.cinema-library {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: var(--border-width) solid var(--border-default);
+}
+
 .cinema-item {
   padding: 1rem 0;
   border-bottom: 1px solid var(--border-default);
